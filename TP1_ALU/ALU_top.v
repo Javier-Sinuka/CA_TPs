@@ -2,48 +2,51 @@
 // Los registros guardan los valores cargados desde los switches; la ALU
 // instanciada debajo permanece puramente combinacional.
 module ALU_top #(
-    parameter DATA_WIDTH   = 8,
-    parameter SWITCH_WIDTH = (DATA_WIDTH < 6) ? 6 : DATA_WIDTH
+    parameter DATA_LEN = 8,
+    parameter OP_LEN = 6
 ) (
-    input  wire                    clk,
-    input  wire                    reset,
-    input  wire [SWITCH_WIDTH-1:0] SW,
-    input  wire                    load_A,
-    input  wire                    load_B,
-    input  wire                    load_Op,
-    output wire [DATA_WIDTH-1:0]   LED
+    input wire button_1,
+    input wire button_2,
+    input wire button_3,
+    input wire clock,
+    input wire reset,
+    input wire [DATA_LEN - 1 : 0] bus,
+
+    output wire [DATA_LEN - 1 : 0] led,
+    output wire test_led
 );
 
-    reg [DATA_WIDTH-1:0] A_reg;
-    reg [DATA_WIDTH-1:0] B_reg;
-    reg [5:0]            Op_reg;
-
-    // Cada señal load_* debe durar un solo ciclo de clk. Mas adelante se
-    // conectara a un pulso limpio generado al presionar los botones 1, 2 y 3.
-    always @(posedge clk) begin
-        if (reset) begin
-            A_reg  <= {DATA_WIDTH{1'b0}};
-            B_reg  <= {DATA_WIDTH{1'b0}};
-            Op_reg <= 6'b000000;
-        end else begin
-            if (load_A)
-                A_reg <= SW[DATA_WIDTH-1:0];
-
-            if (load_B)
-                B_reg <= SW[DATA_WIDTH-1:0];
-
-            if (load_Op)
-                Op_reg <= SW[5:0];
-        end
-    end
+    reg [DATA_LEN - 1 : 0] reg_data_A;
+    reg [DATA_LEN - 1 : 0] reg_data_B;
+    reg [OP_LEN - 1 : 0] reg_op;
 
     ALU #(
-        .DATA_WIDTH(DATA_WIDTH)
-    ) alu_i (
-        .A      (A_reg),
-        .B      (B_reg),
-        .Op     (Op_reg),
-        .Result (LED)
+    .NB_OP(OP_LEN),
+    .NB_DATA(DATA_LEN)
+    )
+    alu(
+        .i_data_a(reg_data_A),
+        .i_data_b(reg_data_B),
+        .i_op(reg_op),
+        .o_data(led)
     );
+
+    always @(posedge clock)
+    begin
+        if(reset)
+            begin
+                reg_data_A <= {(DATA_LEN) {1'b0}};
+                reg_data_B <= {(DATA_LEN) {1'b0}};
+                reg_op <= {(OP_LEN) {1'b0}};
+            end
+        else if(button_1)
+            reg_data_A <= bus[DATA_LEN-1:0];
+        else if(button_2)
+            reg_data_B <= bus[DATA_LEN-1:0];
+        else if(button_3)
+            reg_op <= bus[OP_LEN-1:0];
+
+    end
+    assign test_led = reset; 
 
 endmodule

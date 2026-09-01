@@ -1,13 +1,15 @@
 // ALU combinacional parametrizable.
 // No contiene registros ni señales de reloj.
 module ALU #(
-    parameter DATA_WIDTH = 8
-) (
-    input  wire [DATA_WIDTH-1:0] A,
-    input  wire [DATA_WIDTH-1:0] B,
-    input  wire [5:0]            Op,
-    output reg  [DATA_WIDTH-1:0] Result
+    parameter NB_OP = 6,
+    parameter NB_DATA = 8
+)(
+    input wire signed [NB_DATA-1:0] i_data_a,
+	input wire signed [NB_DATA-1:0] i_data_b,
+	input wire[NB_OP-1:0] i_op,
+	output reg signed [NB_DATA-1:0] o_data
 );
+
 
     // Codigos de operacion definidos en la consigna.
     localparam [5:0] OP_ADD = 6'b100000;
@@ -23,18 +25,18 @@ module ALU #(
     // El valor por defecto define una salida conocida para codigos no validos
     // y evita inferir latches al completar las operaciones en los siguientes pasos.
     always @(*) begin
-        Result = {DATA_WIDTH{1'b0}};
+        o_data = {NB_DATA{1'b0}};
 
-        case (Op)
-            OP_ADD: Result = A + B;
-            OP_SUB: Result = A - B;
-            OP_AND: Result = A & B;
-            OP_OR:  Result = A | B;
-            OP_XOR: Result = A ^ B;
-            OP_NOR: Result = ~(A | B);
-            OP_SRL: Result = A >> B;
-            OP_SRA: Result = $signed(A) >>> B;
-            default: Result = {DATA_WIDTH{1'b0}};
+        case (i_op)
+            OP_ADD: o_data = i_data_a + i_data_b;
+            OP_SUB: o_data = i_data_a - i_data_b;
+            OP_AND: o_data = i_data_a & i_data_b;
+            OP_OR:  o_data = i_data_a | i_data_b;
+            OP_XOR: o_data = i_data_a ^ i_data_b;
+            OP_NOR: o_data = ~(i_data_a | i_data_b);
+            OP_SRL: o_data = i_data_a >> i_data_b;
+            OP_SRA: o_data = $signed(i_data_a) >>> i_data_b;
+            default: o_data = {NB_DATA{1'b0}};
         endcase
     end
 
