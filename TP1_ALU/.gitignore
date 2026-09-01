@@ -1,0 +1,22 @@
+# Archivos generados por Vivado para este TP.
+/VIVADO/
+/.Xil/
+
+# Productos generados por sintesis, implementacion y simulacion.
+*.jou
+*.log
+*.str
+*.pb
+*.wdb
+*.wcfg
+*.dcp
+*.bit
+*.bin
+*.ltx
+xsim.dir/
+webtalk*
+
+# Ejecutables y archivos intermedios de otros simuladores.
+simulacion
+*.vvp
+*.vcd

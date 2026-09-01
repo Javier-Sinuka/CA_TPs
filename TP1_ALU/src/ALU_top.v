@@ -47,6 +47,6 @@ module ALU_top #(
             reg_op <= bus[OP_LEN-1:0];
 
     end
-    assign test_led = reset; 
+    assign test_led = reset;
 
 endmodule
