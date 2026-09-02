@@ -20,3 +20,27 @@ webtalk*
 simulacion
 *.vvp
 *.vcd
+
+# Archivos auxiliares generados por la compilacion de documentos LaTeX.
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+
+/doc/guia_estudio_alu.md
+/doc/arquitectura_alu.md

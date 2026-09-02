@@ -1,0 +1,469 @@
+\documentclass[11pt,a4paper]{article}
+
+% Codificación y lenguaje
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-nodecimaldot]{babel}
+
+% Presentación
+\usepackage[a4paper,margin=2.7cm]{geometry}
+\usepackage{parskip}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{codebg}{RGB}{247,248,250}
+\definecolor{codecomment}{RGB}{70,110,70}
+\definecolor{codekeyword}{RGB}{0,70,140}
+\definecolor{codestring}{RGB}{150,60,30}
+
+\lstdefinelanguage{VerilogCustom}{
+  morekeywords={module,endmodule,input,output,inout,wire,reg,parameter,localparam,
+    always,begin,end,case,endcase,default,if,else,assign,signed,integer,for,
+    initial,display,finish},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]"
+}
+
+\lstset{
+  language=VerilogCustom,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekeyword}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestring},
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{black!20},
+  numbers=left,
+  numberstyle=\tiny\color{black!50},
+  numbersep=8pt,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  tabsize=4
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Arquitectura de Computadoras}
+\rhead{TP N.\textsuperscript{o} 1 -- ALU}
+\cfoot{\thepage\ de \pageref{LastPage}}
+\setlength{\headheight}{14pt}
+
+\newcommand{\verilog}[1]{\texttt{#1}}
+
+\title{\textbf{Diseño e implementación de una ALU combinacional parametrizable}\\[0.4em]
+       \large Trabajo Práctico N.\textsuperscript{o} 1}
+\author{Javier}
+\date{1 de septiembre de 2026}
+
+\begin{document}
+
+\begin{titlepage}
+  \hypersetup{pageanchor=false}
+  \centering
+  \vspace*{1.2cm}
+  {\Large Universidad \par}
+  \vspace{0.3cm}
+  {\large Arquitectura de Computadoras \par}
+  \vspace{2.2cm}
+  {\LARGE\bfseries Diseño e implementación de una ALU combinacional parametrizable\par}
+  \vspace{0.5cm}
+  {\large Trabajo Práctico N.\textsuperscript{o} 1\par}
+  \vfill
+  \begin{tabular}{rl}
+    Estudiante: & Javier \\
+    Fecha: & 1 de septiembre de 2026
+  \end{tabular}
+  \vfill
+\end{titlepage}
+
+\hypersetup{pageanchor=true}
+\clearpage
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+\begin{abstract}
+Este informe presenta el diseño de una unidad aritmético-lógica (ALU) de ocho
+bits descrita en Verilog y destinada a su implementación en una FPGA. El
+núcleo de la ALU se construye exclusivamente con lógica combinacional: su
+salida depende en cada instante de dos operandos y de un código de operación,
+sin almacenar estado ni utilizar reloj. Se describen la interfaz parametrizable,
+las operaciones implementadas, la interpretación de datos con signo y la
+integración con un módulo superior que permite cargar los valores mediante
+switches y botones. Finalmente, se explica la estrategia de simulación mediante
+testbench y se presentan ejemplos de cálculo que permiten verificar el
+funcionamiento esperado.
+\end{abstract}
+
+\section{Introducción}
+
+Una unidad aritmético-lógica es un bloque fundamental de un procesador: recibe
+operandos, ejecuta una operación determinada por una señal de control y entrega
+un resultado. En el presente trabajo se implementa una ALU parametrizable en
+Verilog, con operandos y resultado de ocho bits y un código de operación de seis
+bits.
+
+El propósito central no es escribir un algoritmo secuencial, sino describir el
+hardware que una herramienta de síntesis puede construir en la FPGA. En este
+contexto, una expresión como
+
+\begin{lstlisting}[numbers=none]
+o_data = i_data_a + i_data_b;
+\end{lstlisting}
+
+representa la lógica de un sumador. La selección entre varias operaciones se
+implementa mediante lógica combinacional equivalente a un multiplexor.
+
+\section{Objetivos}
+
+Los objetivos del trabajo son:
+
+\begin{itemize}
+  \item Diseñar una ALU de ocho bits con operaciones aritméticas, lógicas y de
+        desplazamiento.
+  \item Describir el núcleo funcional utilizando lógica combinacional en
+        Verilog, sin registros ni señales de reloj dentro de la ALU.
+  \item Parametrizar el ancho de datos y de operación para favorecer la
+        reutilización del módulo.
+  \item Integrar el núcleo con una interfaz superior para una placa FPGA,
+        permitiendo cargar y conservar los operandos desde switches.
+  \item Verificar el comportamiento mediante simulación y relacionar las
+        formas de onda con los resultados matemáticos esperados.
+\end{itemize}
+
+\section{Arquitectura general}
+
+La solución se divide en dos módulos con responsabilidades diferentes:
+
+\begin{description}
+  \item[\verilog{ALU.v}] contiene el núcleo combinacional. Recibe los operandos
+        \verilog{i\_data\_a}, \verilog{i\_data\_b} y el código \verilog{i\_op};
+        produce \verilog{o\_data}.
+  \item[\verilog{ALU\_top.v}] constituye el módulo superior. Conecta la ALU
+        con el reloj, el reset, los botones, el bus de switches y los LEDs.
+        Incluye registros para conservar las entradas cargadas.
+\end{description}
+
+La arquitectura puede resumirse de la siguiente manera:
+
+\begin{center}
+\fbox{\begin{minipage}{0.82\textwidth}
+\centering
+\textbf{Interfaz de la placa}\\[0.2em]
+Switches + botones + reloj\\[0.4em]
+$\downarrow$\\[0.4em]
+\textbf{Registros en \verilog{ALU\_top}} \quad
+($A$, $B$, \verilog{Op})\\[0.4em]
+$\downarrow$\\[0.4em]
+\textbf{ALU combinacional}\quad $\longrightarrow$ \quad
+Resultado en LEDs
+\end{minipage}}
+\end{center}
+
+Esta separación es esencial. La ALU propiamente dicha es combinacional; los
+registros del módulo superior no forman parte de su cálculo, sino que permiten
+que el usuario cargue $A$, luego $B$ y finalmente la operación sin perder los
+valores previamente seleccionados. El resultado no se registra: se actualiza
+automáticamente cuando cambia alguna de las entradas almacenadas.
+
+\section{Interfaz y parametrización}
+
+La declaración del módulo permite modificar el tamaño de los buses mediante
+parámetros:
+
+\begin{lstlisting}[caption={Interfaz parametrizable del núcleo},label={lst:interface}]
+module ALU #(
+    parameter NB_OP = 6,
+    parameter NB_DATA = 8
+)(
+    input wire signed [NB_DATA-1:0] i_data_a,
+    input wire signed [NB_DATA-1:0] i_data_b,
+    input wire [NB_OP-1:0] i_op,
+    output reg signed [NB_DATA-1:0] o_data
+);
+\end{lstlisting}
+
+Con la configuración utilizada, $A$ y $B$ son operandos de ocho bits y
+\verilog{i\_op} posee seis bits. Si se instancia el módulo con
+\verilog{NB\_DATA = 16}, los operandos y el resultado pasan a ser de dieciséis
+bits sin modificar la estructura de la ALU. El calificador \verilog{signed}
+permite interpretar los operandos de datos en complemento a dos para las
+operaciones aritméticas y para el desplazamiento aritmético.
+
+\section{Operaciones implementadas}
+
+Los códigos de operación se definen mediante \verilog{localparam}, lo que
+mejora la legibilidad del circuito y evita repetir constantes sin nombre en la
+descripción. La Tabla~\ref{tab:operations} resume el conjunto implementado.
+
+\begin{table}[ht]
+\centering
+\caption{Códigos y operaciones de la ALU.}
+\label{tab:operations}
+\renewcommand{\arraystretch}{1.15}
+\small
+\begin{tabular}{c c c >{\raggedright\arraybackslash}p{6.8cm}}
+\toprule
+\textbf{Hex.} & \textbf{Binario} & \textbf{Operación} & \textbf{Descripción}\\
+\midrule
+\texttt{20} & \texttt{100000} & ADD & $A+B$\\
+\texttt{22} & \texttt{100010} & SUB & $A-B$\\
+\texttt{24} & \texttt{100100} & AND & $A\mathbin{\&}B$\\
+\texttt{25} & \texttt{100101} & OR  & $A\mathbin{|}B$\\
+\texttt{26} & \texttt{100110} & XOR & $A\mathbin{\hat{~}}B$\\
+\texttt{03} & \texttt{000011} & SRA & $A$ desplazado aritméticamente a la derecha $B$ posiciones\\
+\texttt{02} & \texttt{000010} & SRL & $A$ desplazado lógicamente a la derecha $B$ posiciones\\
+\texttt{27} & \texttt{100111} & NOR & $\mathord{\sim}(A\mathbin{|}B)$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+En las operaciones de desplazamiento, el segundo operando se utiliza como
+cantidad de desplazamiento. La diferencia entre SRA y SRL se observa cuando el
+operando $A$ es negativo: SRA replica el bit de signo, mientras que SRL
+introduce ceros en las posiciones más significativas.
+
+\section{Implementación de la lógica combinacional}
+
+La lógica del núcleo se describe mediante un bloque \verilog{always @(*)}. La
+lista sensible implícita indica que el bloque debe reevaluarse cuando cambia
+cualquiera de sus entradas. La asignación inicial garantiza un valor definido
+para la salida y evita la inferencia accidental de un latch.
+
+\begin{lstlisting}[caption={Selección combinacional de operaciones},label={lst:logic}]
+always @(*) begin
+    o_data = {NB_DATA{1'b0}};
+
+    case (i_op)
+        OP_ADD: o_data = i_data_a + i_data_b;
+        OP_SUB: o_data = i_data_a - i_data_b;
+        OP_AND: o_data = i_data_a & i_data_b;
+        OP_OR:  o_data = i_data_a | i_data_b;
+        OP_XOR: o_data = i_data_a ^ i_data_b;
+        OP_NOR: o_data = ~(i_data_a | i_data_b);
+        OP_SRL: o_data = i_data_a >> i_data_b;
+        OP_SRA: o_data = \$signed(i_data_a) >>> i_data_b;
+        default: o_data = {NB_DATA{1'b0}};
+    endcase
+end
+\end{lstlisting}
+
+La sentencia \verilog{case} selecciona la operación asociada con el código de
+control. Conceptualmente, cada operación alimenta una entrada de un
+multiplexor y \verilog{i\_op} determina cuál de ellas llega a la salida. La
+variable \verilog{o\_data} se declara como \verilog{reg} porque recibe
+asignaciones dentro de un bloque \verilog{always}; esto no significa que se
+implemente un registro físico. Al no existir un flanco de reloj en este bloque,
+la síntesis produce lógica combinacional.
+
+Para códigos no contemplados se entrega cero. Además de hacer determinista el
+comportamiento, esta decisión completa la asignación de la salida para todos
+los caminos posibles.
+
+\section{Integración con la interfaz de la FPGA}
+
+El módulo superior utiliza un bus compartido de switches y tres botones de
+carga. En cada flanco ascendente del reloj se almacena el valor presente en el
+bus según el botón presionado:
+
+\begin{lstlisting}[caption={Carga de entradas en el módulo superior},label={lst:top}]
+always @(posedge clock) begin
+    if (reset) begin
+        reg_data_A <= {(DATA_LEN){1'b0}};
+        reg_data_B <= {(DATA_LEN){1'b0}};
+        reg_op     <= {(OP_LEN){1'b0}};
+    end
+    else if (button_1)
+        reg_data_A <= bus[DATA_LEN-1:0];
+    else if (button_2)
+        reg_data_B <= bus[DATA_LEN-1:0];
+    else if (button_3)
+        reg_op     <= bus[OP_LEN-1:0];
+end
+\end{lstlisting}
+
+La secuencia de uso es la siguiente:
+
+\begin{enumerate}
+  \item Configurar el valor de $A$ en los switches y presionar el botón 1.
+  \item Configurar el valor de $B$ y presionar el botón 2.
+  \item Configurar el código de operación en los seis bits inferiores y
+        presionar el botón 3.
+  \item Observar el resultado en los LEDs.
+\end{enumerate}
+
+La asignación no bloqueante \verilog{<=} es apropiada para este bloque
+secuencial, ya que representa la actualización simultánea de registros en un
+flanco de reloj. El reset síncrono inicializa los tres registros. Luego, la
+instancia de la ALU recibe sus valores:
+
+\begin{lstlisting}[caption={Instanciación del núcleo en el módulo superior},label={lst:instance}]
+ALU #(
+    .NB_OP(OP_LEN),
+    .NB_DATA(DATA_LEN)
+) alu (
+    .i_data_a(reg_data_A),
+    .i_data_b(reg_data_B),
+    .i_op(reg_op),
+    .o_data(led)
+);
+\end{lstlisting}
+
+Las conexiones por nombre hacen explícita la correspondencia entre cada puerto
+y la señal interna, reduciendo el riesgo de errores de conexión.
+
+\section{Ejemplos de funcionamiento}
+
+Para ilustrar la operación, considérese $A=5$ y $B=3$. Las salidas esperadas
+para algunas operaciones son:
+
+\begin{table}[ht]
+\centering
+\caption{Ejemplos de resultados con operandos positivos.}
+\label{tab:examples}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{c c c c}
+\toprule
+\textbf{Operación} & \textbf{Código} & \textbf{Cálculo} & \textbf{Resultado}\\
+\midrule
+ADD & \texttt{20} & $5+3$ & $8$\\
+SUB & \texttt{22} & $5-3$ & $2$\\
+AND & \texttt{24} & \texttt{00000101 \& 00000011} & \texttt{00000001}\\
+OR  & \texttt{25} & \texttt{00000101 | 00000011} & \texttt{00000111}\\
+XOR & \texttt{26} & \texttt{00000101 \string^ 00000011} & \texttt{00000110}\\
+NOR & \texttt{27} & $\mathord{\sim}(5\mathbin{|}3)$ & \texttt{11111000}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+El resultado de NOR se muestra en ocho bits y equivale a $-8$ en complemento
+a dos. Esto evidencia que las operaciones lógicas trabajan sobre el patrón de
+bits completo, aunque el bus de datos pueda interpretarse con signo.
+
+Como segundo ejemplo, para ADD se pueden seleccionar $A=2$, $B=\texttt{FF}$ y
+el código \texttt{20}. En ocho bits con signo, \texttt{FF} representa $-1$;
+por lo tanto,
+
+\begin{equation}
+  2 + (-1) = 1,
+\end{equation}
+
+y la salida esperada es \texttt{01}. La aritmética se realiza con el ancho del
+bus, por lo que los resultados que exceden el rango representable se conservan
+en los ocho bits menos significativos.
+
+\section{Verificación mediante simulación}
+
+La verificación funcional se realiza con \verilog{tb\_ALU.v}, un testbench que
+instancia directamente el núcleo. Esta elección permite probar la ALU sin
+incluir botones, reloj ni restricciones físicas de la placa. El estímulo asigna
+operandos, cambia el código de operación, espera un intervalo de tiempo y
+observa \verilog{o\_data}.
+
+En una simulación comportamental se deben visualizar, como mínimo, las
+siguientes señales:
+
+\begin{center}
+\begin{tabular}{c c c c}
+\texttt{i\_data\_a[7:0]} &
+\texttt{i\_data\_b[7:0]} &
+\texttt{i\_op[5:0]} &
+\texttt{o\_data[7:0]}
+\end{tabular}
+\end{center}
+
+Para facilitar la lectura, los datos pueden observarse
+en decimal con signo o hexadecimal, mientras que el código de operación se
+puede observar en binario o hexadecimal.
+
+El testbench cambia la operación cada $10\,\mathrm{ns}$ y conserva el mismo par
+de operandos durante la secuencia. Los intervalos relativos son:
+
+\begin{table}[ht]
+\centering
+\caption{Secuencia temporal de operaciones del testbench.}
+\label{tab:timing}
+\begin{tabular}{c c}
+\toprule
+\textbf{Intervalo} & \textbf{Operación}\\
+\midrule
+0--10 ns   & ADD\\
+10--20 ns  & SUB\\
+20--30 ns  & AND\\
+30--40 ns  & OR\\
+40--50 ns  & XOR\\
+50--60 ns  & SRA\\
+60--70 ns  & SRL\\
+70--80 ns  & NOR\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Para validar una operación se debe ubicar el cursor de la forma de onda en el
+interior de un intervalo estable, evitando una transición, y comparar el valor
+de salida con la ecuación correspondiente. Por ejemplo, si se observan
+\verilog{i\_data\_a = 02}, \verilog{i\_data\_b = FF}, \verilog{i\_op = 20} y
+\verilog{o\_data = 01}, la suma verificada es $2+(-1)=1$.
+
+El módulo superior también puede simularse con \verilog{tb\_ALU\_TOP.v}, pero
+requiere generar correctamente el reloj, el reset, el bus y los botones. Por
+ello, para verificar primero la función de la ALU se recomienda utilizar
+\verilog{Test\_Bench\_ALU}; \verilog{ALU\_top} representa la integración con
+la placa y no constituye por sí mismo un estímulo de simulación.
+
+\section{Consideraciones de síntesis}
+
+Desde el punto de vista de hardware, el núcleo combina:
+
+\begin{itemize}
+  \item operadores aritméticos para suma y resta;
+  \item compuertas bit a bit para AND, OR, XOR y NOR;
+  \item lógica de desplazamiento para SRA y SRL;
+  \item lógica de selección para entregar al puerto de salida la operación
+        elegida.
+\end{itemize}
+
+No hay memoria interna en \verilog{ALU.v}. El tiempo de respuesta queda
+determinado por el retardo de propagación de la red combinacional sintetizada.
+En cambio, los registros de \verilog{ALU\_top.v} son necesarios para desacoplar
+la entrada manual de los switches del cálculo: una vez cargados, mantienen los
+operandos aunque el bus cambie.
+
+El archivo de restricciones \texttt{.xdc} completa la implementación física al
+asociar los puertos del módulo superior con los pines de la placa FPGA. De esta
+manera, la descripción lógica, la interfaz de usuario y la asignación física
+quedan separadas en archivos con responsabilidades claras.
+
+\section{Conclusiones}
+
+Se diseñó una ALU parametrizable de ocho bits capaz de realizar ocho
+operaciones aritméticas, lógicas y de desplazamiento. La implementación de
+\verilog{ALU.v} cumple el objetivo principal del trabajo: el resultado se
+obtiene exclusivamente a partir de las entradas actuales y no depende de un
+reloj ni conserva estado.
+
+La integración mediante \verilog{ALU\_top.v} mostró por qué una aplicación
+física necesita registros aun cuando el núcleo sea combinacional. Estos
+registros almacenan $A$, $B$ y \verilog{Op}, mientras que la ALU calcula y
+actualiza el resultado de forma inmediata ante cualquier cambio de dichos
+valores. La división modular facilita tanto la reutilización del núcleo como
+su verificación independiente mediante testbench.
+
+Finalmente, la simulación permite relacionar cada código de operación con la
+ecuación y el patrón de bits observados en la forma de onda. Este procedimiento
+constituye una verificación funcional previa a la síntesis y a la prueba sobre
+la placa FPGA.
+
+\end{document}
