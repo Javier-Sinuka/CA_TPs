@@ -63,8 +63,8 @@
 
 \title{\textbf{Diseño e implementación de una ALU combinacional parametrizable}\\[0.4em]
        \large Trabajo Práctico N.\textsuperscript{o} 1}
-\author{Javier}
-\date{1 de septiembre de 2026}
+\author{Javier Siñuka y David Trujillo}
+\date{3 de septiembre de 2026}
 
 \begin{document}
 
@@ -81,8 +81,8 @@
   {\large Trabajo Práctico N.\textsuperscript{o} 1\par}
   \vfill
   \begin{tabular}{rl}
-    Estudiante: & Javier \\
-    Fecha: & 1 de septiembre de 2026
+    Estudiantes: & Javier Siñuka y David Trujillo \\
+    Fecha: & 3 de septiembre de 2026
   \end{tabular}
   \vfill
 \end{titlepage}
@@ -95,8 +95,8 @@
 \pagenumbering{arabic}
 
 \begin{abstract}
-Este informe presenta el diseño de una unidad aritmético-lógica (ALU) de ocho
-bits descrita en Verilog y destinada a su implementación en una FPGA. El
+Este informe presenta el diseño de una unidad aritmético-lógica (ALU)
+parametrizable descrita en Verilog y destinada a su implementación en una FPGA. El
 núcleo de la ALU se construye exclusivamente con lógica combinacional: su
 salida depende en cada instante de dos operandos y de un código de operación,
 sin almacenar estado ni utilizar reloj. Se describen la interfaz parametrizable,
@@ -112,15 +112,15 @@ funcionamiento esperado.
 Una unidad aritmético-lógica es un bloque fundamental de un procesador: recibe
 operandos, ejecuta una operación determinada por una señal de control y entrega
 un resultado. En el presente trabajo se implementa una ALU parametrizable en
-Verilog, con operandos y resultado de ocho bits y un código de operación de seis
-bits.
+Verilog, configurada por defecto con operandos y resultado de ocho bits y un
+código de operación de seis bits.
 
 El propósito central no es escribir un algoritmo secuencial, sino describir el
 hardware que una herramienta de síntesis puede construir en la FPGA. En este
 contexto, una expresión como
 
 \begin{lstlisting}[numbers=none]
-o_data = i_data_a + i_data_b;
+o_result = i_operand_a + i_operand_b;
 \end{lstlisting}
 
 representa la lógica de un sumador. La selección entre varias operaciones se
@@ -149,8 +149,8 @@ La solución se divide en dos módulos con responsabilidades diferentes:
 
 \begin{description}
   \item[\verilog{ALU.v}] contiene el núcleo combinacional. Recibe los operandos
-        \verilog{i\_data\_a}, \verilog{i\_data\_b} y el código \verilog{i\_op};
-        produce \verilog{o\_data}.
+        \verilog{i\_operand\_a}, \verilog{i\_operand\_b} y el código \verilog{i\_op};
+        produce \verilog{o\_result}.
   \item[\verilog{ALU\_top.v}] constituye el módulo superior. Conecta la ALU
         con el reloj, el reset, los botones, el bus de switches y los LEDs.
         Incluye registros para conservar las entradas cargadas.
@@ -185,20 +185,20 @@ parámetros:
 
 \begin{lstlisting}[caption={Interfaz parametrizable del núcleo},label={lst:interface}]
 module ALU #(
-    parameter NB_OP = 6,
-    parameter NB_DATA = 8
+    parameter OP_WIDTH   = 6,
+    parameter DATA_WIDTH = 8
 )(
-    input wire signed [NB_DATA-1:0] i_data_a,
-    input wire signed [NB_DATA-1:0] i_data_b,
-    input wire [NB_OP-1:0] i_op,
-    output reg signed [NB_DATA-1:0] o_data
+    input wire signed [DATA_WIDTH-1:0] i_operand_a,
+    input wire signed [DATA_WIDTH-1:0] i_operand_b,
+    input wire [OP_WIDTH-1:0] i_op,
+    output reg signed [DATA_WIDTH-1:0] o_result
 );
 \end{lstlisting}
 
 Con la configuración utilizada, $A$ y $B$ son operandos de ocho bits y
 \verilog{i\_op} posee seis bits. Si se instancia el módulo con
-\verilog{NB\_DATA = 16}, los operandos y el resultado pasan a ser de dieciséis
-bits sin modificar la estructura de la ALU. El calificador \verilog{signed}
+\verilog{DATA\_WIDTH = 16}, los operandos y el resultado pasan a ser de
+dieciséis bits sin modificar la estructura de la ALU. El calificador \verilog{signed}
 permite interpretar los operandos de datos en complemento a dos para las
 operaciones aritméticas y para el desplazamiento aritmético.
 
@@ -244,18 +244,17 @@ para la salida y evita la inferencia accidental de un latch.
 
 \begin{lstlisting}[caption={Selección combinacional de operaciones},label={lst:logic}]
 always @(*) begin
-    o_data = {NB_DATA{1'b0}};
+    o_result = {DATA_WIDTH{1'b0}};
 
     case (i_op)
-        OP_ADD: o_data = i_data_a + i_data_b;
-        OP_SUB: o_data = i_data_a - i_data_b;
-        OP_AND: o_data = i_data_a & i_data_b;
-        OP_OR:  o_data = i_data_a | i_data_b;
-        OP_XOR: o_data = i_data_a ^ i_data_b;
-        OP_NOR: o_data = ~(i_data_a | i_data_b);
-        OP_SRL: o_data = i_data_a >> i_data_b;
-        OP_SRA: o_data = \$signed(i_data_a) >>> i_data_b;
-        default: o_data = {NB_DATA{1'b0}};
+        OP_ADD: o_result = i_operand_a + i_operand_b;
+        OP_SUB: o_result = i_operand_a - i_operand_b;
+        OP_AND: o_result = i_operand_a & i_operand_b;
+        OP_OR:  o_result = i_operand_a | i_operand_b;
+        OP_XOR: o_result = i_operand_a ^ i_operand_b;
+        OP_NOR: o_result = ~(i_operand_a | i_operand_b);
+        OP_SRL: o_result = i_operand_a >> i_operand_b[SHIFT_WIDTH-1:0];
+        OP_SRA: o_result = i_operand_a >>> i_operand_b[SHIFT_WIDTH-1:0];
     endcase
 end
 \end{lstlisting}
@@ -263,34 +262,36 @@ end
 La sentencia \verilog{case} selecciona la operación asociada con el código de
 control. Conceptualmente, cada operación alimenta una entrada de un
 multiplexor y \verilog{i\_op} determina cuál de ellas llega a la salida. La
-variable \verilog{o\_data} se declara como \verilog{reg} porque recibe
+variable \verilog{o\_result} se declara como \verilog{reg} porque recibe
 asignaciones dentro de un bloque \verilog{always}; esto no significa que se
 implemente un registro físico. Al no existir un flanco de reloj en este bloque,
 la síntesis produce lógica combinacional.
 
-Para códigos no contemplados se entrega cero. Además de hacer determinista el
-comportamiento, esta decisión completa la asignación de la salida para todos
-los caminos posibles.
+Para códigos no contemplados se entrega cero. La asignación inicial dentro del
+bloque combinacional hace determinista ese comportamiento y evita inferir
+latches. En los desplazamientos, \verilog{SHIFT\_WIDTH} se define como
+\verilog{\$clog2(DATA\_WIDTH)}, por lo que solo se utilizan los bits inferiores
+del segundo operando como cantidad de desplazamiento.
 
 \section{Integración con la interfaz de la FPGA}
 
-El módulo superior utiliza un bus compartido de switches y tres botones de
+El módulo superior utiliza un bus compartido de switches y tres señales de
 carga. En cada flanco ascendente del reloj se almacena el valor presente en el
-bus según el botón presionado:
+bus según la señal activada:
 
 \begin{lstlisting}[caption={Carga de entradas en el módulo superior},label={lst:top}]
-always @(posedge clock) begin
-    if (reset) begin
-        reg_data_A <= {(DATA_LEN){1'b0}};
-        reg_data_B <= {(DATA_LEN){1'b0}};
-        reg_op     <= {(OP_LEN){1'b0}};
+always @(posedge i_clock) begin
+    if (i_reset) begin
+        r_operand_a <= {DATA_WIDTH{1'b0}};
+        r_operand_b <= {DATA_WIDTH{1'b0}};
+        r_op        <= {OP_WIDTH{1'b0}};
     end
-    else if (button_1)
-        reg_data_A <= bus[DATA_LEN-1:0];
-    else if (button_2)
-        reg_data_B <= bus[DATA_LEN-1:0];
-    else if (button_3)
-        reg_op     <= bus[OP_LEN-1:0];
+    else if (i_load_a)
+        r_operand_a <= i_bus[DATA_WIDTH-1:0];
+    else if (i_load_b)
+        r_operand_b <= i_bus[DATA_WIDTH-1:0];
+    else if (i_load_op)
+        r_op <= i_bus[OP_WIDTH-1:0];
 end
 \end{lstlisting}
 
@@ -300,7 +301,7 @@ La secuencia de uso es la siguiente:
   \item Configurar el valor de $A$ en los switches y presionar el botón 1.
   \item Configurar el valor de $B$ y presionar el botón 2.
   \item Configurar el código de operación en los seis bits inferiores y
-        presionar el botón 3.
+        activar \verilog{i\_load\_op}.
   \item Observar el resultado en los LEDs.
 \end{enumerate}
 
@@ -310,14 +311,14 @@ flanco de reloj. El reset síncrono inicializa los tres registros. Luego, la
 instancia de la ALU recibe sus valores:
 
 \begin{lstlisting}[caption={Instanciación del núcleo en el módulo superior},label={lst:instance}]
-ALU #(
-    .NB_OP(OP_LEN),
-    .NB_DATA(DATA_LEN)
+ALU #( 
+    .OP_WIDTH(OP_WIDTH),
+    .DATA_WIDTH(DATA_WIDTH)
 ) alu (
-    .i_data_a(reg_data_A),
-    .i_data_b(reg_data_B),
-    .i_op(reg_op),
-    .o_data(led)
+    .i_operand_a(r_operand_a),
+    .i_operand_b(r_operand_b),
+    .i_op(r_op),
+    .o_result(o_leds)
 );
 \end{lstlisting}
 
@@ -368,19 +369,20 @@ en los ocho bits menos significativos.
 
 La verificación funcional se realiza con \verilog{tb\_ALU.v}, un testbench que
 instancia directamente el núcleo. Esta elección permite probar la ALU sin
-incluir botones, reloj ni restricciones físicas de la placa. El estímulo asigna
-operandos, cambia el código de operación, espera un intervalo de tiempo y
-observa \verilog{o\_data}.
+incluir botones, reloj ni restricciones físicas de la placa. El testbench genera
+50 pares aleatorios de operandos y prueba las ocho operaciones sobre cada par,
+para un total de 400 casos. Una tarea de comprobación calcula el resultado
+esperado y contabiliza los casos aprobados y fallidos.
 
 En una simulación comportamental se deben visualizar, como mínimo, las
 siguientes señales:
 
 \begin{center}
 \begin{tabular}{c c c c}
-\texttt{i\_data\_a[7:0]} &
-\texttt{i\_data\_b[7:0]} &
+\texttt{i\_operand\_a[7:0]} &
+\texttt{i\_operand\_b[7:0]} &
 \texttt{i\_op[5:0]} &
-\texttt{o\_data[7:0]}
+\texttt{o\_result[7:0]}
 \end{tabular}
 \end{center}
 
@@ -388,8 +390,9 @@ Para facilitar la lectura, los datos pueden observarse
 en decimal con signo o hexadecimal, mientras que el código de operación se
 puede observar en binario o hexadecimal.
 
-El testbench cambia la operación cada $10\,\mathrm{ns}$ y conserva el mismo par
-de operandos durante la secuencia. Los intervalos relativos son:
+El testbench directo cambia la operación cada $10\,\mathrm{ns}$ y conserva el
+mismo par de operandos durante la secuencia. Los intervalos relativos de cada
+una de las 50 iteraciones son:
 
 \begin{table}[ht]
 \centering
@@ -411,17 +414,17 @@ de operandos durante la secuencia. Los intervalos relativos son:
 \end{tabular}
 \end{table}
 
-Para validar una operación se debe ubicar el cursor de la forma de onda en el
-interior de un intervalo estable, evitando una transición, y comparar el valor
-de salida con la ecuación correspondiente. Por ejemplo, si se observan
-\verilog{i\_data\_a = 02}, \verilog{i\_data\_b = FF}, \verilog{i\_op = 20} y
-\verilog{o\_data = 01}, la suma verificada es $2+(-1)=1$.
+La tarea de comprobación compara la salida con la ecuación correspondiente
+mediante comparación exacta y muestra un resumen \verilog{PASS/FAIL} al
+finalizar. También se prueban operandos negativos y cantidades de
+desplazamiento aleatorias dentro del ancho del bus.
 
-El módulo superior también puede simularse con \verilog{tb\_ALU\_TOP.v}, pero
-requiere generar correctamente el reloj, el reset, el bus y los botones. Por
-ello, para verificar primero la función de la ALU se recomienda utilizar
-\verilog{Test\_Bench\_ALU}; \verilog{ALU\_top} representa la integración con
-la placa y no constituye por sí mismo un estímulo de simulación.
+El módulo superior también se simula con \verilog{tb\_ALU\_TOP.v}. Este
+testbench genera un reloj de período $10\,\mathrm{ns}$, aplica el reset síncrono,
+carga los operandos y la operación mediante pulsos de las señales de carga, y
+repite las 50 iteraciones aleatorias con 400 comprobaciones. Además de la
+salida de datos, monitorea el LED auxiliar, que refleja directamente el estado
+de \verilog{i\_reset}.
 
 \section{Consideraciones de síntesis}
 
