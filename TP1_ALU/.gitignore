@@ -1,0 +1,46 @@
+# Archivos generados por Vivado para este TP.
+/VIVADO/
+/.Xil/
+
+# Productos generados por sintesis, implementacion y simulacion.
+*.jou
+*.log
+*.str
+*.pb
+*.wdb
+*.wcfg
+*.dcp
+*.bit
+*.bin
+*.ltx
+xsim.dir/
+webtalk*
+
+# Ejecutables y archivos intermedios de otros simuladores.
+simulacion
+*.vvp
+*.vcd
+
+# Archivos auxiliares generados por la compilacion de documentos LaTeX.
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.fdb_latexmk
+*.fls
+*.idx
+*.ilg
+*.ind
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+
+/doc/guia_estudio_alu.md
+/doc/arquitectura_alu.md
