@@ -107,8 +107,9 @@ secuencia, `tx_full = 1` y el dato registrado no cambia. Esto adapta el
 | `uart_tx.i_data` | `o_tx_data` |
 
 `sim/tb_uart_interface.sv` muestra esas conexiones junto con el generador de
-baudios. Los pines físicos y el proyecto Vivado quedan para la integración en
-placa.
+baudios. El TOP sintetizable `src/uart_top.v` integra esos mismos bloques para
+la placa, usando `constraints/Basys3_UART.xdc`. Las conexiones físicas y la
+configuración de Vivado se describen en la [guía del TOP](../src/README.md).
 
 ## Errores y límites
 

@@ -92,6 +92,20 @@ detecta errores de conexión o temporización que podrían no aparecer en las
 pruebas individuales. Utiliza un baud rate acelerado para reducir el tiempo de
 simulación; esto no modifica los módulos sintetizables.
 
+### `tb_uart_top.sv`
+
+Instancia `uart_top.v`, el TOP sintetizable que conecta el proyecto con la
+Basys 3. Comprueba las respuestas seriales de la ALU, el reset de arranque y
+del botón, los LEDs de resultado y TX ocupado, y la retención del LED de error.
+También comprueba la recuperación después de resetear una operación parcial
+o una transmisión en curso. Cada registro secuencial del TOP tiene su propio
+bloque `always`.
+
+A diferencia de `tb_uart_interface`, que conecta los bloques dentro del
+testbench, esta prueba utiliza las conexiones del TOP real. El parámetro
+`BAUD_RATE` vale `781250` para acelerar la simulación y puede cambiarse a
+`9600` con `-Ptb_uart_top.BAUD_RATE=9600` en Icarus Verilog.
+
 ## Ejecución con Icarus Verilog
 
 Desde la carpeta raíz `TP2_UART` se pueden ejecutar todas las pruebas con:
@@ -106,11 +120,12 @@ for bench in \
     tb_interface_rx \
     tb_interface_tx \
     tb_interface_circuit \
-    tb_uart_interface
+    tb_uart_interface \
+    tb_uart_top
 do
     iverilog -g2012 -s "$bench" -o "$tp2_sim_dir/$bench.vvp" \
         src/baud_gen.v src/uart_rx.v src/uart_tx.v src/ALU.v \
-        src/interface_rx.v src/interface_tx.v src/interface_circuit.v \
+        src/interface_rx.v src/interface_tx.v src/interface_circuit.v src/uart_top.v \
         "sim/$bench.sv" || break
 
     vvp "$tp2_sim_dir/$bench.vvp" || break

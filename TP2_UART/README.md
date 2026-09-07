@@ -15,6 +15,14 @@ Los directorios y productos generados por Vivado no se versionan. Las fuentes de
 `src/` y `sim/` deben agregarse o actualizarse desde Vivado al crear el proyecto
 local.
 
+## TOP y placa
+
+El módulo superior es `src/uart_top.v`. Integra el generador de baudios, RX,
+la interfaz con ALU y TX para la Basys 3, con comunicación a 9600 baudios.
+Los pines están definidos en `constraints/Basys3_UART.xdc`.
+La [guía del TOP](src/README.md) explica la jerarquía, las conexiones con la
+placa, los LEDs y la configuración de Vivado.
+
 ## Interfaz con la ALU
 
 `interface_circuit.v` conecta los bytes recibidos por `uart_rx` con la ALU de
