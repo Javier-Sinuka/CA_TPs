@@ -16,13 +16,23 @@ module tb_uart_top;
     wire o_tx_busy_led;
     wire o_error_led;
     integer r_response_count = 0;
+    reg r_sim_done = 1'b0;
 
     uart_top #(
         .CLOCK_FREQ(CLOCK_FREQ),
         .BAUD_RATE(BAUD_RATE)
     ) UUT (.*);
 
-    always #(CLOCK_PERIOD_NS / 2) i_clock = ~i_clock;
+    // Stop scheduling clock events once the test has completed. This makes a
+    // second "Run All" harmless in simulators that pause on $finish.
+    initial begin : clock_generator
+        while (!r_sim_done) begin
+            #(CLOCK_PERIOD_NS / 2);
+            if (!r_sim_done) begin
+                i_clock = ~i_clock;
+            end
+        end
+    end
 
     task automatic check(input bit i_condition, input string i_message);
         if (!i_condition) $fatal(1, "%s", i_message);
@@ -132,6 +142,7 @@ module tb_uart_top;
         reset_board();
         command(8'h07, 8'h08, 8'h20, 8'h0F);
 
+        r_sim_done = 1'b1;
         $display("PASS tb_uart_top: %0d replies, reset and board LEDs, baud=%0d",
                  r_response_count, BAUD_RATE);
         $finish;
@@ -139,6 +150,8 @@ module tb_uart_top;
 
     initial begin
         #(1000 * BIT_PERIOD_NS);
-        $fatal(1, "UART TOP timeout");
+        if (!r_sim_done) begin
+            $fatal(1, "UART TOP timeout");
+        end
     end
 endmodule

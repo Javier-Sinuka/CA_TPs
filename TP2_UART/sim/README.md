@@ -101,6 +101,11 @@ También comprueba la recuperación después de resetear una operación parcial
 o una transmisión en curso. Cada registro secuencial del TOP tiene su propio
 bloque `always`.
 
+En Vivado, ejecutar **Run All** una vez y esperar el mensaje `PASS tb_uart_top`.
+Ese mensaje indica que la prueba terminó. El testbench detiene además su reloj
+y desactiva el timeout al completar la prueba, para que una ejecución posterior
+no continúe simulando indefinidamente.
+
 A diferencia de `tb_uart_interface`, que conecta los bloques dentro del
 testbench, esta prueba utiliza las conexiones del TOP real. El parámetro
 `BAUD_RATE` vale `781250` para acelerar la simulación y puede cambiarse a
