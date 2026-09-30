@@ -1,0 +1,132 @@
+\documentclass[11pt,a4paper]{article}
+
+% Codificación y lenguaje
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-nodecimaldot]{babel}
+
+% Presentación
+\usepackage[a4paper,margin=2.7cm]{geometry}
+\usepackage{parskip}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{codebg}{RGB}{247,248,250}
+\definecolor{codecomment}{RGB}{70,110,70}
+\definecolor{codekeyword}{RGB}{0,70,140}
+\definecolor{codestring}{RGB}{150,60,30}
+
+\lstdefinelanguage{VerilogCustom}{
+  morekeywords={module,endmodule,input,output,inout,wire,reg,parameter,localparam,
+    always,begin,end,case,endcase,default,if,else,assign,signed,integer,for,
+    initial,display,finish},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]"
+}
+
+\lstset{
+  language=VerilogCustom,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekeyword}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestring},
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{black!20},
+  numbers=left,
+  numberstyle=\tiny\color{black!50},
+  numbersep=8pt,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  tabsize=4
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Arquitectura de Computadoras}
+\rhead{Trabajo Final -- Procesador RISC-V}
+\cfoot{\thepage\ de \pageref{LastPage}}
+\setlength{\headheight}{14pt}
+
+\newcommand{\verilog}[1]{\texttt{\detokenize{#1}}}
+
+\title{\textbf{Diseño e implementación de un procesador RISC-V segmentado}\\[0.4em]
+       \large Trabajo Final}
+\author{Javier Siñuka y David Trujillo}
+\date{\today}
+
+\begin{document}
+
+\begin{titlepage}
+  \hypersetup{pageanchor=false}
+  \centering
+  \vspace*{1.2cm}
+  {\Large Universidad \par}
+  \vspace{0.3cm}
+  {\large Arquitectura de Computadoras \par}
+  \vspace{2.2cm}
+  {\LARGE\bfseries Diseño e implementación de un procesador RISC-V segmentado\par}
+  \vspace{0.5cm}
+  {\large Trabajo Final\par}
+  \vfill
+  \begin{tabular}{rl}
+    Estudiantes: & Javier Siñuka y David Trujillo \\
+    Fecha: & \today
+  \end{tabular}
+  \vfill
+\end{titlepage}
+
+\hypersetup{pageanchor=true}
+\clearpage
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+\begin{abstract}
+% Resumir el objetivo, la arquitectura implementada y los resultados obtenidos.
+\end{abstract}
+
+\section{Introducción}
+
+\section{Objetivos}
+
+\section{Arquitectura general}
+
+\section{Pipeline del procesador}
+
+\subsection{Etapas IF, ID, EX, MEM y WB}
+
+\subsection{Registros intermedios}
+
+\section{Conjunto de instrucciones implementado}
+
+\section{Riesgos y mecanismos de resolución}
+
+\section{Memorias y carga dinámica de programas}
+
+\section{Unidad de depuración e interfaz UART}
+
+\section{Modos de operación}
+
+\section{Interfaz de usuario}
+
+\section{Implementación en FPGA y temporización}
+
+\section{Simulación y verificación}
+
+\section{Conclusiones}
+
+\end{document}
+

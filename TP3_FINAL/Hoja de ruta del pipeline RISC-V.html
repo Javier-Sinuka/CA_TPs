@@ -1,0 +1,1194 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Hoja de ruta del pipeline RISC-V</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: índice fijo a la izquierda + columna de lectura de ~70ch; colapsa a una columna en móvil.
+   Paleta: tinta de plano (azul) + cobre de pistas de PCB; cada etapa del pipeline tiene su color. */
+:root{
+  --bg:#f5f6f8; --surface:#ffffff; --sunk:#eceff3; --fg:#1b2230; --muted:#586274; --line:#d8dde5;
+  --ink:#1f4e79; --accent:#a8591f; --accent-soft:#f6e9df; --warn:#9a3412; --warn-soft:#fbeae4; --ok:#1f7a55; --ok-soft:#e3f2eb;
+  --s-if:#2f6fc4; --s-id:#6b4fbf; --s-ex:#bf4f24; --s-mem:#1f8a5e; --s-wb:#a67c0c;
+  --code-bg:#f0f2f6; --code-fg:#1f2633; --c-k:#1f4e79; --c-n:#a8591f; --c-c:#6b7486;
+  --f-display:"Archivo","Arial Narrow",system-ui,sans-serif;
+  --f-body:"Source Serif 4",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#10141b; --surface:#161b24; --sunk:#1c2230; --fg:#e3e7ee; --muted:#9aa4b4; --line:#2a3242;
+  --ink:#8ab6e6; --accent:#e39a62; --accent-soft:#33241a; --warn:#f19a7a; --warn-soft:#3a1f18; --ok:#6fd0a3; --ok-soft:#15302a;
+  --s-if:#6aa2ee; --s-id:#a58df0; --s-ex:#f08a5f; --s-mem:#5fcc9a; --s-wb:#e2b84a;
+  --code-bg:#1a202b; --code-fg:#dde3ec; --c-k:#8ab6e6; --c-n:#e39a62; --c-c:#7f8a9c; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#10141b; --surface:#161b24; --sunk:#1c2230; --fg:#e3e7ee; --muted:#9aa4b4; --line:#2a3242;
+  --ink:#8ab6e6; --accent:#e39a62; --accent-soft:#33241a; --warn:#f19a7a; --warn-soft:#3a1f18; --ok:#6fd0a3; --ok-soft:#15302a;
+  --s-if:#6aa2ee; --s-id:#a58df0; --s-ex:#f08a5f; --s-mem:#5fcc9a; --s-wb:#e2b84a;
+  --code-bg:#1a202b; --code-fg:#dde3ec; --c-k:#8ab6e6; --c-n:#e39a62; --c-c:#7f8a9c; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.6;padding-inline:16px;padding-block:0 64px}
+a{color:var(--ink);text-underline-offset:2px}
+a:focus-visible,summary:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+h1,h2,h3,h4{font-family:var(--f-display);font-stretch:85%;line-height:1.15;text-wrap:balance;color:var(--fg)}
+code,pre,kbd{font-family:var(--f-mono);font-size:.84em}
+:not(pre)>code{background:var(--sunk);padding:.1em .35em;border-radius:4px;overflow-wrap:anywhere}
+
+.masthead{max-width:1180px;margin:0 auto;padding-block:48px 28px;border-bottom:1px solid var(--line)}
+.eyebrow{font-family:var(--f-display);font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700}
+.masthead h1{font-size:clamp(2rem,5vw,3.3rem);margin:.3rem 0 .6rem;font-weight:800}
+.masthead p.lede{max-width:68ch;color:var(--muted);margin:0;font-size:1.06rem}
+.stagebar{display:flex;flex-wrap:wrap;gap:6px;margin-top:22px}
+.stagebar span{font-family:var(--f-mono);font-size:.78rem;font-weight:600;padding:4px 10px;border-radius:3px;color:#fff}
+.st-if{background:var(--s-if)}.st-id{background:var(--s-id)}.st-ex{background:var(--s-ex)}.st-mem{background:var(--s-mem)}.st-wb{background:var(--s-wb)}
+:root[data-theme="dark"] .stagebar span{color:#10141b}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .stagebar span{color:#10141b}}
+
+.wrap{max-width:1180px;margin:0 auto;display:grid;grid-template-columns:230px minmax(0,1fr);gap:48px;padding-top:32px}
+nav.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 16px);align-self:start;max-height:calc(100vh - 32px);overflow:auto;font-family:var(--f-display);font-size:.9rem}
+nav.toc .part{font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 6px;font-weight:700}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.toc a{display:block;padding:3px 8px;border-radius:4px;text-decoration:none;color:var(--fg)}
+nav.toc a:hover{background:var(--sunk)}
+nav.toc a.active{background:var(--accent-soft);color:var(--accent)}
+details.toc-mobile{display:none}
+main{min-width:0;max-width:760px}
+main section{scroll-margin-top:20px}
+.part-title{margin:56px 0 8px;padding-top:28px;border-top:2px solid var(--fg)}
+.part-title:first-child{margin-top:0}
+.part-title .eyebrow{display:block}
+.part-title h2{font-size:clamp(1.7rem,3.6vw,2.3rem);margin:.2rem 0 .3rem}
+h3{font-size:1.45rem;margin:44px 0 10px}
+h4{font-size:1.1rem;margin:28px 0 6px}
+p,li{max-width:70ch}
+ul,ol{padding-left:1.3em}
+li+li{margin-top:.25em}
+.phase-num{font-family:var(--f-mono);font-size:.8rem;color:var(--accent);display:block;margin-bottom:2px;font-weight:600;letter-spacing:.04em}
+
+pre{background:var(--code-bg);color:var(--code-fg);padding:14px 16px;border-radius:6px;overflow-x:auto;line-height:1.5;border:1px solid var(--line);margin:14px 0}
+pre .k{color:var(--c-k);font-weight:600}.pre .n,pre .n{color:var(--c-n)}pre .c{color:var(--c-c);font-style:italic}
+.codecap{font-family:var(--f-mono);font-size:.74rem;color:var(--muted);margin:18px 0 -8px}
+
+.tbl{overflow-x:auto;margin:14px 0;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-stretch:90%;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+tr:last-child td{border-bottom:0}
+td code{white-space:nowrap}
+
+.note{margin:18px 0;padding:12px 16px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.note>.lbl{display:inline-block;font-family:var(--f-display);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;margin-bottom:4px}
+.note p{margin:.3em 0}
+.note.decision{border-color:var(--accent);background:var(--accent-soft)}
+.note.decision>.lbl{color:var(--accent)}
+.note.warn{border-color:var(--warn);background:var(--warn-soft)}
+.note.warn>.lbl{color:var(--warn)}
+.note.tip>.lbl{color:var(--ok)}
+
+.done{margin:16px 0 8px;padding:12px 16px;background:var(--ok-soft);border-radius:6px}
+.done>.lbl{font-family:var(--f-display);font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;color:var(--ok)}
+.done ul{list-style:none;padding:0;margin:6px 0 0}
+.done label{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
+.done input{margin-top:.35em;accent-color:var(--ok);flex:none}
+
+.owner{display:inline-block;font-family:var(--f-display);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 8px;border-radius:3px;border:1px solid currentColor;margin-left:6px;vertical-align:middle}
+.own-a{color:var(--s-if)}.own-b{color:var(--s-mem)}.own-ab{color:var(--accent)}
+
+.diagram{margin:18px 0;padding:10px;background:var(--surface);border:1px solid var(--line);border-radius:6px;overflow-x:auto}
+.diagram svg{display:block;min-width:720px;width:100%;height:auto}
+.diagram figcaption{font-size:.85rem;color:var(--muted);padding:6px 4px 0}
+svg text{font-family:var(--f-display);fill:var(--fg)}
+svg .box{fill:var(--surface);stroke:var(--fg);stroke-width:1.4}
+svg .sunk{fill:var(--sunk);stroke:var(--line)}
+svg .dash{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-dasharray:6 5}
+svg .wire{fill:none;stroke:var(--fg);stroke-width:1.5}
+svg .wire-acc{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:5 4}
+svg .small{font-size:11px;fill:var(--muted)}
+svg .lbl{font-size:12px}
+svg .ttl{font-size:14px;font-weight:700}
+svg .arrow{fill:var(--fg)} svg .arrow-acc{fill:var(--accent)}
+
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+.col{min-width:0;padding:14px 16px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.col h4{margin:0 0 6px}
+.col p,.col li{font-size:.94rem}
+.col ul{margin:.3em 0 0}
+
+@media (max-width:900px){
+  .wrap{grid-template-columns:minmax(0,1fr);gap:0}
+  nav.toc{display:none}
+  details.toc-mobile{display:block;margin:0 0 8px;border:1px solid var(--line);border-radius:6px;background:var(--surface);padding:8px 14px;font-family:var(--f-display)}
+  details.toc-mobile ol{margin:6px 0;padding-left:1.2em}
+  body{font-size:16px}
+}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+</style>
+
+<header class="masthead">
+  <div class="eyebrow">Arquitectura de Computadoras · Trabajo final 2026</div>
+  <h1>Hoja de ruta del pipeline RISC-V</h1>
+  <p class="lede">Cómo encarar el procesador segmentado, la Debug Unit por UART y la interfaz en la PC. La Parte I es la vista de pájaro: qué construir, cómo dividirlo y qué decidir. La Parte II es el paso a paso, con criterios claros de "esto ya está listo" en cada fase.</p>
+  <div class="stagebar" aria-label="Etapas del pipeline"><span class="st-if">IF</span><span class="st-id">ID</span><span class="st-ex">EX</span><span class="st-mem">MEM</span><span class="st-wb">WB</span></div>
+</header>
+
+<div class="wrap">
+<nav class="toc" aria-label="Índice">
+  <div class="part">Parte I · Alto nivel</div>
+  <ol>
+    <li><a href="#vision">Qué están construyendo</a></li>
+    <li><a href="#mental">De C++ a Verilog</a></li>
+    <li><a href="#arquitectura">Arquitectura y módulos</a></li>
+    <li><a href="#decisiones">Decisiones clave</a></li>
+    <li><a href="#division">Cómo dividirse el trabajo</a></li>
+    <li><a href="#verificacion">Estrategia de verificación</a></li>
+  </ol>
+  <div class="part">Parte II · Paso a paso</div>
+  <ol>
+    <li><a href="#f0">0 · Preparación</a></li>
+    <li><a href="#f1">1 · Bloques combinacionales</a></li>
+    <li><a href="#f2">2 · Registros y memorias</a></li>
+    <li><a href="#f3">3 · Pipeline sin riesgos</a></li>
+    <li><a href="#f4">4 · Forwarding</a></li>
+    <li><a href="#f5">5 · Stall por load-use</a></li>
+    <li><a href="#f6">6 · Saltos y flush</a></li>
+    <li><a href="#f7">7 · HALT y vaciado</a></li>
+    <li><a href="#f8">8 · UART y Debug Unit</a></li>
+    <li><a href="#f9">9 · Software en la PC</a></li>
+    <li><a href="#f10">10 · Integración en simulación</a></li>
+    <li><a href="#f11">11 · A la placa</a></li>
+    <li><a href="#f12">12 · Clock y timing</a></li>
+    <li><a href="#f13">13 · Documentación</a></li>
+  </ol>
+  <div class="part">Anexos</div>
+  <ol>
+    <li><a href="#a-isa">Codificación de instrucciones</a></li>
+    <li><a href="#a-preguntas">Preguntas del enunciado</a></li>
+    <li><a href="#a-errores">Errores típicos</a></li>
+    <li><a href="#a-programas">Programas de prueba</a></li>
+    <li><a href="#a-errata">Detalles de las diapositivas</a></li>
+  </ol>
+</nav>
+
+<main>
+<details class="toc-mobile"><summary>Índice</summary>
+  <ol>
+    <li><a href="#vision">Parte I · Alto nivel</a></li>
+    <li><a href="#f0">Parte II · Paso a paso</a></li>
+    <li><a href="#a-isa">Anexos</a></li>
+  </ol>
+</details>
+
+<!-- ============================ PARTE I ============================ -->
+<div class="part-title"><span class="eyebrow">Parte I</span><h2>Guía de alto nivel</h2></div>
+
+<section id="vision">
+<h3>Qué están construyendo realmente</h3>
+<p>El enunciado parece un solo bloque enorme, pero en realidad son <strong>tres proyectos</strong> que se comunican por interfaces bien definidas. Si los tratan por separado, cada uno es del tamaño del TP1 o del TP2:</p>
+<div class="cols">
+  <div class="col"><h4>1 · El CPU segmentado</h4><p>Un RV32I reducido (32 instrucciones más HALT) en 5 etapas, con forwarding, detección de riesgos y saltos. Es el corazón y lo más nuevo.</p></div>
+  <div class="col"><h4>2 · La Debug Unit</h4><p>Una máquina de estados que recibe comandos por la UART del TP2, carga el programa, controla la ejecución (continuo / paso a paso) y devuelve el estado.</p></div>
+  <div class="col"><h4>3 · El software en la PC</h4><p>Ensamblador, envío por puerto serie e interfaz para ver registros, latches y memoria. Acá su C/C++ juega a favor.</p></div>
+</div>
+<p>El orden natural es: el CPU se desarrolla y prueba <em>solo en simulación</em>, cargando el programa con <code>$readmemh</code>. En paralelo se arma la Debug Unit contra un CPU "de mentira". Recién cuando ambos andan por separado se integran.</p>
+<p>Todo lo que se pide ya se implementó mil veces, como dice la cátedra. Los fragmentos de código de esta guía son piezas de libro (las mismas que están en Patterson &amp; Hennessy). La integración, las decisiones y la interfaz son las que hacen único su trabajo.</p>
+</section>
+
+<section id="mental">
+<h3>El cambio de chip: de C++ a Verilog</h3>
+<p>El error más común de quien viene de software es leer Verilog como si fuera un programa que se ejecuta línea por línea. No lo es: <strong>están describiendo un circuito</strong>. Todo existe a la vez y todo calcula en paralelo, todo el tiempo.</p>
+<div class="tbl"><table>
+<thead><tr><th>En C/C++ piensan…</th><th>En Verilog piensen…</th></tr></thead>
+<tbody>
+<tr><td>Una función se ejecuta cuando la llamo.</td><td>Un módulo es un chip soldado en la placa: existe siempre y calcula continuamente. Instanciarlo es agregar hardware, no "llamarlo".</td></tr>
+<tr><td>Las líneas se ejecutan en orden.</td><td>Todos los <code>assign</code> y <code>always</code> corren en paralelo. El orden en el archivo no importa.</td></tr>
+<tr><td>Una variable guarda un valor.</td><td>Un <code>wire</code> es un cable, no guarda nada. Solo los flip-flops (un <code>always @(posedge clk)</code>) recuerdan un valor de un flanco al siguiente.</td></tr>
+<tr><td><code>if/else</code> elige qué código corre.</td><td>En lógica combinacional, <code>if/else</code> genera un multiplexor: las dos ramas existen en hardware y se elige la salida.</td></tr>
+<tr><td><code>for</code> repite en el tiempo.</td><td><code>for</code> se desenrolla en el espacio: genera N copias del hardware.</td></tr>
+<tr><td>Depuro con breakpoints.</td><td>Depuro con formas de onda: miro el valor de cada señal en cada ciclo.</td></tr>
+</tbody></table></div>
+
+<p>Con dos plantillas escriben el 95&nbsp;% del proyecto. Todo lo demás es combinarlas:</p>
+<p class="codecap">plantillas.v</p>
+<pre><code class="v">`default_nettype none   // un typo en un nombre de señal pasa a ser error, no un cable fantasma
+
+// (1) COMBINACIONAL: una función pura de sus entradas, sin memoria.
+//     Usar "=" y dar un valor por defecto a TODAS las salidas al principio.
+always @(*) begin
+    y = a;              // por defecto: evita que se infiera un latch
+    if (sel) y = b;
+end
+
+// (2) SECUENCIAL: qué valor tendrá el registro DESPUÉS del próximo flanco.
+//     Usar "&lt;=" siempre.
+always @(posedge clk) begin
+    if (rst)     q &lt;= 32'd0;
+    else if (en) q &lt;= d;    // si en = 0, q conserva su valor: esto es un "clock enable"
+end</code></pre>
+
+<h4>Reglas que les van a ahorrar días</h4>
+<ol>
+  <li><strong>Combinacional usa <code>=</code>, secuencial usa <code>&lt;=</code>.</strong> Nunca los mezclen en el mismo bloque.</li>
+  <li><strong>Cada señal se asigna desde un solo bloque.</strong> Dos <code>always</code> escribiendo la misma señal es un cortocircuito (en simulación "anda", en síntesis no).</li>
+  <li><strong>Valor por defecto en todo bloque combinacional.</strong> Si Vivado dice <em>"inferring latch"</em>, es un bug: les faltó asignar algo en alguna rama.</li>
+  <li><strong>Nada de <code>#10</code>, <code>initial</code> ni <code>negedge</code> en el diseño.</strong> Los retardos e <code>initial</code> son solo para testbenches (la excepción es inicializar memorias con <code>$readmemh</code>).</li>
+  <li><strong>Anchos explícitos siempre:</strong> <code>32'd4</code>, no <code>4</code>. Verilog trunca y extiende en silencio.</li>
+  <li><strong>Lean los warnings de síntesis.</strong> En Verilog, los bugs más feos son warnings, no errores.</li>
+  <li><strong>Dibujen antes de escribir.</strong> Si no pueden dibujar el circuito (registros, muxes, cables), todavía no están listos para escribir el código.</li>
+</ol>
+</section>
+
+<section id="arquitectura">
+<h3>Arquitectura y módulos</h3>
+<p>Así se ve el sistema completo. Hay <strong>un solo clock</strong> (salido del Clock Wizard) para todo el diseño. La Debug Unit no toca el clock: controla al CPU con una señal <code>en</code> (enable).</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 870 370" role="img" aria-label="Diagrama de bloques: PC con ensamblador e interfaz conectada por USB-UART a la FPGA; dentro, UART, Debug Unit, CPU de 5 etapas, memoria de instrucciones y de datos, y Clock Wizard">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
+    <marker id="ahA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-acc"/></marker>
+  </defs>
+  <!-- Host -->
+  <rect x="8" y="132" width="132" height="96" rx="4" class="box"/>
+  <text x="74" y="156" text-anchor="middle" class="ttl">PC</text>
+  <text x="74" y="176" text-anchor="middle" class="small">ensamblador</text>
+  <text x="74" y="192" text-anchor="middle" class="small">interfaz CLI/TUI/GUI</text>
+  <text x="74" y="208" text-anchor="middle" class="small">golden model</text>
+  <!-- FPGA -->
+  <rect x="168" y="8" width="694" height="354" rx="6" class="dash"/>
+  <text x="182" y="352" class="small">FPGA</text>
+  <!-- Clock wizard -->
+  <rect x="190" y="28" width="150" height="48" rx="4" class="sunk"/>
+  <text x="265" y="48" text-anchor="middle" class="lbl">Clock Wizard</text>
+  <text x="265" y="65" text-anchor="middle" class="small">clk único → todo</text>
+  <!-- UART -->
+  <rect x="190" y="148" width="116" height="64" rx="4" class="box"/>
+  <text x="248" y="176" text-anchor="middle" class="ttl">UART</text>
+  <text x="248" y="194" text-anchor="middle" class="small">(del TP2)</text>
+  <!-- Debug -->
+  <rect x="362" y="118" width="150" height="122" rx="4" class="box"/>
+  <text x="437" y="146" text-anchor="middle" class="ttl">Debug Unit</text>
+  <text x="437" y="166" text-anchor="middle" class="small">FSM de comandos</text>
+  <text x="437" y="182" text-anchor="middle" class="small">carga · run · step</text>
+  <text x="437" y="198" text-anchor="middle" class="small">dump de estado</text>
+  <!-- CPU -->
+  <rect x="582" y="36" width="262" height="164" rx="4" class="box"/>
+  <text x="713" y="62" text-anchor="middle" class="ttl">CPU segmentado</text>
+  <rect x="596" y="80" width="42" height="26" rx="3" style="fill:var(--s-if)"/><text x="617" y="98" text-anchor="middle" class="lbl" style="fill:var(--surface);font-weight:700">IF</text>
+  <rect x="645" y="80" width="42" height="26" rx="3" style="fill:var(--s-id)"/><text x="666" y="98" text-anchor="middle" class="lbl" style="fill:var(--surface);font-weight:700">ID</text>
+  <rect x="694" y="80" width="42" height="26" rx="3" style="fill:var(--s-ex)"/><text x="715" y="98" text-anchor="middle" class="lbl" style="fill:var(--surface);font-weight:700">EX</text>
+  <rect x="743" y="80" width="46" height="26" rx="3" style="fill:var(--s-mem)"/><text x="766" y="98" text-anchor="middle" class="lbl" style="fill:var(--surface);font-weight:700">MEM</text>
+  <rect x="796" y="80" width="42" height="26" rx="3" style="fill:var(--s-wb)"/><text x="817" y="98" text-anchor="middle" class="lbl" style="fill:var(--surface);font-weight:700">WB</text>
+  <text x="713" y="132" text-anchor="middle" class="small">forwarding · hazard unit</text>
+  <text x="713" y="150" text-anchor="middle" class="small">banco de registros (puerto debug)</text>
+  <text x="713" y="168" text-anchor="middle" class="small">latches expuestos por dbg_*</text>
+  <!-- Memories -->
+  <rect x="582" y="262" width="120" height="58" rx="4" class="box"/>
+  <text x="642" y="286" text-anchor="middle" class="lbl">Mem. instrucciones</text>
+  <text x="642" y="304" text-anchor="middle" class="small">2 puertos</text>
+  <rect x="724" y="262" width="120" height="58" rx="4" class="box"/>
+  <text x="784" y="286" text-anchor="middle" class="lbl">Mem. datos</text>
+  <text x="784" y="304" text-anchor="middle" class="small">2 puertos</text>
+  <!-- Wires -->
+  <line x1="140" y1="180" x2="190" y2="180" class="wire" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <text x="165" y="170" text-anchor="middle" class="small">USB</text>
+  <line x1="306" y1="180" x2="362" y2="180" class="wire" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <text x="334" y="170" text-anchor="middle" class="small">bytes</text>
+  <line x1="512" y1="140" x2="582" y2="140" class="wire" marker-end="url(#ah)"/>
+  <text x="547" y="132" text-anchor="middle" class="small">en, rst</text>
+  <line x1="582" y1="184" x2="512" y2="184" class="wire" marker-end="url(#ah)"/>
+  <text x="547" y="176" text-anchor="middle" class="small">halted</text>
+  <text x="547" y="200" text-anchor="middle" class="small">dbg_*</text>
+  <polyline points="480,240 480,291 582,291" class="wire-acc" marker-end="url(#ahA)"/>
+  <text x="530" y="283" text-anchor="middle" class="small">escritura</text>
+  <line x1="642" y1="262" x2="642" y2="200" class="wire" marker-end="url(#ah)"/>
+  <text x="648" y="236" class="small">instr</text>
+  <line x1="784" y1="200" x2="784" y2="262" class="wire" marker-start="url(#ah)" marker-end="url(#ah)"/>
+  <text x="790" y="236" class="small">load/store</text>
+  <polyline points="784,320 784,342 420,342 420,240" class="wire-acc" marker-end="url(#ahA)"/>
+  <text x="600" y="336" text-anchor="middle" class="small">lectura debug de la memoria usada</text>
+</svg>
+<figcaption>Las líneas punteadas color cobre son los caminos que solo usa la Debug Unit mientras el CPU está detenido.</figcaption>
+</figure>
+
+<h4>Lista de módulos</h4>
+<div class="tbl"><table>
+<thead><tr><th>Módulo</th><th>Responsabilidad</th><th>Cómo se prueba</th></tr></thead>
+<tbody>
+<tr><td><code>top</code></td><td>Instancia todo, Clock Wizard, reset, pines</td><td>Simulación del sistema completo (Fase 10)</td></tr>
+<tr><td><code>alu</code></td><td>Operaciones aritméticas/lógicas de 32 bits (reutilizar TP1)</td><td>TB con casos borde; comparar contra C</td></tr>
+<tr><td><code>imm_gen</code></td><td>Arma el inmediato según el formato I/S/B/J/U</td><td>TB con instrucciones conocidas</td></tr>
+<tr><td><code>control</code></td><td>Opcode → señales de control</td><td>TB por tipo de instrucción</td></tr>
+<tr><td><code>regfile</code></td><td>32×32, 2 lecturas + 1 escritura + puerto debug</td><td>TB escritura/lectura/bypass/x0</td></tr>
+<tr><td><code>imem</code>, <code>dmem</code></td><td>Memorias de 2 puertos; dmem con escritura por byte</td><td>TB sb/sh/sw + lb/lh/lw/lbu/lhu</td></tr>
+<tr><td><code>if_id</code>, <code>id_ex</code>, <code>ex_mem</code>, <code>mem_wb</code></td><td>Latches del pipeline con enable, stall y flush</td><td>Se prueban dentro del CPU</td></tr>
+<tr><td><code>forwarding_unit</code></td><td>Elige de dónde vienen los operandos de EX</td><td>TB combinacional exhaustivo</td></tr>
+<tr><td><code>hazard_unit</code></td><td>Stall por load-use, flush por saltos, HALT</td><td>Programas específicos</td></tr>
+<tr><td><code>cpu</code></td><td>Conecta etapas y latches; expone el bus de debug</td><td>Programas + golden model</td></tr>
+<tr><td><code>uart_rx</code>, <code>uart_tx</code>, <code>baud_gen</code></td><td>Del TP2, parametrizados por frecuencia</td><td>Ya probados; re-testear con nuevo clock</td></tr>
+<tr><td><code>debug_unit</code></td><td>FSM: comandos, carga, run/step, dump</td><td>TB con un CPU "stub"</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="decisiones">
+<h3>Las decisiones clave (y que deben documentar)</h3>
+<p>El enunciado pide explícitamente documentar decisiones y su porqué. Estas son las seis que definen el diseño. Tómenlas en la Fase 0, por escrito, antes de programar.</p>
+
+<div class="note decision"><span class="lbl">Decisión 1 · Clock enable, nunca clock gating</span>
+<p>"El clock no debe verse intervenido": el modo paso a paso <strong>no</strong> se hace generando pulsos de clock ni con un AND sobre <code>clk</code>. Todo el CPU recibe una señal <code>en</code>; cada flip-flop del CPU (PC, latches, escritura del banco de registros, escritura de memoria) solo se actualiza si <code>en = 1</code>. Un paso = <code>en</code> en 1 durante exactamente un ciclo.</p>
+<p><em>Por qué:</em> meter lógica en el camino del clock genera skew, glitches y violaciones de hold. Con enable, el clock va limpio por la red global de la FPGA.</p></div>
+
+<div class="note decision"><span class="lbl">Decisión 2 · Tipo de memorias</span>
+<p><strong>Recomendado para empezar:</strong> memorias de lectura asíncrona (un arreglo <code>reg</code> leído con <code>assign</code>). Vivado las implementa como RAM distribuida en LUTs; para 256–1024 palabras sobra. El pipeline queda exactamente como en el libro.</p>
+<p><strong>Alternativa (la que sugiere la cátedra con los IP Cores):</strong> Block RAM, que tiene <em>lectura sincrónica</em>: el dato sale un ciclo después de presentar la dirección. Se puede usar, pero cambia el pipeline: en la memoria de instrucciones se presenta <code>pc_next</code> en lugar de <code>pc</code> (así el registro interno de la BRAM hace de parte del latch IF/ID), y en la de datos se presenta la dirección en MEM y el dato se usa en WB (la extensión de lb/lh pasa a WB, así que <code>addr[1:0]</code> y <code>funct3</code> tienen que viajar en MEM/WB). El enable del puerto de la BRAM tiene que ir atado a la misma condición que habilita el PC (<code>en</code> y no stall), si no, se desalinea al pausar.</p>
+<p>Consejo: arranquen con asíncrona, hagan andar todo, y si les sobra tiempo migren a BRAM como mejora documentada.</p></div>
+
+<div class="note decision"><span class="lbl">Decisión 3 · Instrucción HALT y vaciado del pipeline</span>
+<p>RISC-V no tiene HALT, así que eligen una codificación. Opciones razonables: <code>ecall</code> (<code>0x00000073</code>, la reconocen todos los ensambladores y simuladores), o un valor reservado como <code>0xFFFFFFFF</code>. Evalúen también <code>0x00000000</code>: en RISC-V es ilegal a propósito, y una memoria vacía quedaría "llena de HALT"; el costo es que ningún flush puede cargar ceros en IF/ID (ver errores típicos).</p>
+<p>Mecanismo sugerido: cuando HALT llega a ID, el PC se congela y ya no entran instrucciones nuevas (entran burbujas). HALT sigue avanzando como una instrucción más sin efecto. Cuando llega a WB, todas las anteriores ya escribieron: el pipeline está vacío y el CPU levanta <code>halted</code>. Eso cumple "el pipeline debe quedar vacío al terminar".</p></div>
+
+<div class="note decision"><span class="lbl">Decisión 4 · Dónde se resuelven los saltos</span>
+<p><strong>En EX (recomendado):</strong> la condición se evalúa con los operandos ya forwardeados; si se toma el salto, se cambia el PC y se descartan las 2 instrucciones que entraron detrás (2 ciclos de penalidad). Es lo más simple y robusto.</p>
+<p><strong>En ID (optimización del libro):</strong> 1 ciclo de penalidad, pero necesita comparador y forwarding en ID y stalls extra. Solo si les sobra tiempo; un término medio es resolver <code>jal</code> en ID (no depende de registros).</p></div>
+
+<div class="note decision"><span class="lbl">Decisión 5 · Protocolo UART propio</span>
+<p>Definan un protocolo simple de comandos de 1 byte con respuestas de formato fijo (propuesta en la <a href="#f8">Fase 8</a>). Escríbanlo como una tabla en la documentación <em>antes</em> de codificar: es el contrato entre la persona que hace la Debug Unit y la que hace el software.</p></div>
+
+<div class="note decision"><span class="lbl">Decisión 6 · Cómo se expone el estado interno</span>
+<p>En lugar de sacar cientos de cables sueltos del CPU, usen un <strong>bus de debug direccionable</strong>: la Debug Unit pone un índice y el CPU devuelve una palabra de 32 bits. Igual que un puerto de lectura extra: <code>dbg_reg_addr → dbg_reg_data</code>, <code>dbg_latch_sel → dbg_latch_word</code>, <code>dbg_mem_addr → dbg_mem_data</code>.</p>
+<p>Para "la memoria de datos usada", una idea simple y original: un bit <em>dirty</em> por palabra que se pone en 1 al escribirla. El dump envía solo las palabras sucias con su dirección.</p></div>
+</section>
+
+<section id="division">
+<h3>Cómo dividirse el trabajo</h3>
+<p>Dos pistas paralelas que se encuentran en la integración. Lo único que tienen que acordar al principio son las <strong>interfaces</strong> entre CPU y Debug Unit (qué puertos, qué significan) y el <strong>protocolo UART</strong>.</p>
+<div class="cols">
+  <div class="col"><h4>Persona A · Datapath <span class="owner own-a">A</span></h4>
+  <ul><li>Fases 1 a 7</li><li>ALU, control, imm_gen, regfile, memorias</li><li>Latches, forwarding, hazards, saltos, HALT</li></ul></div>
+  <div class="col"><h4>Persona B · Sistema <span class="owner own-b">B</span></h4>
+  <ul><li>Fases 8 y 9</li><li>UART parametrizada, Debug Unit, protocolo</li><li>Ensamblador, golden model en C++, interfaz</li></ul></div>
+  <div class="col"><h4>Juntos <span class="owner own-ab">A+B</span></h4>
+  <ul><li>Fase 0 (diagrama e interfaces)</li><li>Fases 10 a 13 (integración, placa, timing, informe)</li><li>Revisión cruzada: cada uno escribe tests para los módulos del otro</li></ul></div>
+</div>
+<p>La pista B es algo más liviana en hardware, pero tiene todo el software. Si B termina antes, puede escribir los programas de prueba y el golden model que A necesita para validar el CPU. Esa es la mejor inversión del proyecto.</p>
+<p>La interfaz que tienen que fijar el primer día es aproximadamente esta:</p>
+<p class="codecap">interfaz cpu ↔ debug_unit</p>
+<pre><code class="v">module cpu (
+    input  wire        clk,
+    input  wire        rst,            // reset síncrono del CPU (no borra la memoria de programa)
+    input  wire        en,             // clock enable: el CPU avanza un ciclo por cada flanco con en = 1
+    output wire        halted,         // HALT llegó a WB: pipeline vacío
+    // lectura de instrucciones (la memoria puede vivir en top)
+    output wire [31:0] imem_addr,
+    input  wire [31:0] imem_data,
+    // bus de debug
+    input  wire [4:0]  dbg_reg_addr,   output wire [31:0] dbg_reg_data,
+    input  wire [3:0]  dbg_latch_sel,  output wire [31:0] dbg_latch_word,
+    input  wire [7:0]  dbg_mem_addr,   output wire [31:0] dbg_mem_data,
+    output wire [31:0] dbg_pc
+);</code></pre>
+</section>
+
+<section id="verificacion">
+<h3>Estrategia de verificación</h3>
+<p>Regla de oro: <strong>si no anda en simulación, no va a andar en la placa</strong>, y en la placa no tienen formas de onda. El 80&nbsp;% del tiempo lo van a pasar en el simulador, y está bien.</p>
+<ol>
+  <li><strong>Test unitario por módulo</strong> antes de conectarlo con nada. Un módulo sin testbench no está terminado.</li>
+  <li><strong>Programas pequeños, uno por característica</strong> (ver <a href="#a-programas">anexo</a>), cargados con <code>$readmemh</code>.</li>
+  <li><strong>Golden model:</strong> un simulador de instrucciones en C++ (unas 200 líneas: un <code>switch</code> sobre el opcode). Corre el mismo <code>.hex</code> y escupe registros y memoria finales. El CPU tiene que dar exactamente lo mismo. Automaticen la comparación con un script.</li>
+  <li><strong>Simulación del sistema completo</strong> con un testbench que manda bytes por la línea RX de la UART, igual que la PC. Recién después, la placa.</li>
+</ol>
+<div class="note tip"><span class="lbl">Herramientas</span>
+<p>El simulador de Vivado (xsim) alcanza. Para iterar más rápido, Icarus Verilog + GTKWave compilan en segundos. Como vienen de C++, miren Verilator: permite escribir el testbench en C++. RARS (simulador de RISC-V en Java) sirve para verificar que su ensamblador codifica igual y como segundo golden model.</p></div>
+</section>
+
+<!-- ============================ PARTE II ============================ -->
+<div class="part-title"><span class="eyebrow">Parte II</span><h2>Guía paso a paso</h2>
+<p>Cada fase termina con una lista de "listo cuando". No pasen a la siguiente sin tildarla: los bugs de una fase se multiplican en la siguiente. Las casillas se recuerdan en su navegador.</p></div>
+
+<section id="f0">
+<span class="phase-num">FASE 0 · A+B</span>
+<h3>Preparación: diseñar antes de escribir</h3>
+<ol>
+  <li><strong>Repositorio git</strong> con una estructura que separe diseño, tests y software:
+<pre><code class="plain">rtl/          cpu/  (etapas, latches, forwarding, hazard)
+              mem/  debug/  uart/  top.v
+tb/           tb_alu.v  tb_regfile.v  tb_cpu.v  tb_top.v ...
+sw/           asm/  (ensamblador)   iss/  (golden model C++)   host/  (interfaz)
+programs/     *.s  *.hex
+constraints/  placa.xdc
+docs/         decisiones.md  protocolo.md  diagramas/</code></pre></li>
+  <li><strong>Dibujen el datapath completo</strong> en papel o draw.io, con cada latch y cada mux. Usen la figura 4.x del capítulo de pipeline del libro como base y agreguen lo que falta (lui, jal/jalr, loads/stores de byte, HALT).</li>
+  <li><strong>Convención de nombres por etapa:</strong> cada señal lleva el sufijo de la etapa donde es válida: <code>pc_if</code>, <code>instr_id</code>, <code>alu_out_ex</code>, <code>result_mem</code>, <code>wdata_wb</code>. La salida de un latch toma el sufijo de la etapa siguiente (<code>if_id</code> produce <code>pc_id</code>). Esto solo evita la mitad de los bugs de pipeline.</li>
+  <li><strong>Escriban <code>decisiones.md</code></strong> con las seis decisiones de la Parte I y la interfaz CPU ↔ Debug Unit.</li>
+  <li><strong>Un archivo de constantes</strong> (<code>riscv_defs.vh</code>) con opcodes, funct3 y códigos de ALU como <code>localparam</code> o <code>`define</code>. Nada de números mágicos sueltos.</li>
+</ol>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c0a"> Hay un diagrama del datapath con todos los latches, muxes y señales de control.</label></li>
+<li><label><input type="checkbox" id="c0b"> La interfaz del módulo <code>cpu</code> y el protocolo UART están escritos y acordados.</label></li>
+<li><label><input type="checkbox" id="c0c"> Cada uno sabe qué fases le tocan.</label></li>
+</ul></div>
+</section>
+
+<section id="f1">
+<span class="phase-num">FASE 1 · A</span>
+<h3>Bloques combinacionales: ALU, inmediatos y control</h3>
+<h4>ALU</h4>
+<p>Tomen la ALU del TP1, llévenla a 32 bits y asegúrense de tener: <code>ADD SUB SLL SRL SRA AND OR XOR SLT SLTU</code>. Separen en dos módulos: la <code>alu</code> (recibe un código de operación interno de 4 bits) y un <code>alu_control</code> que traduce <code>funct3</code>/<code>funct7</code> a ese código.</p>
+<pre><code class="v">// dentro del case de la ALU: escribir cada operación como asignación propia
+ALU_SLT:  y = ($signed(a) &lt; $signed(b)) ? 32'd1 : 32'd0;
+ALU_SLTU: y = (a &lt; b) ? 32'd1 : 32'd0;
+ALU_SLL:  y = a &lt;&lt; b[4:0];                  // solo los 5 bits bajos
+ALU_SRA:  y = $signed(a) &gt;&gt;&gt; b[4:0];</code></pre>
+<div class="note warn"><span class="lbl">Ojo · el bit 30</span>
+<p><code>add</code>/<code>sub</code> y <code>srl</code>/<code>sra</code> se distinguen por el bit 30 (<code>funct7[5]</code>). Pero en <code>addi</code> ese bit es <em>parte del inmediato</em>: un <code>addi x1, x0, -1</code> tiene el bit 30 en 1. Si lo miran, lo decodifican como resta. Usen el bit 30 solo en tipo R y en los shifts inmediatos (<code>funct3 = 101</code>).</p></div>
+
+<h4>Generador de inmediatos</h4>
+<p>Es la pieza donde más fácil se equivoca uno, porque RISC-V "desordena" los bits para simplificar el hardware. El bit 31 siempre es el signo:</p>
+<p class="codecap">imm_gen.v</p>
+<pre><code class="v">module imm_gen (
+    input  wire [31:0] instr,
+    output reg  [31:0] imm
+);
+    wire [6:0] opcode = instr[6:0];
+    always @(*) begin
+        case (opcode)
+            7'b0010011, 7'b0000011, 7'b1100111:                          // I: ALU-imm, loads, jalr
+                imm = {{20{instr[31]}}, instr[31:20]};
+            7'b0100011:                                                  // S: stores
+                imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
+            7'b1100011:                                                  // B: beq, bne
+                imm = {{19{instr[31]}}, instr[31], instr[7], instr[30:25], instr[11:8], 1'b0};
+            7'b1101111:                                                  // J: jal
+                imm = {{11{instr[31]}}, instr[31], instr[19:12], instr[20], instr[30:21], 1'b0};
+            7'b0110111:                                                  // U: lui
+                imm = {instr[31:12], 12'b0};
+            default:
+                imm = 32'd0;
+        endcase
+    end
+endmodule</code></pre>
+<p>Para probarlo, codifiquen a mano (o con RARS) instrucciones con inmediatos positivos y negativos y verifiquen. Casos conocidos: <code>0xFFF00093</code> (<code>addi x1,x0,-1</code>) da −1; <code>0xFE000EE3</code> (<code>beq x0,x0,-4</code>) da −4; <code>0x008000EF</code> (<code>jal x1,8</code>) da 8.</p>
+
+<h4>Unidad de control</h4>
+<p>Un decodificador del opcode a señales. Esta tabla es la especificación; conviértanla en un <code>case</code>:</p>
+<div class="tbl"><table>
+<thead><tr><th>Tipo</th><th>opcode</th><th>reg_write</th><th>alu_src_b</th><th>mem_read</th><th>mem_write</th><th>mem_to_reg</th><th>branch</th><th>jump</th><th>Notas</th></tr></thead>
+<tbody>
+<tr><td>R</td><td><code>0110011</code></td><td>1</td><td>rs2</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>op según funct3/funct7</td></tr>
+<tr><td>I-ALU</td><td><code>0010011</code></td><td>1</td><td>imm</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>op según funct3</td></tr>
+<tr><td>Load</td><td><code>0000011</code></td><td>1</td><td>imm</td><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td><td>ALU suma: rs1+imm</td></tr>
+<tr><td>Store</td><td><code>0100011</code></td><td>0</td><td>imm</td><td>0</td><td>1</td><td>–</td><td>0</td><td>0</td><td>dato = rs2</td></tr>
+<tr><td>Branch</td><td><code>1100011</code></td><td>0</td><td>rs2</td><td>0</td><td>0</td><td>–</td><td>1</td><td>0</td><td>compara rs1 y rs2</td></tr>
+<tr><td>jal</td><td><code>1101111</code></td><td>1</td><td>–</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>rd ← PC+4; PC ← PC+imm</td></tr>
+<tr><td>jalr</td><td><code>1100111</code></td><td>1</td><td>imm</td><td>0</td><td>0</td><td>0</td><td>0</td><td>1</td><td>rd ← PC+4; PC ← (rs1+imm) &amp; ~1</td></tr>
+<tr><td>lui</td><td><code>0110111</code></td><td>1</td><td>imm</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>operando A = 0, ALU suma</td></tr>
+<tr><td>HALT</td><td>(su elección)</td><td>0</td><td>–</td><td>0</td><td>0</td><td>–</td><td>0</td><td>0</td><td>halt = 1</td></tr>
+</tbody></table></div>
+<p>Agreguen dos salidas más que van a necesitar en la Fase 5: <code>uses_rs1</code> y <code>uses_rs2</code> (si la instrucción realmente lee ese registro). Evitan stalls falsos cuando el campo <code>rs2</code> es en realidad parte de un inmediato.</p>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c1a"> La ALU pasa un testbench con casos borde (overflow, negativos, shifts de 0 y 31, slt vs sltu con 0x80000000).</label></li>
+<li><label><input type="checkbox" id="c1b"> <code>imm_gen</code> da el valor correcto para los 5 formatos con signo positivo y negativo.</label></li>
+<li><label><input type="checkbox" id="c1c"> El control genera las señales de la tabla para cada una de las 32 instrucciones.</label></li>
+</ul></div>
+</section>
+
+<section id="f2">
+<span class="phase-num">FASE 2 · A</span>
+<h3>Banco de registros y memorias</h3>
+<h4>Banco de registros</h4>
+<p>Tres detalles: <code>x0</code> siempre vale 0, un puerto de lectura extra para la Debug Unit, y un <em>bypass</em> interno. El libro resuelve "escribo en WB y leo en ID en el mismo ciclo" escribiendo en el flanco de bajada; en FPGA es mejor evitar <code>negedge</code> y hacer el bypass con un mux:</p>
+<p class="codecap">regfile.v</p>
+<pre><code class="v">module regfile (
+    input  wire        clk,
+    input  wire        rst,
+    input  wire        we,                    // ya viene combinado con el enable del CPU
+    input  wire [4:0]  waddr,
+    input  wire [31:0] wdata,
+    input  wire [4:0]  raddr1, raddr2, dbg_addr,
+    output wire [31:0] rdata1, rdata2, dbg_data
+);
+    reg [31:0] regs [0:31];
+    integer i;
+
+    always @(posedge clk) begin
+        if (rst)
+            for (i = 0; i &lt; 32; i = i + 1) regs[i] &lt;= 32'd0;
+        else if (we &amp;&amp; waddr != 5'd0)
+            regs[waddr] &lt;= wdata;
+    end
+
+    // bypass: si WB está escribiendo el registro que ID lee, entregar el dato nuevo
+    assign rdata1   = (raddr1 == 5'd0) ? 32'd0 :
+                      (we &amp;&amp; waddr == raddr1) ? wdata : regs[raddr1];
+    assign rdata2   = (raddr2 == 5'd0) ? 32'd0 :
+                      (we &amp;&amp; waddr == raddr2) ? wdata : regs[raddr2];
+    assign dbg_data = regs[dbg_addr];
+endmodule</code></pre>
+
+<h4>Memoria de datos con acceso por byte</h4>
+<p>Organícenla como palabras de 32 bits con 4 "carriles" de byte. El truco para los stores: <strong>replicar</strong> el dato en todos los carriles y habilitar solo los que corresponden según <code>addr[1:0]</code>:</p>
+<div class="tbl"><table>
+<thead><tr><th>Store</th><th>Dato a escribir</th><th>Byte enables (<code>be</code>)</th></tr></thead>
+<tbody>
+<tr><td><code>sb</code></td><td><code>{4{rs2[7:0]}}</code></td><td><code>4'b0001 &lt;&lt; addr[1:0]</code></td></tr>
+<tr><td><code>sh</code></td><td><code>{2{rs2[15:0]}}</code></td><td><code>addr[1] ? 4'b1100 : 4'b0011</code></td></tr>
+<tr><td><code>sw</code></td><td><code>rs2</code></td><td><code>4'b1111</code></td></tr>
+</tbody></table></div>
+<p>Para los loads, se lee la palabra entera y se extrae y extiende según <code>funct3</code>:</p>
+<pre><code class="v">always @(*) begin
+    case (addr[1:0])
+        2'd0:    byte_v = word[7:0];
+        2'd1:    byte_v = word[15:8];
+        2'd2:    byte_v = word[23:16];
+        default: byte_v = word[31:24];
+    endcase
+    half_v = addr[1] ? word[31:16] : word[15:0];
+    case (funct3)
+        3'b000:  load_data = {{24{byte_v[7]}},  byte_v};   // lb
+        3'b001:  load_data = {{16{half_v[15]}}, half_v};   // lh
+        3'b100:  load_data = {24'd0, byte_v};              // lbu
+        3'b101:  load_data = {16'd0, half_v};              // lhu
+        default: load_data = word;                         // lw
+    endcase
+end</code></pre>
+<div class="note decision"><span class="lbl">Decisión a documentar · accesos desalineados</span>
+<p>¿Qué pasa con un <code>lw</code> en una dirección que no es múltiplo de 4? Lo más simple: no se soporta (se ignoran los bits bajos) y el ensamblador lo advierte. Escríbanlo.</p></div>
+<p>La memoria de instrucciones es más simple: un puerto de lectura para IF (índice <code>pc[N+1:2]</code>) y un puerto de escritura para la Debug Unit. Para simular, inicialícenla con <code>$readmemh("prog.hex", mem)</code>.</p>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c2a"> El banco pasa: escribir/leer, <code>x0</code> no se modifica, bypass en el mismo ciclo, puerto debug.</label></li>
+<li><label><input type="checkbox" id="c2b"> <code>sb 0x80</code> seguido de <code>lb</code> da <code>0xFFFFFF80</code> y de <code>lbu</code> da <code>0x00000080</code>, en los 4 offsets.</label></li>
+</ul></div>
+</section>
+
+<section id="f3">
+<span class="phase-num">FASE 3 · A</span>
+<h3>El pipeline sin riesgos</h3>
+<p>Conecten las cinco etapas con sus cuatro latches, <strong>sin</strong> forwarding ni detección de riesgos todavía. Para probar, escriban programas con <code>nop</code> entre instrucciones dependientes (con 2 alcanza, gracias al bypass del banco de registros).</p>
+
+<figure class="diagram">
+<svg viewBox="0 0 870 300" role="img" aria-label="Pipeline de cinco etapas con cuatro latches, unidad de forwarding bajo EX y unidad de riesgos bajo ID">
+  <defs>
+    <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow"/></marker>
+    <marker id="ah2A" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="arrow-acc"/></marker>
+  </defs>
+  <!-- feedback arrows on top -->
+  <polyline points="415,78 415,30 80,30 80,78" class="wire-acc" marker-end="url(#ah2A)"/>
+  <text x="248" y="24" text-anchor="middle" class="small">salto tomado: nuevo PC + flush de IF/ID e ID/EX</text>
+  <polyline points="770,78 770,52 240,52 240,78" class="wire" marker-end="url(#ah2)"/>
+  <text x="505" y="46" text-anchor="middle" class="small">escritura de rd en el banco de registros</text>
+  <!-- stages -->
+  <rect x="16" y="78" width="126" height="118" rx="4" class="box" style="stroke:var(--s-if);stroke-width:2"/>
+  <text x="79" y="100" text-anchor="middle" class="ttl" style="fill:var(--s-if)">IF</text>
+  <text x="79" y="124" text-anchor="middle" class="small">PC, PC+4</text>
+  <text x="79" y="142" text-anchor="middle" class="small">mem. instrucciones</text>
+  <text x="79" y="160" text-anchor="middle" class="small">mux de PC</text>
+  <rect x="150" y="70" width="16" height="134" class="sunk"/><text x="158" y="218" text-anchor="middle" class="small">IF/ID</text>
+  <rect x="174" y="78" width="134" height="118" rx="4" class="box" style="stroke:var(--s-id);stroke-width:2"/>
+  <text x="241" y="100" text-anchor="middle" class="ttl" style="fill:var(--s-id)">ID</text>
+  <text x="241" y="124" text-anchor="middle" class="small">control</text>
+  <text x="241" y="142" text-anchor="middle" class="small">banco de registros</text>
+  <text x="241" y="160" text-anchor="middle" class="small">imm_gen · HALT</text>
+  <rect x="316" y="70" width="16" height="134" class="sunk"/><text x="324" y="218" text-anchor="middle" class="small">ID/EX</text>
+  <rect x="340" y="78" width="150" height="118" rx="4" class="box" style="stroke:var(--s-ex);stroke-width:2"/>
+  <text x="415" y="100" text-anchor="middle" class="ttl" style="fill:var(--s-ex)">EX</text>
+  <text x="415" y="124" text-anchor="middle" class="small">muxes de forwarding</text>
+  <text x="415" y="142" text-anchor="middle" class="small">ALU · comparador</text>
+  <text x="415" y="160" text-anchor="middle" class="small">destino del salto</text>
+  <rect x="498" y="70" width="16" height="134" class="sunk"/><text x="506" y="218" text-anchor="middle" class="small">EX/MEM</text>
+  <rect x="522" y="78" width="130" height="118" rx="4" class="box" style="stroke:var(--s-mem);stroke-width:2"/>
+  <text x="587" y="100" text-anchor="middle" class="ttl" style="fill:var(--s-mem)">MEM</text>
+  <text x="587" y="124" text-anchor="middle" class="small">mem. datos</text>
+  <text x="587" y="142" text-anchor="middle" class="small">carriles de byte</text>
+  <text x="587" y="160" text-anchor="middle" class="small">extensión de loads</text>
+  <rect x="660" y="70" width="16" height="134" class="sunk"/><text x="668" y="218" text-anchor="middle" class="small">MEM/WB</text>
+  <rect x="684" y="78" width="130" height="118" rx="4" class="box" style="stroke:var(--s-wb);stroke-width:2"/>
+  <text x="749" y="100" text-anchor="middle" class="ttl" style="fill:var(--s-wb)">WB</text>
+  <text x="749" y="124" text-anchor="middle" class="small">mux resultado/load</text>
+  <text x="749" y="142" text-anchor="middle" class="small">→ banco de registros</text>
+  <text x="749" y="160" text-anchor="middle" class="small">halted</text>
+  <!-- units -->
+  <rect x="150" y="240" width="182" height="46" rx="4" class="sunk"/>
+  <text x="241" y="260" text-anchor="middle" class="lbl">Hazard unit</text>
+  <text x="241" y="276" text-anchor="middle" class="small">stall load-use · HALT</text>
+  <rect x="352" y="240" width="300" height="46" rx="4" class="sunk"/>
+  <text x="502" y="260" text-anchor="middle" class="lbl">Forwarding unit</text>
+  <text x="502" y="276" text-anchor="middle" class="small">compara rs1/rs2 (EX) con rd de EX/MEM y MEM/WB</text>
+</svg>
+<figcaption>Los latches (barras grises) son los "latches intermedios" que la Debug Unit tiene que enviar a la PC.</figcaption>
+</figure>
+
+<h4>El patrón de un latch</h4>
+<p>Los cuatro latches siguen el mismo molde: <code>rst</code> gana siempre, después <code>en</code> (Debug Unit), después <code>flush</code> (burbuja) y después <code>stall</code> (conservar). Un bit <code>valid</code> por latch les permite distinguir burbujas en la interfaz y es útil para HALT.</p>
+<p class="codecap">if_id.v</p>
+<pre><code class="v">module if_id (
+    input  wire        clk,
+    input  wire        rst,
+    input  wire        en,          // clock enable global
+    input  wire        stall,       // conservar el contenido
+    input  wire        flush,       // convertir en burbuja (tiene prioridad sobre stall)
+    input  wire [31:0] pc_if,
+    input  wire [31:0] instr_if,
+    output reg  [31:0] pc_id,
+    output reg  [31:0] instr_id,
+    output reg         valid_id
+);
+    localparam [31:0] NOP = 32'h0000_0013;   // addi x0, x0, 0
+
+    always @(posedge clk) begin
+        if (rst) begin
+            pc_id    &lt;= 32'd0;
+            instr_id &lt;= NOP;
+            valid_id &lt;= 1'b0;
+        end else if (en) begin
+            if (flush) begin
+                instr_id &lt;= NOP;
+                valid_id &lt;= 1'b0;
+            end else if (!stall) begin
+                pc_id    &lt;= pc_if;
+                instr_id &lt;= instr_if;
+                valid_id &lt;= 1'b1;
+            end
+            // con stall no se asigna nada: el registro conserva su valor
+        end
+    end
+endmodule</code></pre>
+<p>En <code>id_ex</code>, "burbuja" significa poner en 0 todas las señales que tienen efecto: <code>reg_write</code>, <code>mem_write</code>, <code>mem_read</code>, <code>branch</code>, <code>jump</code>, <code>halt</code> y <code>valid</code>. Los datos pueden quedar con cualquier valor.</p>
+
+<h4>Qué viaja en cada latch</h4>
+<p>Esta tabla sirve dos veces: define los latches y define qué manda la Debug Unit (15 palabras de 32 bits). Propagar el PC hasta WB cuesta poco y permite que la interfaz muestre qué instrucción hay en cada etapa.</p>
+<div class="tbl"><table>
+<thead><tr><th>Latch</th><th>Datos</th><th>Control / info</th><th>Palabras</th></tr></thead>
+<tbody>
+<tr><td>IF/ID</td><td>pc, instr</td><td>valid (puede ir empaquetado en la palabra de estado)</td><td>2</td></tr>
+<tr><td>ID/EX</td><td>pc, rs1_data, rs2_data, imm</td><td>valid, rs1, rs2, rd, funct3, alu_op, alu_src, mem_read, mem_write, mem_to_reg, reg_write, branch, jump, jalr, lui, halt</td><td>5</td></tr>
+<tr><td>EX/MEM</td><td>pc, result, store_data</td><td>valid, rd, funct3, mem_read, mem_write, mem_to_reg, reg_write, halt</td><td>4</td></tr>
+<tr><td>MEM/WB</td><td>pc, result, load_data</td><td>valid, rd, mem_to_reg, reg_write, halt</td><td>4</td></tr>
+</tbody></table></div>
+<p>Los campos de control se empaquetan en una palabra "info" con un layout de bits que documentan; el software la decodifica.</p>
+
+<h4>Tres detalles del datapath</h4>
+<ul>
+  <li><strong>El resultado se decide en EX:</strong> para <code>jal</code>/<code>jalr</code> lo que se escribe en <code>rd</code> es PC+4 (de <em>esa</em> instrucción), no la salida de la ALU. Háganlo en EX y lleven un único <code>result</code> hacia adelante: el forwarding queda uniforme.
+<pre><code class="v">assign result_ex = jump_ex ? (pc_ex + 32'd4) : alu_out_ex;</code></pre></li>
+  <li><strong><code>lui</code>:</strong> operando A de la ALU en 0 y operación suma con el inmediato U.</li>
+  <li><strong>Enable en las escrituras:</strong> <code>we</code> del banco y de la memoria de datos se combinan con el enable del CPU (<code>reg_write_wb &amp;&amp; valid_wb &amp;&amp; adv</code>), así nada cambia mientras está en pausa.</li>
+</ul>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c3a"> Un programa con todas las instrucciones R e I, separadas por <code>nop</code>, deja los registros igual que el golden model.</label></li>
+<li><label><input type="checkbox" id="c3b"> En las formas de onda pueden seguir una instrucción de IF a WB mirando <code>pc_id</code>, <code>pc_ex</code>, <code>pc_mem</code>, <code>pc_wb</code>.</label></li>
+</ul></div>
+</section>
+
+<section id="f4">
+<span class="phase-num">FASE 4 · A</span>
+<h3>Forwarding</h3>
+<p>Ahora saquen los <code>nop</code>. Una instrucción que necesita un valor calculado por la anterior lo recibe directamente del latch EX/MEM (distancia 1) o MEM/WB (distancia 2). La distancia 3 ya la cubre el bypass del banco de registros.</p>
+<p class="codecap">forwarding_unit.v</p>
+<pre><code class="v">module forwarding_unit (
+    input  wire [4:0] rs1_ex, rs2_ex,
+    input  wire [4:0] rd_mem, rd_wb,
+    input  wire       reg_write_mem, reg_write_wb,
+    output reg  [1:0] fwd_a, fwd_b      // 00: banco de registros, 10: EX/MEM, 01: MEM/WB
+);
+    always @(*) begin
+        fwd_a = 2'b00;
+        if (reg_write_mem &amp;&amp; rd_mem != 5'd0 &amp;&amp; rd_mem == rs1_ex)
+            fwd_a = 2'b10;                            // el dato más reciente gana
+        else if (reg_write_wb &amp;&amp; rd_wb != 5'd0 &amp;&amp; rd_wb == rs1_ex)
+            fwd_a = 2'b01;
+
+        fwd_b = 2'b00;
+        if (reg_write_mem &amp;&amp; rd_mem != 5'd0 &amp;&amp; rd_mem == rs2_ex)
+            fwd_b = 2'b10;
+        else if (reg_write_wb &amp;&amp; rd_wb != 5'd0 &amp;&amp; rd_wb == rs2_ex)
+            fwd_b = 2'b01;
+    end
+endmodule</code></pre>
+<p>Los muxes van en EX, <strong>antes</strong> del mux que elige entre <code>rs2</code> y el inmediato. Así el valor forwardeado de <code>rs2</code> también sirve como dato de un store y como operando del comparador de saltos:</p>
+<pre><code class="v">always @(*) begin
+    case (fwd_a)
+        2'b10:   op_a = result_mem;     // desde EX/MEM
+        2'b01:   op_a = wdata_wb;       // desde MEM/WB: lo mismo que se escribe en el banco
+        default: op_a = rs1_data_ex;
+    endcase
+    case (fwd_b)
+        2'b10:   op_b = result_mem;
+        2'b01:   op_b = wdata_wb;
+        default: op_b = rs2_data_ex;
+    endcase
+end
+
+assign alu_a         = lui_ex ? 32'd0 : op_a;
+assign alu_b         = alu_src_b_ex ? imm_ex : op_b;
+assign store_data_ex = op_b;</code></pre>
+<p>Los <code>reg_write_*</code> que entran a la unidad tienen que ser 0 en las burbujas (lo son, si el flush los limpia).</p>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c4a"> Pasan los tres casos: dependencia a distancia 1, 2 y 3, para rs1 y para rs2.</label></li>
+<li><label><input type="checkbox" id="c4b"> <code>addi x5, x0, 7</code> seguido inmediatamente de <code>sw x5, 0(x0)</code> guarda 7.</label></li>
+<li><label><input type="checkbox" id="c4c"> Una escritura a <code>x0</code> seguida de una lectura de <code>x0</code> da 0 (no se forwardea).</label></li>
+</ul></div>
+</section>
+
+<section id="f5">
+<span class="phase-num">FASE 5 · A</span>
+<h3>Stall por load-use</h3>
+<p>El único caso que el forwarding no salva: un load seguido inmediatamente de una instrucción que usa su resultado. El dato recién existe al final de MEM, y la siguiente lo necesita al principio de EX. Solución: detener un ciclo.</p>
+<p class="codecap">hazard_unit.v</p>
+<pre><code class="v">module hazard_unit (
+    input  wire       mem_read_ex,          // la instrucción en EX es un load
+    input  wire [4:0] rd_ex,
+    input  wire [4:0] rs1_id, rs2_id,
+    input  wire       uses_rs1_id,          // del decodificador, ya combinados con valid_id
+    input  wire       uses_rs2_id,
+    output wire       load_use_stall
+);
+    assign load_use_stall = mem_read_ex &amp;&amp; (rd_ex != 5'd0) &amp;&amp;
+                            ((uses_rs1_id &amp;&amp; rd_ex == rs1_id) ||
+                             (uses_rs2_id &amp;&amp; rd_ex == rs2_id));
+endmodule</code></pre>
+<p>Cuando <code>load_use_stall = 1</code>: el PC no avanza, IF/ID conserva su contenido (<code>stall</code>) e ID/EX recibe una burbuja (<code>flush</code>). Al ciclo siguiente el load está en MEM/WB y el forwarding desde <code>wdata_wb</code> resuelve el resto.</p>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c5a"> <code>lw x1, 0(x0)</code> seguido de <code>add x2, x1, x1</code> da el resultado correcto con exactamente un ciclo de burbuja.</label></li>
+<li><label><input type="checkbox" id="c5b"> <code>lw x1, 0(x0)</code> seguido de <code>sw x1, 4(x0)</code> copia el dato.</label></li>
+<li><label><input type="checkbox" id="c5c"> Un <code>addi</code> después de un load a otro registro no genera stall.</label></li>
+</ul></div>
+</section>
+
+<section id="f6">
+<span class="phase-num">FASE 6 · A</span>
+<h3>Saltos: beq, bne, jal, jalr</h3>
+<p>Con los saltos resueltos en EX y predicción "no tomado": el pipeline sigue buscando PC+4. Si en EX resulta que el salto se toma, se carga el destino en el PC y se descartan las dos instrucciones que entraron por detrás.</p>
+<pre><code class="v">wire        eq_ex     = (op_a == op_b);                          // operandos ya forwardeados
+wire        br_taken  = branch_ex &amp;&amp; ((funct3_ex == 3'b000) ? eq_ex : !eq_ex);  // beq / bne
+wire        take_ex   = br_taken || jump_ex;
+wire [31:0] target_ex = jalr_ex ? ((op_a + imm_ex) &amp; ~32'd1)    // jalr: rs1 + imm, bit 0 en 0
+                                : (pc_ex + imm_ex);              // beq, bne, jal
+
+always @(posedge clk) begin
+    if (rst)
+        pc &lt;= 32'd0;
+    else if (adv) begin                    // adv = en &amp;&amp; !halted
+        if (take_ex)        pc &lt;= target_ex;   // el salto tiene prioridad
+        else if (!pc_hold)  pc &lt;= pc + 32'd4;  // pc_hold = load_use_stall || stop_fetch
+    end
+end</code></pre>
+<p>Resumen de cómo se controla cada latch (vale la pena tenerlo en un solo lugar del código):</p>
+<div class="tbl"><table>
+<thead><tr><th>Señal</th><th>Condición</th></tr></thead>
+<tbody>
+<tr><td>PC conserva</td><td><code>load_use_stall || stop_fetch</code></td></tr>
+<tr><td>IF/ID stall</td><td><code>load_use_stall</code></td></tr>
+<tr><td>IF/ID flush</td><td><code>take_ex || stop_fetch</code></td></tr>
+<tr><td>ID/EX flush</td><td><code>take_ex || load_use_stall</code></td></tr>
+<tr><td>EX/MEM, MEM/WB</td><td>solo <code>adv</code>; nunca se vacían</td></tr>
+</tbody></table></div>
+<p><code>take_ex</code> y <code>load_use_stall</code> nunca ocurren juntos: el stall necesita un load en EX y el salto necesita un branch o jump en EX.</p>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c6a"> Un bucle con <code>bne</code> que suma 1..10 da 55 (programa en el <a href="#a-programas">anexo</a>).</label></li>
+<li><label><input type="checkbox" id="c6b"> Una llamada con <code>jal ra, f</code> y retorno con <code>jalr x0, 0(ra)</code> funciona, incluso si la función es la instrucción siguiente.</label></li>
+<li><label><input type="checkbox" id="c6c"> Las dos instrucciones después de un salto tomado no modifican nada.</label></li>
+<li><label><input type="checkbox" id="c6d"> Un <code>beq</code> cuyo operando viene de un <code>lw</code> inmediatamente anterior funciona (stall + forwarding).</label></li>
+</ul></div>
+</section>
+
+<section id="f7">
+<span class="phase-num">FASE 7 · A</span>
+<h3>HALT y vaciado del pipeline</h3>
+<pre><code class="v">localparam [31:0] HALT = 32'h0000_0073;          // su elección; acá, ecall
+
+wire is_halt_id = valid_id &amp;&amp; (instr_id == HALT);
+
+// una vez que HALT pasó por ID, no se busca nada más
+always @(posedge clk) begin
+    if (rst)
+        fetch_stopped &lt;= 1'b0;
+    else if (adv &amp;&amp; is_halt_id &amp;&amp; !take_ex)       // un salto anterior tomado anula el HALT
+        fetch_stopped &lt;= 1'b1;
+end
+assign stop_fetch = fetch_stopped || (is_halt_id &amp;&amp; !take_ex);
+
+// HALT llegó a WB: todas las instrucciones anteriores ya escribieron
+assign halted = valid_wb &amp;&amp; halt_wb;
+assign adv    = en &amp;&amp; !halted;                    // el CPU se congela solo</code></pre>
+<p>Conecten <code>adv</code> (no <code>en</code>) al enable del PC, de los cuatro latches y de las escrituras al banco y a la memoria. Cuando <code>halted</code> sube, <code>adv</code> baja y todo el CPU queda congelado con IF/ID, ID/EX y EX/MEM llenos de burbujas y el HALT en WB. Ese es el estado "pipeline vacío" que pide el enunciado, y la Debug Unit lo puede leer tranquila.</p>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c7a"> Todos los programas terminan con <code>halted = 1</code> y los latches previos con <code>valid = 0</code>.</label></li>
+<li><label><input type="checkbox" id="c7b"> Un HALT ubicado justo después de un salto tomado <em>no</em> detiene el CPU.</label></li>
+<li><label><input type="checkbox" id="c7c"> Un script corre todos los programas en simulación y los compara contra el golden model sin intervención.</label></li>
+</ul></div>
+</section>
+
+<section id="f8">
+<span class="phase-num">FASE 8 · B</span>
+<h3>UART y Debug Unit</h3>
+<h4>Revisar la UART del TP2</h4>
+<ul>
+  <li>Parametrícenla por <code>CLK_FREQ</code> y <code>BAUD</code>: cuando cambien la frecuencia en la Fase 12, el divisor se recalcula solo.</li>
+  <li>Confirmen la interfaz: un pulso <code>rx_valid</code> de un ciclo con <code>rx_data</code>, y <code>tx_start</code>/<code>tx_busy</code> para transmitir.</li>
+  <li>La entrada RX es asíncrona: tiene que pasar por dos flip-flops sincronizadores (probablemente ya lo tengan).</li>
+</ul>
+<h4>Protocolo propuesto</h4>
+<div class="tbl"><table>
+<thead><tr><th>Comando</th><th>Byte</th><th>Siguen</th><th>Respuesta</th></tr></thead>
+<tbody>
+<tr><td>Cargar programa</td><td><code>'L'</code> 0x4C</td><td>N (2 bytes, little-endian) y N palabras de 4 bytes</td><td><code>'K'</code></td></tr>
+<tr><td>Ejecutar continuo</td><td><code>'R'</code> 0x52</td><td>–</td><td>dump al llegar a HALT (o timeout)</td></tr>
+<tr><td>Un paso</td><td><code>'S'</code> 0x53</td><td>–</td><td>dump</td></tr>
+<tr><td>Pedir estado</td><td><code>'D'</code> 0x44</td><td>–</td><td>dump</td></tr>
+<tr><td>Reset del CPU</td><td><code>'X'</code> 0x58</td><td>–</td><td><code>'K'</code></td></tr>
+</tbody></table></div>
+<p>El <strong>dump</strong> es más fácil de implementar si lo piensan como un recorrido por un "mapa" de palabras: un contador <code>idx</code> recorre las posiciones, un mux elige la palabra y se envían sus 4 bytes.</p>
+<div class="tbl"><table>
+<thead><tr><th>idx</th><th>Contenido</th></tr></thead>
+<tbody>
+<tr><td>—</td><td>byte de cabecera <code>0xA5</code></td></tr>
+<tr><td>0</td><td>estado: halted, timeout, número de ciclos ejecutados</td></tr>
+<tr><td>1</td><td>PC</td></tr>
+<tr><td>2 – 33</td><td>x0 – x31 (vía <code>dbg_reg_addr</code>)</td></tr>
+<tr><td>34 – 48</td><td>15 palabras de latches (vía <code>dbg_latch_sel</code>)</td></tr>
+<tr><td>49 – …</td><td>memoria de datos: cantidad y luego pares (dirección, dato) de las palabras sucias</td></tr>
+<tr><td>—</td><td>checksum de 1 byte (opcional, muy útil para detectar errores)</td></tr>
+</tbody></table></div>
+<p>A 115200 baudios son unos 11 KB/s: un dump de ~300 bytes tarda menos de 30 ms. Sobra para el modo paso a paso.</p>
+
+<h4>La máquina de estados</h4>
+<p>El esqueleto del control de ejecución. Las sub-máquinas de carga y de dump son contadores de bytes y palabras; esas quedan para ustedes.</p>
+<p class="codecap">debug_unit.v (fragmento)</p>
+<pre><code class="v">localparam [7:0] CMD_LOAD = "L", CMD_RUN = "R", CMD_STEP = "S", CMD_DUMP = "D", CMD_RESET = "X";
+localparam [2:0] S_IDLE = 3'd0, S_LOAD = 3'd1, S_RUN = 3'd2, S_STEP = 3'd3, S_DUMP = 3'd4;
+
+always @(posedge clk) begin
+    if (rst) begin
+        state   &lt;= S_IDLE;
+        cpu_en  &lt;= 1'b0;
+        cpu_rst &lt;= 1'b1;
+    end else begin
+        cpu_rst &lt;= 1'b0;                          // por defecto: pulso de un ciclo
+        case (state)
+        S_IDLE: if (rx_valid) begin
+            case (rx_data)
+                CMD_STEP:  begin cpu_en &lt;= 1'b1; state &lt;= S_STEP; end
+                CMD_RUN:   begin cpu_en &lt;= 1'b1; cycles &lt;= 32'd0; state &lt;= S_RUN; end
+                CMD_DUMP:  state &lt;= S_DUMP;
+                CMD_RESET: cpu_rst &lt;= 1'b1;
+                CMD_LOAD:  begin cpu_rst &lt;= 1'b1; state &lt;= S_LOAD; end
+                default:   ;                          // comando desconocido: ignorar
+            endcase
+        end
+        S_STEP: begin                                 // cpu_en estuvo en 1 durante exactamente un flanco
+            cpu_en &lt;= 1'b0;
+            state  &lt;= S_DUMP;
+        end
+        S_RUN: begin
+            cycles &lt;= cycles + 32'd1;
+            if (cpu_halted || cycles == TIMEOUT) begin
+                cpu_en &lt;= 1'b0;
+                state  &lt;= S_DUMP;
+            end
+        end
+        S_LOAD: ;   // recibir N y N×4 bytes → imem_we / imem_addr / imem_wdata, con cpu_rst en 1
+        S_DUMP: ;   // recorrer el mapa de palabras enviando byte a byte; al terminar, volver a S_IDLE
+        default: state &lt;= S_IDLE;
+        endcase
+    end
+end</code></pre>
+<p>Pruébenla con un <strong>CPU stub</strong>: un módulo con la misma interfaz que el <code>cpu</code> real, donde los "registros" valen <code>idx * 3</code>, el PC cuenta ciclos con <code>en</code> y <code>halted</code> sube a los 20 ciclos. Así B no depende de A.</p>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c8a"> En simulación, con el stub: <code>'S'</code> avanza exactamente un ciclo y devuelve el dump.</label></li>
+<li><label><input type="checkbox" id="c8b"> <code>'R'</code> corre hasta <code>halted</code> (o timeout) y devuelve el dump.</label></li>
+<li><label><input type="checkbox" id="c8c"> <code>'L'</code> escribe N palabras en la memoria de instrucciones y las pueden ver en la forma de onda.</label></li>
+</ul></div>
+</section>
+
+<section id="f9">
+<span class="phase-num">FASE 9 · B</span>
+<h3>Software en la PC</h3>
+<h4>Ensamblador</h4>
+<p>El subconjunto es chico, así que escribir el propio (Python o C++) es razonable, y cumple "contar con un mecanismo para traducir". Dos pasadas:</p>
+<ol>
+  <li>Primera pasada: recorrer líneas, asignar dirección a cada instrucción y guardar las etiquetas en un diccionario.</li>
+  <li>Segunda pasada: codificar cada instrucción. Para saltos, el inmediato es <code>destino − pc_actual</code>.</li>
+</ol>
+<p>Salidas: un <code>.hex</code> (una palabra por línea, para <code>$readmemh</code>) y el binario que se envía por UART. Buenas ideas: agregar HALT automáticamente al final si falta, y pseudo-instrucciones <code>nop</code>, <code>li</code>, <code>mv</code>, <code>j</code>, <code>ret</code>.</p>
+<div class="note warn"><span class="lbl">Ojo · <code>li</code> con valores grandes</span>
+<p><code>li x1, 0x12345FFF</code> se arma con <code>lui</code> + <code>addi</code>, pero <code>addi</code> extiende el signo de su inmediato: <code>0xFFF</code> es −1. La parte alta hay que redondearla: <code>hi = (val + 0x800) &gt;&gt; 12</code>, <code>lo = val − (hi &lt;&lt; 12)</code>.</p></div>
+
+<h4>Golden model en C++</h4>
+<p>Su terreno. Un simulador de instrucciones que lee el mismo <code>.hex</code>:</p>
+<pre><code class="cpp">uint32_t x[32] = {0}, pc = 0;
+for (uint64_t n = 0; n &lt; MAX_INSTR; ++n) {
+    uint32_t ins = imem[pc &gt;&gt; 2];
+    if (ins == HALT) break;
+    uint32_t op  = ins &amp; 0x7F,         rd  = (ins &gt;&gt; 7)  &amp; 31,
+             f3  = (ins &gt;&gt; 12) &amp; 7,    rs1 = (ins &gt;&gt; 15) &amp; 31,
+             rs2 = (ins &gt;&gt; 20) &amp; 31;
+    uint32_t next = pc + 4;
+    switch (op) {
+        case 0x33: /* tipo R  */ break;
+        case 0x13: /* I-ALU   */ break;
+        case 0x03: /* loads   */ break;
+        // ... stores, branches, jal, jalr, lui
+    }
+    x[0] = 0;
+    pc = next;
+}
+// imprimir x[] y la memoria en el mismo formato que decodifica la interfaz</code></pre>
+
+<h4>Interfaz</h4>
+<p>Empiecen por una CLI mínima (<code>load prog.s</code>, <code>run</code>, <code>step</code>, <code>regs</code>, <code>mem</code>, <code>pipe</code>) sobre <code>pyserial</code> o la API serie de su SO. Recién con eso andando, pasen a TUI (Textual en Python, FTXUI en C++) o GUI (Dear ImGui, Qt, Dear PyGui).</p>
+<p>Ideas para "ser creativos" que además les sirven para depurar:</p>
+<ul>
+  <li><strong>Diagrama espacio-tiempo en vivo:</strong> en modo paso a paso, cada dump dice qué PC hay en cada etapa. Acumulado, forman el diagrama de la diapositiva 3 (instrucciones × ciclos), con las burbujas y stalls marcados.</li>
+  <li>Resaltar los registros que cambiaron desde el último paso.</li>
+  <li>Mostrar la línea de ensamblador junto a cada etapa, desensamblando a partir del PC.</li>
+  <li>Correr el golden model en paralelo y marcar en rojo cualquier divergencia.</li>
+</ul>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c9a"> El ensamblador codifica igual que RARS para un programa con las 32 instrucciones.</label></li>
+<li><label><input type="checkbox" id="c9b"> El golden model corre todos los programas de prueba.</label></li>
+<li><label><input type="checkbox" id="c9c"> La CLI puede decodificar un dump (aunque sea uno grabado del simulador).</label></li>
+</ul></div>
+</section>
+
+<section id="f10">
+<span class="phase-num">FASE 10 · A+B</span>
+<h3>Integración en simulación</h3>
+<p>Reemplacen el stub por el CPU real y armen <code>tb_top</code>, que se comporta como la PC: manda bytes por RX y decodifica lo que sale por TX.</p>
+<pre><code class="v">task uart_send(input [7:0] b);
+    integer i;
+    begin
+        rx = 1'b0;  #(BIT_TIME);                   // start
+        for (i = 0; i &lt; 8; i = i + 1) begin
+            rx = b[i];  #(BIT_TIME);               // LSB primero
+        end
+        rx = 1'b1;  #(BIT_TIME);                   // stop
+    end
+endtask</code></pre>
+<p>Para que la simulación no tarde una eternidad, instancien la UART con un <code>BAUD</code> alto en el testbench (se sobreescribe el parámetro).</p>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c10a"> Secuencia completa en simulación: <code>'L'</code> + programa, <code>'R'</code>, dump correcto.</label></li>
+<li><label><input type="checkbox" id="c10b"> Reprogramar con otro programa y volver a correr da el resultado del segundo programa.</label></li>
+<li><label><input type="checkbox" id="c10c"> Cinco <code>'S'</code> seguidos muestran la instrucción avanzando una etapa por paso.</label></li>
+</ul></div>
+</section>
+
+<section id="f11">
+<span class="phase-num">FASE 11 · A+B</span>
+<h3>A la placa</h3>
+<ol>
+  <li><strong>Constraints:</strong> partan del XDC maestro de su placa; descomenten solo el clock, RX/TX de la UART, un botón de reset y algunos LEDs.</li>
+  <li><strong>Clock Wizard (IP Catalog):</strong> entrada = clock de la placa, salida = una frecuencia conservadora para empezar (por ejemplo 50 MHz).</li>
+  <li><strong>Reset:</strong> <code>rst = boton | ~locked</code>, sincronizado al clock. Mientras el Clock Wizard no enganchó, todo en reset.</li>
+  <li><strong>LEDs de diagnóstico:</strong> <code>halted</code>, estado de la FSM de debug, un LED que conmute con cada byte recibido. En la placa no hay formas de onda; los LEDs son su primer depurador.</li>
+  <li>Si algo anda en simulación y no en la placa, el <strong>ILA</strong> de Vivado (Integrated Logic Analyzer) permite ver señales internas en tiempo real.</li>
+</ol>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c11a"> Desde la interfaz: cargar, correr, paso a paso y reprogramar en la placa real sin resintetizar.</label></li>
+</ul></div>
+</section>
+
+<section id="f12">
+<span class="phase-num">FASE 12 · A+B</span>
+<h3>Clock y timing</h3>
+<p>Después de implementar, abran <em>Report Timing Summary</em>. Los números clave:</p>
+<ul>
+  <li><strong>WNS</strong> (Worst Negative Slack): margen del peor camino de setup. Positivo = cumple.</li>
+  <li><strong>WHS</strong>: lo mismo para hold.</li>
+  <li><strong>Frecuencia máxima aproximada:</strong> <code>Fmax ≈ 1 / (T − WNS)</code>. Con T = 20 ns (50 MHz) y WNS = +6 ns, el camino crítico mide ~14 ns: Fmax ≈ 71 MHz.</li>
+</ul>
+<p>Abran el peor camino y miren el esquemático. En este diseño suele ser: salida de EX/MEM → mux de forwarding → ALU o comparador → <code>take_ex</code> → mux del PC / flush. Ese es su <strong>camino crítico</strong>.</p>
+<p>Sobre el skew: el skew es la diferencia de llegada del flanco de clock a distintos flip-flops. Vivado lo informa en cada camino (<em>Clock Path Skew</em>). Con un único clock del MMCM distribuido por buffers globales (BUFG) suele ser muy chico. Justamente por eso no se toca el clock: una compuerta en el camino del clock sí generaría skew grande y violaciones de hold. Usen esto como punto de partida para su respuesta, con sus propios números.</p>
+<p>Procedimiento: suban la frecuencia en el Clock Wizard, re-implementen y anoten WNS en una tabla hasta encontrar el límite. Elijan una frecuencia con margen, recuerden que la UART recalcula su divisor por parámetro, y reporten también utilización (LUT, FF, BRAM) y potencia.</p>
+<div class="done"><span class="lbl">Listo cuando</span><ul>
+<li><label><input type="checkbox" id="c12a"> Tienen una tabla frecuencia vs. WNS, el camino crítico identificado y la frecuencia final aplicada en la placa.</label></li>
+</ul></div>
+</section>
+
+<section id="f13">
+<span class="phase-num">FASE 13 · A+B</span>
+<h3>Documentación</h3>
+<p>Si llevaron <code>decisiones.md</code> desde la Fase 0, esto es ordenar. El informe debería tener:</p>
+<ul>
+  <li>Diagrama de bloques del sistema y del datapath.</li>
+  <li>Las decisiones de diseño con su justificación (las seis de la Parte I y las que surjan).</li>
+  <li>El protocolo UART y el formato del dump.</li>
+  <li>Respuestas a las preguntas del enunciado (ver <a href="#a-preguntas">anexo</a>).</li>
+  <li>Resultados de verificación: qué programas, qué cubren, cómo se comparó.</li>
+  <li>Análisis de timing con números.</li>
+  <li>Manual de uso de la interfaz, con capturas.</li>
+</ul>
+</section>
+
+<!-- ============================ ANEXOS ============================ -->
+<div class="part-title"><span class="eyebrow">Anexos</span><h2>Referencia</h2></div>
+
+<section id="a-isa">
+<h3>Codificación de las instrucciones pedidas</h3>
+<div class="tbl"><table>
+<thead><tr><th>Instr.</th><th>Formato</th><th>opcode</th><th>funct3</th><th>funct7 / imm[11:5]</th><th>Operación</th></tr></thead>
+<tbody>
+<tr><td><code>add</code></td><td>R</td><td><code>0110011</code></td><td><code>000</code></td><td><code>0000000</code></td><td>rd = rs1 + rs2</td></tr>
+<tr><td><code>sub</code></td><td>R</td><td><code>0110011</code></td><td><code>000</code></td><td><code>0100000</code></td><td>rd = rs1 − rs2</td></tr>
+<tr><td><code>sll</code></td><td>R</td><td><code>0110011</code></td><td><code>001</code></td><td><code>0000000</code></td><td>rd = rs1 &lt;&lt; rs2[4:0]</td></tr>
+<tr><td><code>slt</code></td><td>R</td><td><code>0110011</code></td><td><code>010</code></td><td><code>0000000</code></td><td>rd = (rs1 &lt; rs2) con signo</td></tr>
+<tr><td><code>sltu</code></td><td>R</td><td><code>0110011</code></td><td><code>011</code></td><td><code>0000000</code></td><td>rd = (rs1 &lt; rs2) sin signo</td></tr>
+<tr><td><code>xor</code></td><td>R</td><td><code>0110011</code></td><td><code>100</code></td><td><code>0000000</code></td><td>rd = rs1 ^ rs2</td></tr>
+<tr><td><code>srl</code></td><td>R</td><td><code>0110011</code></td><td><code>101</code></td><td><code>0000000</code></td><td>shift lógico a derecha</td></tr>
+<tr><td><code>sra</code></td><td>R</td><td><code>0110011</code></td><td><code>101</code></td><td><code>0100000</code></td><td>shift aritmético a derecha</td></tr>
+<tr><td><code>or</code></td><td>R</td><td><code>0110011</code></td><td><code>110</code></td><td><code>0000000</code></td><td>rd = rs1 | rs2</td></tr>
+<tr><td><code>and</code></td><td>R</td><td><code>0110011</code></td><td><code>111</code></td><td><code>0000000</code></td><td>rd = rs1 &amp; rs2</td></tr>
+<tr><td><code>addi</code></td><td>I</td><td><code>0010011</code></td><td><code>000</code></td><td>(inmediato)</td><td>rd = rs1 + imm</td></tr>
+<tr><td><code>slti</code></td><td>I</td><td><code>0010011</code></td><td><code>010</code></td><td>(inmediato)</td><td>con signo</td></tr>
+<tr><td><code>sltiu</code></td><td>I</td><td><code>0010011</code></td><td><code>011</code></td><td>(inmediato)</td><td>sin signo (imm igual se extiende con signo)</td></tr>
+<tr><td><code>xori</code></td><td>I</td><td><code>0010011</code></td><td><code>100</code></td><td>(inmediato)</td><td></td></tr>
+<tr><td><code>ori</code></td><td>I</td><td><code>0010011</code></td><td><code>110</code></td><td>(inmediato)</td><td></td></tr>
+<tr><td><code>andi</code></td><td>I</td><td><code>0010011</code></td><td><code>111</code></td><td>(inmediato)</td><td></td></tr>
+<tr><td><code>slli</code></td><td>I</td><td><code>0010011</code></td><td><code>001</code></td><td><code>0000000</code></td><td>shamt = imm[4:0]</td></tr>
+<tr><td><code>srli</code></td><td>I</td><td><code>0010011</code></td><td><code>101</code></td><td><code>0000000</code></td><td>shamt = imm[4:0]</td></tr>
+<tr><td><code>srai</code></td><td>I</td><td><code>0010011</code></td><td><code>101</code></td><td><code>0100000</code></td><td>shamt = imm[4:0]</td></tr>
+<tr><td><code>lb</code></td><td>I</td><td><code>0000011</code></td><td><code>000</code></td><td>(inmediato)</td><td>byte con signo</td></tr>
+<tr><td><code>lh</code></td><td>I</td><td><code>0000011</code></td><td><code>001</code></td><td>(inmediato)</td><td>media palabra con signo</td></tr>
+<tr><td><code>lw</code></td><td>I</td><td><code>0000011</code></td><td><code>010</code></td><td>(inmediato)</td><td>palabra</td></tr>
+<tr><td><code>lbu</code></td><td>I</td><td><code>0000011</code></td><td><code>100</code></td><td>(inmediato)</td><td>byte sin signo</td></tr>
+<tr><td><code>lhu</code></td><td>I</td><td><code>0000011</code></td><td><code>101</code></td><td>(inmediato)</td><td>media palabra sin signo</td></tr>
+<tr><td><code>jalr</code></td><td>I</td><td><code>1100111</code></td><td><code>000</code></td><td>(inmediato)</td><td>rd = PC+4; PC = (rs1+imm) &amp; ~1</td></tr>
+<tr><td><code>sb</code></td><td>S</td><td><code>0100011</code></td><td><code>000</code></td><td>imm[11:5]</td><td>mem[rs1+imm] = rs2[7:0]</td></tr>
+<tr><td><code>sh</code></td><td>S</td><td><code>0100011</code></td><td><code>001</code></td><td>imm[11:5]</td><td>mem[rs1+imm] = rs2[15:0]</td></tr>
+<tr><td><code>sw</code></td><td>S</td><td><code>0100011</code></td><td><code>010</code></td><td>imm[11:5]</td><td>mem[rs1+imm] = rs2</td></tr>
+<tr><td><code>beq</code></td><td>B</td><td><code>1100011</code></td><td><code>000</code></td><td>imm</td><td>si rs1 == rs2: PC += imm</td></tr>
+<tr><td><code>bne</code></td><td>B</td><td><code>1100011</code></td><td><code>001</code></td><td>imm</td><td>si rs1 != rs2: PC += imm</td></tr>
+<tr><td><code>jal</code></td><td>J</td><td><code>1101111</code></td><td>–</td><td>–</td><td>rd = PC+4; PC += imm</td></tr>
+<tr><td><code>lui</code></td><td>U</td><td><code>0110111</code></td><td>–</td><td>–</td><td>rd = imm &lt;&lt; 12</td></tr>
+</tbody></table></div>
+<p>Son 32 instrucciones, más la HALT que definan ustedes. La referencia oficial es el <em>RISC-V Unprivileged ISA Specification</em>, capítulo RV32I.</p>
+</section>
+
+<section id="a-preguntas">
+<h3>Preguntas del enunciado: por dónde razonarlas</h3>
+<p>No son respuestas para copiar: son el razonamiento, y la respuesta final depende de sus decisiones.</p>
+<h4>Al reprogramar, ¿hay que vaciar…</h4>
+<ul>
+  <li><strong>…la memoria de datos?</strong> Un programa bien escrito inicializa lo que lee, así que para la corrección no hace falta. Pero para depurar de forma reproducible, y para mostrar "la memoria usada" sin restos del programa anterior, conviene limpiarla o, al menos, resetear los bits dirty.</li>
+  <li><strong>…los registros?</strong> RISC-V solo garantiza <code>x0 = 0</code>. Resetearlos a 0 da ejecuciones deterministas que coinciden con el golden model.</li>
+  <li><strong>…el pipeline?</strong> Sí, si se reprograma a mitad de una ejecución (por ejemplo, en modo paso a paso): hay instrucciones del programa viejo en vuelo que escribirían registros y memoria. Un reset síncrono de latches y PC lo resuelve. Si el programa anterior terminó en HALT, el pipeline ya está vacío.</li>
+  <li><strong>…la memoria de programa?</strong> No es obligatorio si el programa nuevo termina en HALT. Pero si falta el HALT, o un salto cae más allá del final, se ejecutan restos del programa anterior. Rellenar lo que sobra con HALT lo hace seguro.</li>
+</ul>
+<h4>¿Qué pasa si no hay instrucción de parada?</h4>
+<p>El PC sigue sumando 4 y ejecuta lo que haya: restos viejos, ceros o basura. Al pasar el final de la memoria, los bits altos de la dirección se descartan y vuelve a 0: bucle infinito. En modo continuo la Debug Unit nunca devuelve el dump y la interfaz queda esperando. Defensas posibles (combínenlas): el ensamblador agrega HALT al final, la memoria vacía se llena de HALT, timeout por cantidad de ciclos en la Debug Unit y un comando para abortar.</p>
+<h4>Camino crítico y skew</h4>
+<p>Ver <a href="#f12">Fase 12</a>. Contesten con los números de su propio reporte de timing, no con teoría general.</p>
+</section>
+
+<section id="a-errores">
+<h3>Errores típicos</h3>
+<div class="tbl"><table>
+<thead><tr><th>Síntoma</th><th>Causa probable</th></tr></thead>
+<tbody>
+<tr><td><code>addi</code> con inmediato negativo resta mal</td><td>Se usó el bit 30 para decidir suma/resta en tipo I.</td></tr>
+<tr><td><code>sra</code>/<code>srai</code> se comporta como <code>srl</code></td><td><code>$signed(a) &gt;&gt;&gt; b</code> dentro de un ternario con otros operandos sin signo: toda la expresión pasa a ser sin signo. Escríbanlo como asignación propia en un <code>case</code>.</td></tr>
+<tr><td>El CPU se detiene solo después de un salto</td><td>HALT = <code>0x00000000</code> y el flush carga ceros en IF/ID. El flush tiene que cargar <code>0x00000013</code> o marcar <code>valid = 0</code>.</td></tr>
+<tr><td><code>sw</code> guarda un valor viejo</td><td>El forwarding de rs2 se hizo después del mux del inmediato, o no se usa el valor forwardeado como dato del store.</td></tr>
+<tr><td><code>jal</code> guarda una dirección incorrecta en <code>ra</code></td><td>Se usa el PC de IF en lugar del PC que viajó con la instrucción.</td></tr>
+<tr><td>Anda en simulación, no en síntesis</td><td>Latches inferidos, señal asignada desde dos bloques, <code>initial</code> en lógica, anchos que no coinciden. Lean los warnings.</td></tr>
+<tr><td>Nombres de señal con typo "funcionan"</td><td>Verilog crea un cable implícito de 1 bit. Usen <code>`default_nettype none</code>.</td></tr>
+<tr><td>El paso a paso avanza 2 ciclos o ninguno</td><td><code>cpu_en</code> combinacional o de más de un ciclo. Tiene que salir de un registro de la FSM y durar exactamente un flanco.</td></tr>
+<tr><td>Todo se corre un ciclo al usar Block RAM</td><td>Lectura sincrónica (ver Decisión 2).</td></tr>
+<tr><td>La UART recibe basura después de cambiar el clock</td><td>El divisor de baudios quedó calculado para la frecuencia vieja.</td></tr>
+<tr><td>Los bytes de las palabras llegan invertidos</td><td>RISC-V es little-endian; acuerden el orden de envío en el protocolo.</td></tr>
+</tbody></table></div>
+</section>
+
+<section id="a-programas">
+<h3>Programas de prueba sugeridos</h3>
+<ol>
+  <li>Aritmética y lógica sin dependencias (con <code>nop</code>): valida el datapath.</li>
+  <li>Dependencias RAW a distancia 1, 2 y 3, en rs1 y en rs2.</li>
+  <li>Load-use: <code>lw</code> seguido de su consumidor (ALU, store y branch).</li>
+  <li>Loads y stores de byte y media palabra, con signo y sin signo, en los 4 offsets.</li>
+  <li>Bucle con <code>bne</code> (abajo).</li>
+  <li>Llamada y retorno con <code>jal</code>/<code>jalr</code>; función recursiva simple si se animan.</li>
+  <li>Saltos tomados y no tomados seguidos; salto como última instrucción antes de HALT.</li>
+  <li>Constantes de 32 bits con <code>lui</code> + <code>addi</code>, incluido el caso de redondeo.</li>
+  <li>Un programa sin HALT, para probar el timeout.</li>
+</ol>
+<p class="codecap">suma.s · resultado esperado: x1 = 55, mem[0] = 55</p>
+<pre><code class="asm">        addi x1, x0, 0        # acumulador
+        addi x2, x0, 1        # i = 1
+        addi x3, x0, 11       # límite
+loop:   add  x1, x1, x2       # acc += i
+        addi x2, x2, 1        # i++
+        bne  x2, x3, loop     # dependencia a distancia 1 con el addi anterior
+        sw   x1, 0(x0)
+        halt</code></pre>
+</section>
+
+<section id="a-errata">
+<h3>Detalles de las diapositivas</h3>
+<p>Tres puntos para no confundirse al leer el enunciado:</p>
+<ul>
+  <li><strong>Tipo J:</strong> la diapositiva dice que se salta a la dirección almacenada en <code>rd</code>. En realidad <code>jal</code> <em>guarda</em> PC+4 en <code>rd</code> y salta a PC + inmediato. El que salta a una dirección tomada de un registro es <code>jalr</code> (usa <code>rs1</code>).</li>
+  <li><strong><code>beq</code>:</strong> la figura muestra <code>rs1</code> dos veces; el campo de los bits 24–20 es <code>rs2</code>.</li>
+  <li><strong><code>ld</code>:</strong> aparece como ejemplo de tipo I, pero es de RV64. Ustedes implementan RV32I, donde la carga de palabra es <code>lw</code>.</li>
+</ul>
+<p>Esto conviene confirmarlo con la cátedra, pero es lo que dice la especificación oficial.</p>
+</section>
+
+<p style="margin-top:48px;color:var(--muted);font-size:.9rem">Bibliografía de base: Patterson &amp; Hennessy, <em>Computer Organization and Design RISC-V Edition</em>, capítulo 4 (pipeline, forwarding, hazards). <em>The RISC-V Instruction Set Manual, Volume I: Unprivileged ISA</em>, capítulo RV32I.</p>
+</main>
+</div>
+
+<script>
+(function(){
+  // Resaltado mínimo para Verilog / C++ / asm
+  var KW = /\b(module|endmodule|input|output|wire|reg|integer|always|assign|begin|end|if|else|case|endcase|default|localparam|parameter|posedge|for|task|endtask|uint32_t|uint64_t|switch|break|while)\b/g;
+  function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function hlCode(line, cm){
+    var i = line.indexOf(cm), code = line, com = '';
+    if (i >= 0){ code = line.slice(0,i); com = line.slice(i); }
+    var c = esc(code)
+      .replace(/(\b\d+'[bdhBDH][0-9a-fA-F_xz]+|\b\d+\b|\b0x[0-9a-fA-F_]+\b)/g,'<span class="n">$1</span>')
+      .replace(KW,'<span class="k">$1</span>')
+      .replace(/(`\w+)/g,'<span class="k">$1</span>');
+    return c + (com ? '<span class="c">'+esc(com)+'</span>' : '');
+  }
+  document.querySelectorAll('pre code').forEach(function(el){
+    var cls = el.className, cm = cls==='asm' ? '#' : (cls==='plain' ? null : '//');
+    if (!cm) return;
+    var lines = el.textContent.split('\n');
+    el.innerHTML = lines.map(function(l){
+      if (cls==='asm'){ var j=l.indexOf('#'); return j<0?esc(l):esc(l.slice(0,j))+'<span class="c">'+esc(l.slice(j))+'</span>'; }
+      return hlCode(l, cm);
+    }).join('\n');
+  });
+
+  // Casillas "listo cuando" recordadas por navegador
+  var KEY='riscv-guia-checks', st={};
+  try{ st = JSON.parse(localStorage.getItem(KEY)||'{}')||{}; }catch(e){ st={}; }
+  document.querySelectorAll('.done input[type=checkbox]').forEach(function(cb){
+    if (st[cb.id]) cb.checked = true;
+    cb.addEventListener('change', function(){
+      st[cb.id] = cb.checked;
+      try{ localStorage.setItem(KEY, JSON.stringify(st)); }catch(e){}
+    });
+  });
+
+  // Índice: marcar la sección visible
+  var links = {}, secs = [];
+  document.querySelectorAll('nav.toc a').forEach(function(a){ links[a.getAttribute('href').slice(1)] = a; });
+  document.querySelectorAll('main section[id]').forEach(function(s){ if (links[s.id]) secs.push(s); });
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting){
+          Object.keys(links).forEach(function(k){ links[k].classList.remove('active'); });
+          links[en.target.id].classList.add('active');
+        }
+      });
+    }, {rootMargin:'-10% 0px -80% 0px'});
+    secs.forEach(function(s){ io.observe(s); });
+  }
+})();
+</script>
+
+</body></html>

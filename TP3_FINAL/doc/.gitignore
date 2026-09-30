@@ -1,0 +1,10 @@
+# LaTeX build artifacts
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+# Keep the LaTeX source and any intentionally committed PDF.
+
