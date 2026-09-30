@@ -1,0 +1,284 @@
+\documentclass[11pt,a4paper]{article}
+
+% Codificación y lenguaje
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-nodecimaldot]{babel}
+
+% Presentación
+\usepackage[a4paper,margin=2.7cm]{geometry}
+\usepackage{parskip}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{xcolor}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{amsmath}
+\usepackage{listings}
+\usepackage[hidelinks]{hyperref}
+
+\definecolor{codebg}{RGB}{247,248,250}
+\definecolor{codecomment}{RGB}{70,110,70}
+\definecolor{codekeyword}{RGB}{0,70,140}
+\definecolor{codestring}{RGB}{150,60,30}
+
+\lstdefinelanguage{VerilogCustom}{
+  morekeywords={module,endmodule,input,output,inout,wire,reg,parameter,localparam,
+    always,begin,end,case,endcase,default,if,else,assign,signed,integer,for,
+    initial,display,finish},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]"
+}
+
+\lstset{
+  language=VerilogCustom,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{codekeyword}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestring},
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{black!20},
+  numbers=left,
+  numberstyle=\tiny\color{black!50},
+  numbersep=8pt,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  tabsize=4
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{Arquitectura de Computadoras}
+\rhead{TP N.\textsuperscript{o} 2 -- UART}
+\cfoot{\thepage\ de \pageref{LastPage}}
+\setlength{\headheight}{14pt}
+\newcommand{\verilog}[1]{\texttt{\detokenize{#1}}}
+
+\title{\textbf{Diseño e implementación de una UART para interfaz con ALU}\\[0.4em]\large Trabajo Práctico N.\textsuperscript{o} 2}
+\author{Javier Siñuka y David Trujillo}
+\date{30 de septiembre de 2026}
+
+\begin{document}
+\begin{titlepage}
+  \hypersetup{pageanchor=false}
+  \centering
+  \vspace*{1.2cm}
+  {\Large Universidad \par}
+  \vspace{0.3cm}
+  {\large Arquitectura de Computadoras \par}
+  \vspace{2.2cm}
+  {\LARGE\bfseries Diseño e implementación de una UART para interfaz con ALU\par}
+  \vspace{0.5cm}
+  {\large Trabajo Práctico N.\textsuperscript{o} 2\par}
+  \vfill
+  \begin{tabular}{rl}
+    Estudiantes: & Javier Siñuka y David Trujillo \\
+    Fecha: & 30 de septiembre de 2026
+  \end{tabular}
+  \vfill
+\end{titlepage}
+
+\hypersetup{pageanchor=true}
+\clearpage
+\pagenumbering{roman}
+\tableofcontents
+\clearpage
+\pagenumbering{arabic}
+
+\begin{abstract}
+Este informe documenta el sistema UART implementado en Verilog para comunicar una PC con la ALU de ocho bits del Trabajo Práctico N.\textsuperscript{o} 1. El diseño integra un generador de baudios, recepción y transmisión UART, buffers de un byte y máquinas de estados finitos que organizan el flujo de datos. La PC envía tres bytes binarios ---operando A, operando B y código de operación--- y la FPGA devuelve un byte con el resultado. Se describen el formato 8N1, el sobremuestreo por dieciséis, las FSM, la integración en Basys 3 y las pruebas realizadas.
+\end{abstract}
+
+\section{Introducción}
+
+Una UART (\textit{Universal Asynchronous Receiver and Transmitter}) permite intercambiar datos serie sin que los extremos compartan un reloj. En este TP se usa como interfaz entre una computadora y la ALU: los switches del trabajo anterior se reemplazan por un enlace serie que recibe los operandos y devuelve el resultado. La consigna propone precisamente un receptor UART, un transmisor, un generador de baudios y un circuito de interfaz que conecta la comunicación serie con la ALU.
+
+Las FSM modelan circuitos secuenciales cuyo comportamiento depende del estado actual y de eventos de entrada. Se aplican en RX, TX y en el controlador que reúne los tres bytes de un comando. Esta separación permite analizar por independiente la temporización de cada bit, el almacenamiento temporal y el cálculo combinacional de la ALU.
+
+\section{Objetivos}
+
+\begin{itemize}
+  \item Implementar recepción y transmisión UART 8N1: ocho datos, sin paridad y un bit de parada.
+  \item Generar un tick dieciséis veces más rápido que el baud rate para muestrear cerca del centro de cada bit.
+  \item Aplicar FSM para RX, TX y el flujo de datos UART--ALU.
+  \item Integrar la ALU de ocho bits mediante un protocolo binario de tres bytes y transmitir el resultado por UART.
+  \item Verificar módulos e integración con testbenches antes de sintetizar.
+\end{itemize}
+
+\section{Arquitectura general}
+
+El recorrido de un comando es el siguiente:
+
+\begin{center}
+\fbox{\begin{minipage}{0.91\textwidth}
+\centering
+\textbf{PC} $\rightarrow$ \textbf{UART RX} $\rightarrow$ \textbf{interfaz RX}
+$\rightarrow$ \textbf{FSM de control} $\rightarrow$ \textbf{ALU}
+$\rightarrow$ \textbf{interfaz TX} $\rightarrow$ \textbf{UART TX}
+$\rightarrow$ \textbf{PC}\\[0.4em]
+\small \verilog{baud_gen} entrega el tick a RX y TX. Todos los bloques usan el reloj de 100 MHz y reset síncrono activo en alto.
+\end{minipage}}
+\end{center}
+
+El módulo superior \verilog{uart_top} instancia \verilog{baud_gen}, \verilog{uart_rx}, \verilog{interface_circuit} y \verilog{uart_tx}. El controlador \verilog{interface_circuit} contiene los buffers RX/TX y la ALU heredada de TP1. Así, los bloques UART sólo serializan o deserializan, mientras que la interfaz conserva bytes y el controlador define cuándo consumirlos.
+
+\begin{table}[ht]
+\centering
+\caption{Responsabilidad de los módulos.}
+\label{tab:modules}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{>{\ttfamily}l p{9.2cm}}
+\toprule
+\normalfont\textbf{Módulo} & \textbf{Función}\\
+\midrule
+baud\_gen & Divide el reloj de placa y produce el pulso de sobremuestreo.\\
+uart\_rx & Sincroniza RX, detecta inicio, reconstruye el byte y verifica parada.\\
+uart\_tx & Emite inicio, ocho bits LSB primero y parada; informa ocupación.\\
+interface\_rx & Buffer de un byte con lectura, estado vacío y error/desbordamiento.\\
+interface\_circuit & FSM que carga A, B y operación; instancia la ALU y ordena transmitir.\\
+interface\_tx & Conserva un resultado y genera un único pulso de inicio para TX.\\
+uart\_top & Integra reloj, reset, USB--UART y LEDs de la Basys 3.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Formato UART y generación de baudios}
+
+La línea UART está en uno durante reposo. Una trama 8N1 comienza con un cero de inicio, sigue con los ocho bits de datos desde el menos significativo hasta el más significativo y termina con un uno de parada. Por lo tanto, cada byte ocupa diez períodos de bit.
+
+RX y TX usan sobremuestreo $16\times$. Para el reloj de $100\,\mathrm{MHz}$ y la configuración de placa de 9600 baudios, el divisor entero es:
+
+\begin{equation}
+N=\left\lfloor\frac{100\,000\,000}{9600\times16}\right\rfloor=651.
+\end{equation}
+
+El contador de \verilog{baud_gen} cuenta de 0 a 650 y emite un tick de un ciclo. Esto equivale a aproximadamente $153\,609\,\mathrm{Hz}$, frente a los $153\,600\,\mathrm{Hz}$ ideales; el error de división entera es despreciable.
+
+\begin{lstlisting}[caption={Contador del generador de tick},label={lst:baud}]
+localparam CNTR_MAX = CLOCK_FREQ / (BAUD_RATE * OVERSAMPLE) - 1;
+always @(posedge i_clock) begin
+    if (i_reset) r_counter <= 0;
+    else if (r_counter == CNTR_MAX) r_counter <= 0;
+    else r_counter <= r_counter + 1;
+end
+\end{lstlisting}
+
+Luego de detectar un posible inicio, el receptor lo confirma al tick 7, en el centro de ese bit. Las muestras de los datos también se toman al tick 7 de cada intervalo de dieciséis, tal como indica la metodología de la consigna.
+
+\section{Máquinas de estados finitos}
+
+Los módulos usan un bloque combinacional para \verilog{r_next_state} y otro sincronizado por \verilog{i_clock} para \verilog{r_state}. Los estados se declaran con \verilog{localparam} y se codifican en binario: cada FSM tiene cuatro estados. La rama \verilog{default} vuelve al estado inicial y provee recuperación frente a un estado inválido.
+
+\subsection{Receptor y transmisor UART}
+
+\verilog{uart_rx} recorre \verilog{IDLE}, \verilog{START}, \verilog{DATA} y \verilog{STOP}. En \verilog{IDLE} espera la línea baja; en \verilog{START} descarta un falso inicio si la línea volvió a uno a mitad del bit. En \verilog{DATA} desplaza las ocho muestras al registro \verilog{r_shift}; en \verilog{STOP} publica \verilog{o_data} y genera \verilog{o_valid} por un ciclo. Si la parada está en cero, también activa \verilog{o_error}.
+
+Como RX es asíncrona, se aplica un sincronizador de dos flip-flops antes de la FSM:
+
+\begin{lstlisting}[caption={Sincronización de la entrada serial}]
+always @(posedge i_clock) begin
+    if (i_reset) r_rx_sync <= 2'b11;
+    else r_rx_sync <= {r_rx_sync[0], i_rx};
+end
+\end{lstlisting}
+
+\verilog{uart_tx} utiliza los mismos cuatro estados. Al aceptar \verilog{i_start} en \verilog{IDLE}, registra \verilog{i_data}, pone la salida en cero y permanece dieciséis ticks en \verilog{START}. Durante \verilog{DATA} transmite \verilog{r_shift[0]} y desplaza el registro a la derecha al finalizar cada bit; después transmite el uno de parada. La señal \verilog{o_busy} permanece activa durante toda la trama, por lo que un nuevo inicio no altera el byte ya registrado.
+
+\subsection{Controlador UART--ALU}
+
+La FSM de \verilog{interface_circuit} implementa la secuencia:
+
+\begin{center}
+\verilog{READ_A} $\rightarrow$ \verilog{READ_B} $\rightarrow$
+\verilog{READ_OP} $\rightarrow$ \verilog{WRITE_RESULT} $\rightarrow$
+\verilog{READ_A}.
+\end{center}
+
+En cada estado \verilog{READ_*} espera que RX deje de estar vacío y activa \verilog{w_rd}; en el flanco siguiente almacena el byte en el registro de A, B u operación. Después de cargar la operación, \verilog{WRITE_RESULT} mantiene las entradas de la ALU estables durante un ciclo completo. Cuando TX está libre activa \verilog{w_wr}, la interfaz TX captura el resultado y la FSM vuelve a esperar un nuevo A.
+
+\begin{lstlisting}[caption={Transición al finalizar una operación}]
+WRITE_RESULT: begin
+    // La ALU has a full cycle to settle after r_op.
+    if (w_wr)
+        r_next_state = READ_A;
+end
+\end{lstlisting}
+
+Un error de recepción devuelve el controlador a \verilog{READ_A} y limpia los registros parciales. La organización de las salidas de control por estado se corresponde con una FSM de Moore, mientras que las condiciones de avance usan \verilog{rx_empty}, \verilog{tx_full} y las señales de error.
+
+\section{Buffers y protocolo de aplicación}
+
+\verilog{interface_rx} conserva un byte. Acepta un dato válido si está vacío o si se lo lee en el mismo flanco: la lectura consume el byte previo y se guarda el recién llegado. Si llega un byte válido con el buffer ocupado y sin lectura, se detecta un desbordamiento, se vacía el registro y se genera \verilog{o_error}. Los bytes con error de parada también se descartan.
+
+\verilog{interface_tx} mantiene el resultado hasta que \verilog{uart_tx} lo acepta y termina de enviarlo. Su FSM recorre \verilog{IDLE}, \verilog{WAIT_TX}, \verilog{WAIT_BUSY} y \verilog{WAIT_DONE}. Esperar que \verilog{busy} suba antes de continuar garantiza un solo pulso \verilog{start}; mientras no está en \verilog{IDLE}, \verilog{o_tx_full} evita sobrescribir el dato pendiente.
+
+La consigna muestra las señales de interfaz, pero no determina el orden de los bytes de comando. Se eligió el protocolo binario de la Tabla~\ref{tab:protocol}.
+
+\begin{table}[ht]
+\centering
+\caption{Protocolo UART--ALU implementado.}
+\label{tab:protocol}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{c p{8.5cm}}
+\toprule
+\textbf{Byte} & \textbf{Interpretación}\\
+\midrule
+1 & Operando A de ocho bits.\\
+2 & Operando B de ocho bits; en desplazamientos se usan sus bits [2:0].\\
+3 & Código de operación: se usan los bits [5:0] y se ignoran [7:6].\\
+Respuesta & Resultado de la ALU, un byte.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Por ejemplo, transmitir \texttt{12 34 20} en hexadecimal devuelve \texttt{46}: el código \texttt{20} selecciona la suma y $\texttt{0x12}+\texttt{0x34}=\texttt{0x46}$. No se envían los caracteres ASCII. Los códigos heredados son ADD \texttt{20}, SUB \texttt{22}, AND \texttt{24}, OR \texttt{25}, XOR \texttt{26}, SRA \texttt{03}, SRL \texttt{02} y NOR \texttt{27}; un código no implementado devuelve cero.
+
+El protocolo no tiene cabecera, delimitador ni \textit{timeout}: un comando parcial espera los bytes restantes y, tras perder un byte, no puede realinearse automáticamente. Para recuperarse se detiene el emisor, se aplica reset y se reenvían los tres bytes. Dado que los buffers son de una posición, la PC debe esperar la respuesta antes del comando siguiente.
+
+\section{Integración en la Basys 3}
+
+\verilog{uart_top} se parametriza para $100\,\mathrm{MHz}$ y 9600 baudios. El archivo \texttt{Basys3\_UART.xdc} asigna el reloj a W5, el botón central de reset a U18 y el puente USB--UART a B18 (entrada RX de FPGA) y A18 (salida TX). LD0--LD7 muestran el último resultado aceptado por la interfaz TX; LD8 indica reset, LD9 que TX está ocupado y LD10 retiene un error hasta el siguiente reset.
+
+El botón y RX son asíncronos al reloj de placa. El TOP sincroniza el botón con dos flip-flops y \verilog{uart_rx} hace lo mismo con la línea serie. El XDC marca dichas cadenas como \verilog{ASYNC_REG} y restringe los caminos asíncronos sólo hasta la primera etapa. La inicialización \verilog{2'b11} del sincronizador de reset deja el sistema inicialmente en reset aunque el botón esté suelto.
+
+Para operar con la PC se configura 9600 baudios, 8 datos, sin paridad, un bit de parada y sin control de flujo. En Vivado se agregan los ocho archivos \texttt{.v} como \textit{Design Sources}, \verilog{uart_top} como módulo superior y únicamente \texttt{Basys3\_UART.xdc} como constraints del TP.
+
+\section{Simulación y verificación}
+
+Se escribieron testbenches unitarios para el generador de baudios, RX, TX y ambas interfaces, más pruebas del controlador, del enlace UART completo y del TOP. Para reducir el tiempo de simulación, las pruebas de integración elevan el baud rate mediante parámetros; el diseño sintetizable conserva 9600.
+
+\begin{table}[ht]
+\centering
+\caption{Cobertura de testbenches.}
+\label{tab:tests}
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{>{\ttfamily}l p{8.4cm}}
+\toprule
+\normalfont\textbf{Testbench} & \textbf{Comprobaciones}\\
+\midrule
+tb\_uart\_rx & Bytes \texttt{A5}, \texttt{00}, \texttt{FF}; falso inicio, parada inválida y tramas consecutivas.\\
+tb\_uart\_tx & Inicio, datos, parada, dato estable, intento de inicio ocupado y envíos sucesivos.\\
+tb\_interface\_rx & Lectura/recepción simultánea, desbordamiento, errores y reset.\\
+tb\_interface\_tx & Pulso único, ocupación, conservación del dato y reset pendiente.\\
+tb\_interface\_circuit & Ocho operaciones, códigos inválidos, comandos parciales, TX ocupado, errores y reset.\\
+tb\_uart\_interface & Doce comandos y respuestas transmitidos como tramas seriales.\\
+tb\_uart\_top & Trece respuestas, reset inicial y por botón, LEDs y recuperación.\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Las ejecuciones realizadas aprobaron RX (26 comprobaciones), TX (22), las dos interfaces, el controlador (22 resultados y cuatro errores esperados), la integración UART (12 comandos/respuestas) y el TOP (13 respuestas, reset y LEDs). \verilog{tb_baud_gen} confirmó 651 ciclos entre ticks posteriores, pero reportó una diferencia de un ciclo en su aserción del primer tick: lo observa en el ciclo 652 y espera 651. Esa discrepancia debe revisarse en la fase de liberación de reset o en la convención de conteo del testbench; por transparencia, no se considera esa prueba completamente aprobada.
+
+\section{Conclusiones}
+
+Se desarrolló una UART completa para operar la ALU desde una PC. La separación entre serialización, buffers, FSM de control y lógica combinacional facilita la comprensión y la verificación del diseño. El sobremuestreo por dieciséis ubica las muestras en el centro de los bits, y las FSM establecen una secuencia segura para recibir A, B y la operación antes de transmitir el resultado.
+
+La integración con Basys 3 incorpora sincronización de señales asíncronas, indicadores de diagnóstico y las restricciones físicas necesarias. Las pruebas validan el funcionamiento de RX, TX, interfaces, controlador y TOP. Como pendiente concreto queda ajustar o documentar la expectativa del primer tick en \verilog{tb_baud_gen}, de forma que toda la batería de simulación quede sin discrepancias.
+
+\end{document}
