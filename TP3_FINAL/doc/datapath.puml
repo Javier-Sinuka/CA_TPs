@@ -1,0 +1,52 @@
+@startdot
+digraph datapath {
+  graph [rankdir=LR, bgcolor="white", pad="0.25", nodesep="0.55", ranksep="0.38",
+         splines=polyline, outputorder=edgesfirst, fontname="DejaVu Sans",
+         label="RV32I reducido: datapath de cinco etapas con lectura asíncrona", labelloc=t,
+         fontsize=20, fontcolor="#0f172a"];
+  node [shape=box, style="rounded,filled", fontname="DejaVu Sans", fontsize=11,
+        color="#334155", fillcolor="#dbeafe", fontcolor="#0f172a", margin="0.14,0.12"];
+  edge [fontname="DejaVu Sans", fontsize=9, color="#475569", arrowsize=0.7];
+
+  pc    [label="PC (registro)\nentrada: PC+4 o destino", fillcolor="#dcfce7"];
+  imem  [label="Memoria de programa\nlectura asíncrona\ninstr = imem[PC >> 2]"];
+  ifid  [label="IF/ID\nPC, instr, valid", fillcolor="#dcfce7"];
+  id    [label="ID\ndecodificación y control\nbanco de registros x0..x31\ngenerador de inmediatos"];
+  idex  [label="ID/EX\nPC, rs1/rs2_data, imm\nrs1, rs2, rd, control, valid", fillcolor="#dcfce7"];
+  ex    [label="EX\nforwarding A/B; mux rs2/imm\nALU y comparación\ndestino de salto; PC+4"];
+  exmem [label="EX/MEM\nPC, resultado, dato store\nrd, control, valid", fillcolor="#dcfce7"];
+  mem   [label="MEM\nmemoria de datos por bytes\nlectura asíncrona y extensión\nescritura síncrona"];
+  memwb [label="MEM/WB\nPC, resultado, dato load\nrd, control, valid", fillcolor="#dcfce7"];
+  wb    [label="WB\nmux resultado / load\nescritura de rd"];
+
+  pc -> imem -> ifid -> id -> idex -> ex -> exmem -> mem -> memwb -> wb
+     [color="#2563eb", penwidth=2, weight=10];
+
+  edge [color="#b45309", fontcolor="#92400e", style=dashed, penwidth=1.3,
+        constraint=false];
+  exmem -> ex [label="forwarding: resultado reciente, excepto load"];
+  wb -> ex [label="forwarding: dato de WB"];
+  wb -> id [label="writeback a rd (x0 = 0)"];
+  ex -> pc [label="salto tomado: destino"];
+
+  ctrl [label="Control del avance\nload-use: hold PC e IF/ID; burbuja ID/EX\nsalto tomado: flush IF/ID e ID/EX\nHALT en ID: parar fetch; halted al llegar a WB",
+        fillcolor="#fef3c7", color="#92400e"];
+  dbg [label="Debug Unit (fuera del datapath)\ncpu_en y reset síncrono; no modifica clk\ncarga imem con CPU detenido\nlee PC, registros, latches y memoria",
+       fillcolor="#f3e8ff", color="#7e22ce"];
+  {rank=same; idex; ctrl;}
+  {rank=same; mem; dbg;}
+  idex -> ctrl [label="load en EX / rd", color="#b45309"];
+  id -> ctrl [label="fuentes usadas / HALT", color="#b45309"];
+  ex -> ctrl [label="salto tomado", color="#b45309"];
+  ctrl -> pc [label="hold / PC siguiente", color="#b45309"];
+  ctrl -> ifid [label="stall / flush", color="#b45309"];
+  ctrl -> idex [label="flush", color="#b45309"];
+  dbg -> pc [label="cpu_en, cpu_rst", color="#7e22ce", fontcolor="#7e22ce"];
+  dbg -> imem [label="escritura de programa", color="#7e22ce", fontcolor="#7e22ce"];
+
+  note [shape=note, label="Todos los registros del CPU avanzan con adv = cpu_en && !halted.\nLas escrituras del banco y de dmem también usan adv.\nLa Debug Unit consulta el estado mediante puertos de lectura.\nSe asumen accesos lh/sh y lw/sw alineados.",
+        fillcolor="#f8fafc", color="#94a3b8", fontsize=10];
+  {rank=same; wb; note;}
+  dbg -> note [style=invis];
+}
+@enddot
