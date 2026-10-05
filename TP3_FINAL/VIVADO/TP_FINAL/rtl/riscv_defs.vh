@@ -1,0 +1,28 @@
+`ifndef RISCV_DEFS_VH
+`define RISCV_DEFS_VH
+
+`define RISCV_OPCODE_LOAD   7'b0000011
+`define RISCV_OPCODE_OP_IMM 7'b0010011
+`define RISCV_OPCODE_STORE  7'b0100011
+`define RISCV_OPCODE_OP     7'b0110011
+`define RISCV_OPCODE_LUI    7'b0110111
+`define RISCV_OPCODE_BRANCH 7'b1100011
+`define RISCV_OPCODE_JALR   7'b1100111
+`define RISCV_OPCODE_JAL    7'b1101111
+`define RISCV_HALT_INSTR    32'h0000_0073
+
+`define RISCV_FUNCT7_BASE 7'b0000000
+`define RISCV_FUNCT7_ALT  7'b0100000
+
+`define ALU_ADD  4'd0
+`define ALU_SUB  4'd1
+`define ALU_SLL  4'd2
+`define ALU_SRL  4'd3
+`define ALU_SRA  4'd4
+`define ALU_AND  4'd5
+`define ALU_OR   4'd6
+`define ALU_XOR  4'd7
+`define ALU_SLT  4'd8
+`define ALU_SLTU 4'd9
+
+`endif

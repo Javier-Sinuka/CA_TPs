@@ -1,12 +1,12 @@
 # Datapath del procesador RISC-V segmentado
 
-Este documento explica el [diagrama del datapath](datapath.svg) del trabajo final. Describe **qué hace cada bloque, qué información conserva cada registro intermedio y por qué existen los caminos de retorno y las señales de control**. Es una descripción de arquitectura previa al código RTL: donde la consigna y el diagrama todavía no fijan una política concreta, se indica expresamente.
+Este documento explica el [diagrama del datapath](../diagramas/datapath.svg) del trabajo final. Describe **qué hace cada bloque, qué información conserva cada registro intermedio y por qué existen los caminos de retorno y las señales de control**. Es una descripción de arquitectura previa al código RTL: donde la consigna y el diagrama todavía no fijan una política concreta, se indica expresamente.
 
-![Diagrama del datapath RV32I](datapath.svg)
+![Diagrama del datapath RV32I](../diagramas/datapath.svg)
 
 ## 1. Alcance y lectura del dibujo
 
-El procesador implementará el subconjunto de 32 instrucciones RV32I pedido por la cátedra (aritmética, lógica, cargas, stores, `beq`, `bne`, `jal`, `jalr` y `lui`), más una instrucción de parada cuya codificación aún debemos elegir. RV32I significa registros y direcciones de **32 bits**. Las instrucciones tienen **32 bits** y, en este subconjunto, cada instrucción ocupa **4 bytes**.
+El procesador implementará el subconjunto de 32 instrucciones RV32I pedido por la cátedra (aritmética, lógica, cargas, stores, `beq`, `bne`, `jal`, `jalr` y `lui`), más una instrucción de parada codificada como `0x00000073` (`ECALL`). RV32I significa registros y direcciones de **32 bits**. Las instrucciones tienen **32 bits** y, en este subconjunto, cada instrucción ocupa **4 bytes**.
 
 La línea azul superior es el recorrido principal de una instrucción: **IF → ID → EX → MEM → WB**. Los bloques verdes son registros físicos: PC y los cuatro registros intermedios. Los bloques azules calculan una función de sus entradas durante el ciclo. Las líneas discontinuas son caminos de retorno o control: no representan una instrucción retrocediendo de etapa. Los bloques amarillo y violeta representan, respectivamente, el control de riesgos y la Debug Unit.
 
@@ -135,7 +135,7 @@ Esta unidad observa lo que hay en las etapas y decide **qué se actualiza** en e
 
 **Flush por salto.** Cuando EX decide tomar un branch o ejecutar `jal`/`jalr`, el PC recibe el destino y se invalidan las instrucciones jóvenes. El salto sigue avanzando; no se «rebobina» ninguna instrucción antigua.
 
-**HALT y drenado.** La codificación de HALT sigue pendiente. La idea es reconocerla en ID, impedir nuevas entradas y dejarla recorrer EX, MEM y WB sin efectos sobre registros ni memoria. Cuando HALT llega válidamente a WB, las instrucciones anteriores ya terminaron; los registros intermedios anteriores deben tener `valid = 0`, y se activa `halted`. Si un salto más antiguo tomado descarta ese HALT antes de comprometerlo, el CPU no debe detenerse.
+**HALT y drenado.** HALT se reconoce por la palabra exacta `0x00000073` (`ECALL`). La idea es reconocerla en ID, impedir nuevas entradas y dejarla recorrer EX, MEM y WB sin efectos sobre registros ni memoria. Cuando HALT llega válidamente a WB, las instrucciones anteriores ya terminaron; los registros intermedios anteriores deben tener `valid = 0`, y se activa `halted`. Si un salto más antiguo tomado descarta ese HALT antes de comprometerlo, el CPU no debe detenerse.
 
 La prioridad de señales debe implementarse y probarse de forma explícita. Conceptualmente, **reset > actualización habilitada > resolución de salto/flush > stall ordinario**; el caso de HALT especulativo detrás de un salto exige que el salto gane. Esta frase expresa una regla de diseño, no sustituye la tabla de verdad detallada que haremos al codificar.
 
@@ -172,11 +172,11 @@ Si la primera fuese `lw x1,0(x0)`, en el ciclo 3 `add` no podría pasar a EX inm
 Estas cuestiones aparecen en el diagrama o afectan su implementación, pero **no están cerradas**:
 
 1. Capacidad de `imem` y `dmem`, y comportamiento de direcciones fuera de rango.
-2. Codificación de HALT y tratamiento de instrucciones ilegales.
+2. Tratamiento de instrucciones ilegales más allá de inhibir sus efectos arquitectónicos.
 3. Política para accesos de datos desalineados.
 4. Qué se limpia al cargar un programa nuevo y cómo se evita ejecutar restos del programa anterior.
 5. Mapa exacto del puerto de depuración y de las palabras de cada latch.
 6. Protocolo UART, formato del dump y límite de ciclos sin HALT.
 7. Mecanismo para identificar y mostrar la memoria de datos usada.
 
-Las decisiones ya fijadas para este dibujo son: **pipeline de cinco etapas**, **saltos resueltos en EX**, **forwarding y stall load-use**, **un solo clock con habilitación**, y **memorias pequeñas de lectura asíncrona**. La síntesis y la temporización de Vivado permitirán comprobar más adelante si el tamaño elegido es apropiado.
+Las decisiones ya fijadas para este dibujo son: **pipeline de cinco etapas**, **saltos resueltos en EX**, **forwarding y stall load-use**, **un solo clock con habilitación**, **memorias pequeñas de lectura asíncrona** y **HALT = `0x00000073`**. La síntesis y la temporización de Vivado permitirán comprobar más adelante si el tamaño elegido es apropiado.
