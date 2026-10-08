@@ -136,6 +136,10 @@ module tb_control;
         check_control(enc_i(12'h004, 3'b001, 7'b1100111), `ALU_ADD, 13'd0);
         check_control(32'h0010_0073, `ALU_ADD, 13'd0);
         check_control(32'd0, `ALU_ADD, 13'd0);
+        check_control({7'b0000000, 5'd2, 5'd1, 3'b000, 5'd3, 7'b01100z1}, `ALU_ADD, 13'd0);
+        check_control({7'b0000000, 5'd2, 5'd1, 3'b0z0, 5'd3, 7'b0110011}, `ALU_ADD, 13'd0);
+        check_control({7'b000000z, 5'd2, 5'd1, 3'b000, 5'd3, 7'b0110011}, `ALU_ADD, 13'd0);
+        check_control({7'b000000x, 5'd2, 5'd1, 3'b000, 5'd3, 7'b0010011}, `ALU_ADD, 13'd0);
 
         $display("tb_control passed: %0d checks", r_checks);
         $finish;

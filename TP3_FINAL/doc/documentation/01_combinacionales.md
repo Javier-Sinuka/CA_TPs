@@ -104,6 +104,14 @@ Recibe `i_opcode[6:0]`, `i_funct3[2:0]` e `i_funct7[6:0]`. Entrega `o_alu_op[3:0
 
 La tabla muestra por qué separar `alu_control` de la ALU: **la ALU no necesita saber de qué formato vino la operación**. También muestra una validación importante: no se acepta cualquier patrón con opcode R o I-ALU. Una variante R con `funct7 = 0000001` (extensión M, no pedida) entrega `o_valid = 0`.
 
+### Por qué aquí se usa `casez`
+
+El decodificador usa `casez` sobre `{opcode, funct3, funct7}`. Solo seis entradas I-ALU (`addi`, `slti`, `sltiu`, `xori`, `ori`, `andi`) contienen `7'b???????`: esos siete bits son parte de un inmediato arbitrario y **no deben filtrar la operación**. Los diez patrones R y los tres desplazamientos inmediatos comparan `funct7` completo; una variante no solicitada sigue cayendo en `default` con `o_valid = 0`.
+
+`casez` también podría tratar un `Z` inesperado en la entrada como comodín. Para que eso no oculte un problema en simulación, antes del `casez` se comprueba la reducción XOR de los tres campos: si contiene `X` o `Z`, se conservan las salidas por defecto (`o_valid = 0`, `o_alu_op = ALU_ADD`). Con entradas binarias completas, esa condición siempre permite decodificar. No se usa `casex`, que ignoraría además los `X` en la comparación.
+
+La conversión se comparó con el decodificador anterior para las **131 072 combinaciones binarias** posibles de los tres campos. No hubo diferencias: se aceptan **781 patrones** (10 R exactos y 771 I-ALU, de los cuales 768 son las seis operaciones con inmediato libre). Se añadieron pruebas permanentes de `X` y `Z` para evitar que una instrucción incompleta se marque válida.
+
 Ejemplo: `addi x3,x1,-1` se codifica como `0xFFF08193`. Sus bits altos valen 1 porque el inmediato es negativo. `alu_control` mira `funct3 = 000` y selecciona **ADD**, sin interpretar esos bits como la variante SUB. `imm_gen` entrega `0xFFFFFFFF`, que representa `-1` en complemento a dos.
 
 ## 7. `imm_gen.v`: reconstrucción de inmediatos
@@ -195,9 +203,9 @@ Los testbenches son independientes, usan valores esperados concretos y terminan 
 |---|---:|---|
 | [`tb_alu.sv`](../../VIVADO/TP_FINAL/tb/tb_alu.sv) | 21 | Diez operaciones, extremos de 32 bits, desplazamientos de 0/31/32, signo frente a sin signo y código interno inválido. |
 | [`tb_imm_gen.sv`](../../VIVADO/TP_FINAL/tb/tb_imm_gen.sv) | 13 | Los cinco formatos, inmediatos positivos/negativos y opcode sin inmediato. |
-| [`tb_control.sv`](../../VIVADO/TP_FINAL/tb/tb_control.sv) | 43 | Las 32 instrucciones solicitadas, HALT y diez codificaciones no soportadas. |
+| [`tb_control.sv`](../../VIVADO/TP_FINAL/tb/tb_control.sv) | 47 | Las 32 instrucciones solicitadas, HALT, diez codificaciones no soportadas y cuatro entradas con `X`/`Z`. |
 
-**Resultado:** 77/77 comprobaciones pasaron con Icarus Verilog. Verilator no informó problemas de lint. El compilador `xvlog` de Vivado disponible también aceptó los cuatro módulos y los tres testbenches.
+**Resultado:** 81/81 comprobaciones pasaron con Icarus Verilog. Verilator no informó problemas de lint. El compilador `xvlog` de Vivado disponible también aceptó los cuatro módulos y los tres testbenches.
 
 Para repetirlas desde `VIVADO/TP_FINAL`:
 
