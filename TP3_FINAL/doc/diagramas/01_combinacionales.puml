@@ -1,0 +1,33 @@
+@startdot
+digraph combinacionales {
+  graph [rankdir=LR, bgcolor="white", pad="0.28", nodesep="0.50", ranksep="0.65",
+         splines=polyline, fontname="DejaVu Sans", fontsize=19, fontcolor="#0f172a",
+         label="Etapa 1: bloques combinacionales", labelloc=t];
+  node [shape=box, style="rounded,filled", color="#334155", fontname="DejaVu Sans",
+        fontsize=12, fontcolor="#0f172a", margin="0.17,0.13"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#475569", arrowsize=0.7];
+
+  instr [label="Instrucción\n32 bits", fillcolor="#e2e8f0"];
+  alu_ctrl [label="alu_control.v\nR / I-ALU\noperación + validez", fillcolor="#dbeafe"];
+  ctrl [label="control.v\nseñales de control\nfuentes realmente usadas\ncodificación soportada", fillcolor="#dbeafe"];
+  imm [label="imm_gen.v\ninmediato I/S/B/J/U\nextendido a 32 bits", fillcolor="#dbeafe"];
+  operands [label="Operandos A y B\nseleccionados en EX\n(etapa futura)", fillcolor="#f1f5f9"];
+  alu [label="alu.v\noperación de 32 bits", fillcolor="#dbeafe"];
+  outputs [label="Señales, inmediato\n y resultado\nhacia el pipeline", fillcolor="#dcfce7"];
+
+  instr -> alu_ctrl [label="opcode, funct3, funct7"];
+  instr -> ctrl [label="instrucción completa"];
+  instr -> imm [label="instrucción completa"];
+  alu_ctrl -> ctrl [label="alu_op, valid"];
+  ctrl -> alu [label="o_alu_op"];
+  operands -> alu [label="i_operand_a / b"];
+  ctrl -> outputs [label="control"];
+  imm -> outputs [label="o_imm"];
+  alu -> outputs [label="o_result"];
+
+  note [shape=note, fillcolor="#fef3c7", color="#92400e", fontsize=11,
+        label="alu_control.v se instancia dentro de control.v.\nLas demás flechas indican interfaces que se conectarán al integrar el CPU.\nEstos bloques no tienen clock ni registros internos."];
+  {rank=same; outputs; note;}
+  outputs -> note [style=invis];
+}
+@enddot
