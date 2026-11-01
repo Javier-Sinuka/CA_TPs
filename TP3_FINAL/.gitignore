@@ -1,3 +1,4 @@
 # This file keeps the TP3_FINAL root visible in Git.
 
 build/
+__pycache__/
