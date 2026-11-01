@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module tb_uart_rx;
     // Parameters
     parameter CLOCK_PERIOD_NS = 10;
@@ -215,10 +217,15 @@ module tb_uart_rx;
             end
         join
 
-        $display("TEST T5 | Framing error with stop bit low");
+        $display("TEST T5 | Framing error with stop bit low: error pulse without valid (D-08)");
         fork
             send_frame(8'h5C, 1'b0);
-            wait_and_check_frame(8'h5C, 1'b1, "T5");
+            begin
+                @(posedge o_error);
+                #1;
+                check_valid_and_error(1'b0, 1'b1, "T5");
+                check_data(8'h5C, "T5");
+            end
         join
 
         $display("TEST T6 | Two sequential frames 0x41 then 0x42");
@@ -235,14 +242,13 @@ module tb_uart_rx;
 
         $display("--------------------------------------------");
         $display("Test summary: PASS=%0d FAIL=%0d TOTAL=%0d", pass_count, fail_count, pass_count + fail_count);
-        if (fail_count == 0) $display("All tests PASSED.");
-        else $display("Some tests FAILED.");
+        if (fail_count != 0) $fatal(1, "FAIL tb_uart_rx: %0d errores", fail_count);
+        $display("PASS tb_uart_rx: %0d chequeos", pass_count);
         $finish;
     end
 
     initial begin
         #2_000_000;
-        $display("TIMEOUT! Simulation did not finish in expected time.");
-        $finish;
+        $fatal(1, "FAIL tb_uart_rx: watchdog");
     end
 endmodule

@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module tb_uart_tx;
     // Parameters
     parameter CLOCK_PERIOD_NS = 10;
@@ -217,14 +219,13 @@ module tb_uart_tx;
 
         $display("--------------------------------------------");
         $display("Test summary: PASS=%0d FAIL=%0d TOTAL=%0d", pass_count, fail_count, pass_count + fail_count);
-        if (fail_count == 0) $display("All tests PASSED.");
-        else $display("Some tests FAILED.");
+        if (fail_count != 0) $fatal(1, "FAIL tb_uart_tx: %0d errores", fail_count);
+        $display("PASS tb_uart_tx: %0d chequeos", pass_count);
         $finish;
     end
 
     initial begin
         #2_000_000;
-        $display("TIMEOUT! Simulation did not finish in expected time.");
-        $finish;
+        $fatal(1, "FAIL tb_uart_tx: watchdog");
     end
 endmodule

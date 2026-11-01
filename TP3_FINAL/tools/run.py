@@ -3,6 +3,7 @@
 Uso, desde la raíz del repo:
     py TP3_FINAL/tools/run.py tb <nombre> [+plusarg ...]
     py TP3_FINAL/tools/run.py tbs
+    py TP3_FINAL/tools/run.py mutate
     py TP3_FINAL/tools/run.py synth_ooc <top>
 iverilog y vvp corren con cwd = raíz del repo: los TB abren archivos con rutas relativas a esa raíz.
 """
@@ -19,7 +20,7 @@ TOOLS = Path(__file__).resolve().parent
 REPO = TOOLS.parents[1]
 BUILD = REPO / "TP3_FINAL" / "build"
 sys.path.insert(0, str(TOOLS))
-from tbs import SYNTH, TBS  # noqa: E402
+from tbs import MUTATIONS, SYNTH, TBS  # noqa: E402
 
 VIVADO = os.environ.get("VIVADO", "C:/Xilinx/Vivado/2024.1/bin/vivado.bat")
 BAD_SYNTH = re.compile(r"inferring latch|multi-driven|implicit", re.IGNORECASE)
@@ -65,6 +66,31 @@ def run_tbs() -> bool:
     return all(results)
 
 
+def run_mutate() -> bool:
+    ok_all = True
+    for m in MUTATIONS:
+        src = REPO / m["file"]
+        text = src.read_text(encoding="utf-8")
+        n = text.count(m["old"])
+        if n != 1:
+            print(f"FAIL mutate {m['name']}: el texto original aparece {n} veces")
+            ok_all = False
+            continue
+        mfile = BUILD / "mut" / m["name"] / src.name
+        mfile.parent.mkdir(parents=True, exist_ok=True)
+        mfile.write_text(text.replace(m["old"], m["new"]), encoding="utf-8")
+        spec = dict(TBS[m["tb"]])
+        spec["files"] = [mfile.relative_to(REPO).as_posix() if f == m["file"] else f
+                         for f in spec["files"]]
+        name = f"mut_{m['name']}"
+        TBS[name] = spec
+        detected = not run_tb(name)
+        print(f"{'PASS' if detected else 'FAIL'} mutate {m['name']}: "
+              f"{'detectada' if detected else 'NO detectada'}")
+        ok_all = ok_all and detected
+    return ok_all
+
+
 def run_vivado(tcl: str, log: Path, args: list[str]) -> int:
     log.parent.mkdir(parents=True, exist_ok=True)
     cmd = [VIVADO, "-mode", "batch", "-nojournal", "-log", log.as_posix(),
@@ -97,12 +123,15 @@ def main(argv: list[str] | None = None) -> int:
     ptb.add_argument("name", choices=sorted(TBS))
     ptb.add_argument("plusargs", nargs="*", help="se pasan a vvp, por ejemplo +SEED=3")
     sub.add_parser("tbs")
+    sub.add_parser("mutate")
     sub.add_parser("synth_ooc").add_argument("top", choices=sorted(SYNTH))
     a = p.parse_args(argv)
     if a.cmd == "tb":
         ok = run_tb(a.name, a.plusargs)
     elif a.cmd == "tbs":
         ok = run_tbs()
+    elif a.cmd == "mutate":
+        ok = run_mutate()
     else:
         ok = run_synth(a.top)
     return 0 if ok else 1
