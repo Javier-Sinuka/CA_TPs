@@ -1,3 +1,6 @@
+`timescale 1ns/1ps
+`default_nettype none
+
 module uart_rx (
     input wire i_clock,
     input wire i_baud_tick,
@@ -13,7 +16,8 @@ module uart_rx (
     reg [2:0] r_bit_counter;
     reg [7:0] r_shift;
 
-    reg [1:0] r_rx_sync;
+    // Sincronizador de la entrada asíncrona: 2 FF juntos en el mismo slice.
+    (* ASYNC_REG = "TRUE" *) reg [1:0] r_rx_sync;
     wire w_rx = r_rx_sync[1];
 
     localparam IDLE = 2'd0;
@@ -124,3 +128,5 @@ module uart_rx (
         end
     end
 endmodule
+
+`default_nettype wire

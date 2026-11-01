@@ -1,3 +1,6 @@
+`timescale 1ns/1ps
+`default_nettype none
+
 module uart_tx (
     input wire i_clock,
     input wire i_baud_tick,
@@ -64,7 +67,14 @@ module uart_tx (
             case (r_next_state)
                 IDLE: begin o_tx <= 1'b1; end
                 START: begin o_tx <= 1'b0; end
-                DATA: begin o_tx <= r_shift[0]; end
+                // En el tick de fin de bit r_shift todavía no se desplazó: el bit siguiente es r_shift[1] (H-7).
+                DATA: begin
+                    if (r_state == DATA && i_baud_tick && r_tick_counter == 15) begin
+                        o_tx <= r_shift[1];
+                    end else begin
+                        o_tx <= r_shift[0];
+                    end
+                end
                 STOP: begin o_tx <= 1'b1; end
             endcase
         end
@@ -108,3 +118,5 @@ module uart_tx (
         end
     end
 endmodule
+
+`default_nettype wire

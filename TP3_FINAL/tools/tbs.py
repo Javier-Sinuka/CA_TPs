@@ -21,4 +21,6 @@ SYNTH = {
     "baud_gen": [f"{RTL}/uart/baud_gen.v"],
     "uart_rx": [f"{RTL}/uart/uart_rx.v"],
     "uart_tx": [f"{RTL}/uart/uart_tx.v"],
+    "uart_if": [f"{RTL}/uart/baud_gen.v", f"{RTL}/uart/uart_rx.v",
+                f"{RTL}/uart/uart_tx.v", f"{RTL}/uart/uart_if.v"],
 }
