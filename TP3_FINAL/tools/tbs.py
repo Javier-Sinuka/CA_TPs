@@ -8,7 +8,7 @@ TB = "TP3_FINAL/VIVADO/TP_FINAL/tb"
 # devuelve 0 y no hay líneas que empiecen con FAIL ni contengan TIMEOUT.
 # B-04 convierte esos TB y borra la marca.
 TBS = {
-    "tb_baud_gen": {"top": "tb_baud_gen", "legacy": True,
+    "tb_baud_gen": {"top": "tb_baud_gen",
                     "files": [f"{RTL}/uart/baud_gen.v", f"{TB}/uart/tb_baud_gen.sv"]},
     "tb_uart_rx": {"top": "tb_uart_rx", "legacy": True,
                    "files": [f"{RTL}/uart/uart_rx.v", f"{TB}/uart/tb_uart_rx.sv"]},

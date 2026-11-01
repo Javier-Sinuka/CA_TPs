@@ -1,109 +1,98 @@
-module tb_baud_gen;
-    // Parameters
-    parameter CLOCK_FREQ = 100_000_000;
-    parameter BAUD_RATE = 9600;
-    parameter OVERSAMPLE = 16;
-    localparam integer TICK_DIV = CLOCK_FREQ / (BAUD_RATE * OVERSAMPLE);
-    localparam integer NUM_TICKS_TO_TEST = 30;
+`timescale 1ns/1ps
 
-    reg i_reset;
-    reg i_clock;
-    wire o_baud_tick;
+// Mide el período del tick de baud_gen para varias frecuencias de reloj.
+// Cada instancia de baud_check tiene su propio reloj y su propio DUT.
+module baud_check #(
+    parameter integer CLOCK_FREQ = 50_000_000,
+    parameter integer BAUD_RATE  = 115_200,
+    parameter integer EXP_DIV    = 27,
+    parameter integer N_PERIODS  = 20
+)();
+    localparam real HALF_NS = 1.0e9 / CLOCK_FREQ / 2.0;
+    reg  r_clock = 1'b0;
+    reg  r_reset = 1'b1;
+    wire w_tick;
+    integer errors = 0;
+    integer checks = 0;
+    reg     done = 1'b0;
+    integer cycle, last, periods, first;
+    real    err_pct;
 
-    // Variables for automatic checking
-    integer pass_count;
-    integer fail_count;
-    integer cycle_count;
-    integer tick_count;
-    integer last_tick_cycle;
-    reg first_tick_seen;
-    reg prev_tick;
+    always #(HALF_NS) r_clock = ~r_clock;
 
-    // baud_gen DUT
-    baud_gen #(
-        .CLOCK_FREQ(CLOCK_FREQ),
-        .BAUD_RATE(BAUD_RATE),
-        .OVERSAMPLE(OVERSAMPLE)
-    ) UUT (
-        .i_reset(i_reset),
-        .i_clock(i_clock),
-        .o_baud_tick(o_baud_tick)
-    );
+    baud_gen #(.CLOCK_FREQ(CLOCK_FREQ), .BAUD_RATE(BAUD_RATE)) u_dut (
+        .i_reset(r_reset), .i_clock(r_clock), .o_baud_tick(w_tick));
 
-    // 100 MHz equivalent simulation clock period (10 ns)
-    always #5 i_clock = ~i_clock;
-
-    // Check period and pulse width on every clock
-    always @(posedge i_clock) begin
-        if (i_reset) begin
-            cycle_count = 0;
-            last_tick_cycle = 0;
-            first_tick_seen = 0;
-            prev_tick = 0;
-            tick_count = 0;
-        end else begin
-            cycle_count = cycle_count + 1;
-            if (o_baud_tick) begin
-                tick_count = tick_count + 1;
-                // Tick must be a single-cycle pulse
-                if (prev_tick) begin
-                    fail_count = fail_count + 1;
-                    $display("FAIL PULSE_WIDTH | cycle=%0d Tick stayed high for more than one cycle", cycle_count);
-                end else begin
-                    pass_count = pass_count + 1;
-                end
-                if (!first_tick_seen) begin
-                    if (cycle_count == TICK_DIV) begin
-                        pass_count = pass_count + 1;
-                        $display("PASS FIRST_TICK | cycle=%0d expected=%0d", cycle_count, TICK_DIV);
-                    end else begin
-                        fail_count = fail_count + 1;
-                        $display("FAIL FIRST_TICK | cycle=%0d expected=%0d", cycle_count, TICK_DIV);
+    initial begin
+        cycle = 0; last = -1; periods = 0; first = -1;
+        repeat (4) @(posedge r_clock);
+        @(negedge r_clock);
+        r_reset = 1'b0;
+        // cycle = cantidad de flancos de subida desde que se soltó el reset.
+        while (periods < N_PERIODS) begin
+            @(posedge r_clock);
+            cycle = cycle + 1;
+            @(negedge r_clock);          // leer lejos del flanco (convenciones §5)
+            if (w_tick) begin
+                if (first < 0) begin
+                    first = cycle;
+                    checks = checks + 1;
+                    if (first != EXP_DIV) begin
+                        errors = errors + 1;
+                        $display("FAIL FIRST_TICK CLK=%0d: ciclo %0d, esperado %0d", CLOCK_FREQ, first, EXP_DIV);
                     end
-                    first_tick_seen = 1;
                 end else begin
-                    if (cycle_count - last_tick_cycle == TICK_DIV) begin
-                        pass_count = pass_count + 1;
-                        $display("PASS PERIOD | cycle=%0d interval=%0d", cycle_count, TICK_DIV);
-                    end else begin
-                        fail_count = fail_count + 1;
-                        $display("FAIL PERIOD | cycle=%0d interval=%0d expected=%0d", cycle_count, cycle_count - last_tick_cycle, TICK_DIV);
+                    periods = periods + 1;
+                    checks = checks + 1;
+                    if (cycle - last != EXP_DIV) begin
+                        errors = errors + 1;
+                        $display("FAIL PERIOD CLK=%0d: %0d ciclos, esperado %0d", CLOCK_FREQ, cycle - last, EXP_DIV);
                     end
                 end
-                last_tick_cycle = cycle_count;
+                last = cycle;
+                // El tick dura exactamente 1 ciclo.
+                @(posedge r_clock);
+                cycle = cycle + 1;
+                @(negedge r_clock);
+                checks = checks + 1;
+                if (w_tick) begin
+                    errors = errors + 1;
+                    $display("FAIL PULSE_WIDTH CLK=%0d: tick de más de 1 ciclo", CLOCK_FREQ);
+                end
             end
-            prev_tick = o_baud_tick;
         end
+        err_pct = (CLOCK_FREQ / (EXP_DIV * 16.0) - BAUD_RATE) * 100.0 / BAUD_RATE;
+        checks = checks + 1;
+        if (err_pct > 2.0 || err_pct < -2.0) begin
+            errors = errors + 1;
+            $display("FAIL ERROR CLK=%0d: error de baudios %0.3f %%", CLOCK_FREQ, err_pct);
+        end
+        $display("CLK=%0d BAUD=%0d DIV=%0d err=%0.3f%%", CLOCK_FREQ, BAUD_RATE, EXP_DIV, err_pct);
+        done = 1'b1;
+    end
+endmodule
+
+module tb_baud_gen;
+    // DIV esperado = round(CLOCK_FREQ / (BAUD_RATE * 16)), calculado a mano (no con la fórmula del RTL).
+    baud_check #(.CLOCK_FREQ( 50_000_000), .BAUD_RATE(115_200), .EXP_DIV( 27)) c50  ();
+    baud_check #(.CLOCK_FREQ( 75_000_000), .BAUD_RATE(115_200), .EXP_DIV( 41)) c75  ();
+    baud_check #(.CLOCK_FREQ(100_000_000), .BAUD_RATE(115_200), .EXP_DIV( 54)) c100 ();
+    baud_check #(.CLOCK_FREQ(125_000_000), .BAUD_RATE(115_200), .EXP_DIV( 68)) c125 ();
+    baud_check #(.CLOCK_FREQ(100_000_000), .BAUD_RATE(  9_600), .EXP_DIV(651)) c9600();
+
+    integer errors, checks;
+
+    initial begin
+        #(50_000_000);   // watchdog: 50 ms simulados (lo esperado es < 3 ms)
+        $fatal(1, "FAIL tb_baud_gen: watchdog");
     end
 
     initial begin
-        i_clock = 0;
-        i_reset = 1;
-        pass_count = 0;
-        fail_count = 0;
-        cycle_count = 0;
-        tick_count = 0;
-        last_tick_cycle = 0;
-        first_tick_seen = 0;
-        prev_tick = 0;
-
-        $display("Starting baud_gen testbench...");
-        $display("CLOCK_FREQ=%0d BAUD_RATE=%0d OVERSAMPLE=%0d TICK_DIV=%0d", CLOCK_FREQ, BAUD_RATE, OVERSAMPLE, TICK_DIV);
-
-        repeat (4) @(posedge i_clock);
-        @(negedge i_clock);
-        i_reset = 0;
-
-        // Run until enough ticks are observed
-        wait (tick_count >= NUM_TICKS_TO_TEST);
-        repeat (2) @(posedge i_clock);
-
-        $display("--------------------------------------------");
-        $display("Test summary: PASS=%0d FAIL=%0d TOTAL=%0d", pass_count, fail_count, pass_count + fail_count);
-        if (fail_count == 0)
-            $display("All tests PASSED.");
-        else
-            $display("Some tests FAILED.");
+        wait (c50.done && c75.done && c100.done && c125.done && c9600.done);
+        errors = c50.errors + c75.errors + c100.errors + c125.errors + c9600.errors;
+        checks = c50.checks + c75.checks + c100.checks + c125.checks + c9600.checks;
+        if (errors != 0) $fatal(1, "FAIL tb_baud_gen: %0d errores", errors);
+        $display("PASS tb_baud_gen: %0d chequeos", checks);
         $finish;
     end
 endmodule
