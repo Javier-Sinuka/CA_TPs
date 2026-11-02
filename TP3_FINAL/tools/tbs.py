@@ -23,6 +23,9 @@ TBS = {
                        "incdirs": [f"{TB}/common"], "params": {"BAUD_RATE": 1_562_500}},
     "tb_uart_fast128": {"top": "tb_uart", "files": UART_RTL + [f"{TB}/uart/tb_uart.sv"],
                         "incdirs": [f"{TB}/common"], "params": {"BAUD_RATE": 390_625}},
+    "tb_uart_echo": {"top": "tb_uart_echo",
+                     "files": UART_RTL + [f"{RTL}/top/top_uart_echo.v", f"{TB}/top/tb_uart_echo.sv"],
+                     "incdirs": [f"{TB}/common"]},
 }
 
 # Síntesis out-of-context: top -> archivos.
@@ -42,3 +45,10 @@ MUTATIONS = [
     {"name": "rx_muestreo_tarde", "file": f"{RTL}/uart/uart_rx.v", "tb": "tb_uart",
      "old": "localparam SAMPLE    = 4'd7;", "new": "localparam SAMPLE    = 4'd14;"},
 ]
+
+# Bitstreams: top -> archivos y XDC. --clk mmcm agrega CLK_GEN.
+CLK_GEN = f"{RTL}/top/clk_gen.v"
+BITS = {
+    "top_uart_echo": {"files": UART_RTL + [f"{RTL}/top/top_uart_echo.v"],
+                      "xdc": "TP3_FINAL/constraints/basys3_uart_echo.xdc"},
+}

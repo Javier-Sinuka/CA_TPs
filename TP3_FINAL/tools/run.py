@@ -5,6 +5,8 @@ Uso, desde la raíz del repo:
     py TP3_FINAL/tools/run.py tbs
     py TP3_FINAL/tools/run.py mutate
     py TP3_FINAL/tools/run.py synth_ooc <top>
+    py TP3_FINAL/tools/run.py bit <top> [--mhz 50|100] [--clk wiz|mmcm] [--define NAME]
+    py TP3_FINAL/tools/run.py program <archivo.bit>
 iverilog y vvp corren con cwd = raíz del repo: los TB abren archivos con rutas relativas a esa raíz.
 """
 from __future__ import annotations
@@ -20,7 +22,7 @@ TOOLS = Path(__file__).resolve().parent
 REPO = TOOLS.parents[1]
 BUILD = REPO / "TP3_FINAL" / "build"
 sys.path.insert(0, str(TOOLS))
-from tbs import MUTATIONS, SYNTH, TBS  # noqa: E402
+from tbs import BITS, CLK_GEN, MUTATIONS, SYNTH, TBS  # noqa: E402
 
 VIVADO = os.environ.get("VIVADO", "C:/Xilinx/Vivado/2024.1/bin/vivado.bat")
 BAD_SYNTH = re.compile(r"inferring latch|multi-driven|implicit", re.IGNORECASE)
@@ -116,6 +118,39 @@ def run_synth(top: str) -> bool:
     return ok
 
 
+def run_bit(top: str, mhz: int, clk: str, defines: list[str] | None = None) -> bool:
+    spec = BITS[top]
+    out = BUILD / "bit" /  f"{top}_{mhz}MHz_{clk}"
+    log = out / "vivado.log"
+    files = [(REPO / f).as_posix() for f in spec["files"]]
+    if clk == "mmcm":
+        files.append((REPO / CLK_GEN).as_posix())
+    defs = ",".join(defines) if defines else "-"
+    rc = run_vivado("build_bit.tcl", log,
+                    [top, str(mhz), out.as_posix(), clk, (REPO / spec["xdc"]).as_posix(), defs, *files])
+    bad = bad_synth_lines(log)
+    for l in bad:
+        print(f"  {l}")
+    summary = out / "summary.txt"
+    wns_ok = False
+    if summary.exists():
+        text = summary.read_text().strip()
+        print(text)
+        m = re.search(r"WNS=(-?[0-9.]+)", text)
+        wns_ok = m is not None and float(m.group(1)) >= 0.0
+    ok = rc == 0 and not bad and wns_ok
+    bit = (out / f"{top}.bit").relative_to(REPO).as_posix()
+    print(f"{'PASS' if ok else 'FAIL'} bit {top} {mhz} MHz ({clk}) -> {bit}")
+    return ok
+
+
+def run_program(bit: str) -> bool:
+    log = BUILD / "program" / "vivado.log"
+    rc = run_vivado("program.tcl", log, [Path(bit).resolve().as_posix()])
+    print(f"{'PASS' if rc == 0 else 'FAIL'} program {bit}")
+    return rc == 0
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(prog="run.py")
     sub = p.add_subparsers(dest="cmd", required=True)
@@ -125,6 +160,13 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("tbs")
     sub.add_parser("mutate")
     sub.add_parser("synth_ooc").add_argument("top", choices=sorted(SYNTH))
+    pb = sub.add_parser("bit")
+    pb.add_argument("top", choices=sorted(BITS))
+    pb.add_argument("--mhz", type=int, default=50)
+    pb.add_argument("--clk", choices=["wiz", "mmcm"], default="wiz")
+    pb.add_argument("--define", action="append", default=[], metavar="NAME",
+                    help="repetible; va a synth_design -verilog_define (B-17 usa --define CPU_STUB)")
+    pb.add_parser("program").add_argument("bitfile")
     a = p.parse_args(argv)
     if a.cmd == "tb":
         ok = run_tb(a.name, a.plusargs)
@@ -132,6 +174,10 @@ def main(argv: list[str] | None = None) -> int:
         ok = run_tbs()
     elif a.cmd == "mutate":
         ok = run_mutate()
+    elif a.cmd == "bit":
+        ok = run_bit(a.top, a.mhz, a.clk, a.define)
+    elif a.cmd == "program":
+        ok = run_program(a.bitfile)
     else:
         ok = run_synth(a.top)
     return 0 if ok else 1
