@@ -120,7 +120,7 @@ def run_synth(top: str) -> bool:
 
 def run_bit(top: str, mhz: int, clk: str, defines: list[str] | None = None) -> bool:
     spec = BITS[top]
-    out = BUILD / "bit" /  f"{top}_{mhz}MHz_{clk}"
+    out = BUILD / "bit" / f"{top}_{mhz}mhz_{clk}"
     log = out / "vivado.log"
     files = [(REPO / f).as_posix() for f in spec["files"]]
     if clk == "mmcm":
@@ -166,7 +166,7 @@ def main(argv: list[str] | None = None) -> int:
     pb.add_argument("--clk", choices=["wiz", "mmcm"], default="wiz")
     pb.add_argument("--define", action="append", default=[], metavar="NAME",
                     help="repetible; va a synth_design -verilog_define (B-17 usa --define CPU_STUB)")
-    pb.add_parser("program").add_argument("bitfile")
+    sub.add_parser("program").add_argument("bitfile")
     a = p.parse_args(argv)
     if a.cmd == "tb":
         ok = run_tb(a.name, a.plusargs)
