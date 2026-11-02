@@ -26,6 +26,10 @@ TBS = {
     "tb_uart_echo": {"top": "tb_uart_echo",
                      "files": UART_RTL + [f"{RTL}/top/top_uart_echo.v", f"{TB}/top/tb_uart_echo.sv"],
                      "incdirs": [f"{TB}/common"]},
+    "tb_cpu_stub": {"top": "tb_cpu_stub",
+                    "files": [f"{RTL}/debug/cpu_stub.v", f"{TB}/debug/tb_cpu_stub.sv"]},
+    "tb_imem": {"top": "tb_imem",
+                "files": [f"{RTL}/debug/imem.v", f"{TB}/debug/tb_imem.sv"]},
 }
 
 # Síntesis out-of-context: top -> archivos.
@@ -35,6 +39,7 @@ SYNTH = {
     "uart_tx": [f"{RTL}/uart/uart_tx.v"],
     "uart_if": [f"{RTL}/uart/baud_gen.v", f"{RTL}/uart/uart_rx.v",
                 f"{RTL}/uart/uart_tx.v", f"{RTL}/uart/uart_if.v"],
+    "cpu_stub": [f"{RTL}/debug/cpu_stub.v"],
 }
 
 # Cada mutación copia el archivo a build/mut/<name>/, reemplaza "old" (que tiene que aparecer

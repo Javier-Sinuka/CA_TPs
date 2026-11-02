@@ -5,6 +5,7 @@ Uso, desde la raíz del repo:
     py TP3_FINAL/tools/run.py tbs
     py TP3_FINAL/tools/run.py mutate
     py TP3_FINAL/tools/run.py synth_ooc <top>
+    py TP3_FINAL/tools/run.py vectors
     py TP3_FINAL/tools/run.py bit <top> [--mhz 50|100] [--clk wiz|mmcm] [--define NAME]
     py TP3_FINAL/tools/run.py program <archivo.bit>
 iverilog y vvp corren con cwd = raíz del repo: los TB abren archivos con rutas relativas a esa raíz.
@@ -93,6 +94,12 @@ def run_mutate() -> bool:
     return ok_all
 
 
+def run_vectors() -> bool:
+    rc = subprocess.run([sys.executable, (TOOLS / "gen_vectors.py").as_posix(), "--check"],
+                        cwd=REPO).returncode
+    return rc == 0
+
+
 def run_vivado(tcl: str, log: Path, args: list[str]) -> int:
     log.parent.mkdir(parents=True, exist_ok=True)
     cmd = [VIVADO, "-mode", "batch", "-nojournal", "-log", log.as_posix(),
@@ -159,6 +166,7 @@ def main(argv: list[str] | None = None) -> int:
     ptb.add_argument("plusargs", nargs="*", help="se pasan a vvp, por ejemplo +SEED=3")
     sub.add_parser("tbs")
     sub.add_parser("mutate")
+    sub.add_parser("vectors")
     sub.add_parser("synth_ooc").add_argument("top", choices=sorted(SYNTH))
     pb = sub.add_parser("bit")
     pb.add_argument("top", choices=sorted(BITS))
@@ -174,6 +182,8 @@ def main(argv: list[str] | None = None) -> int:
         ok = run_tbs()
     elif a.cmd == "mutate":
         ok = run_mutate()
+    elif a.cmd == "vectors":
+        ok = run_vectors()
     elif a.cmd == "bit":
         ok = run_bit(a.top, a.mhz, a.clk, a.define)
     elif a.cmd == "program":
