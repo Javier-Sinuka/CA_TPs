@@ -184,7 +184,11 @@ module debug_unit #(
                     // B-11: CMD_STEP
                     // B-12: CMD_RUN
                     // B-13: CMD_LOAD
-                    // B-14: CMD_DUMP
+                    CMD_DUMP: begin
+                        r_maddr  <= 9'd0;
+                        r_mcount <= 9'd0;
+                        r_state  <= S_DUMP_COUNT;
+                    end
                     default: begin
                         r_resp      <= {32'd0, ERR_UNKNOWN, RESP_ERR};
                         r_resp_len  <= 3'd2;
@@ -213,7 +217,95 @@ module debug_unit #(
             // B-11: S_STEP
             // B-12: S_RUN
             // B-13: S_LOAD_N, S_LOAD_DATA, S_LOAD_FILL
-            // B-14: S_DUMP_COUNT, S_DUMP_HDR, S_DUMP_WORD, S_DUMP_BYTES, S_DUMP_SEEK, S_DUMP_CSUM
+            S_DUMP_COUNT: begin
+                // primera pasada: M = cantidad de palabras sucias
+                if (i_dbg_mem_dirty) begin
+                    r_mcount <= r_mcount + 9'd1;
+                end
+                if (r_maddr == 9'd255) begin
+                    r_maddr <= 9'd0;
+                    r_state <= S_DUMP_HDR;
+                end else begin
+                    r_maddr <= r_maddr + 9'd1;
+                end
+            end
+
+            S_DUMP_HDR: begin
+                if (!r_tx_valid) begin
+                    r_tx_valid <= 1'b1;
+                    r_tx_data  <= DUMP_HEADER;
+                end else if (w_tx_accept) begin
+                    r_tx_valid <= 1'b0;
+                    r_csum     <= 8'd0;
+                    r_widx     <= 6'd0;
+                    r_state    <= S_DUMP_WORD;
+                end
+            end
+
+            S_DUMP_WORD: begin
+                r_word  <= w_fixed_word;
+                r_bidx  <= 2'd0;
+                r_wkind <= 2'd0;
+                r_state <= S_DUMP_BYTES;
+            end
+
+            S_DUMP_BYTES: begin
+                if (!r_tx_valid) begin
+                    r_tx_valid <= 1'b1;
+                    r_tx_data  <= r_word[7:0];
+                end else if (w_tx_accept) begin
+                    r_tx_valid <= 1'b0;
+                    r_csum     <= r_csum + r_tx_data;
+                    r_word     <= r_word >> 8;
+                    r_bidx     <= r_bidx + 2'd1;
+                    if (r_bidx == 2'd3) begin
+                        case (r_wkind)
+                        2'd0: begin
+                            if (r_widx == 6'd51) begin
+                                r_maddr <= 9'd0;
+                                r_state <= S_DUMP_SEEK;
+                            end else begin
+                                r_widx  <= r_widx + 6'd1;
+                                r_state <= S_DUMP_WORD;
+                            end
+                        end
+                        2'd1: begin
+                            // terminó la dirección: sigue el dato de la misma palabra
+                            r_word  <= i_dbg_mem_data;
+                            r_wkind <= 2'd2;
+                        end
+                        default: begin
+                            r_maddr <= r_maddr + 9'd1;
+                            r_state <= S_DUMP_SEEK;
+                        end
+                        endcase
+                    end
+                end
+            end
+
+            S_DUMP_SEEK: begin
+                // segunda pasada: próxima palabra sucia, en orden ascendente
+                if (r_maddr[8]) begin
+                    r_state <= S_DUMP_CSUM;
+                end else if (i_dbg_mem_dirty) begin
+                    r_word  <= {22'd0, r_maddr[7:0], 2'b00};   // dirección en bytes
+                    r_wkind <= 2'd1;
+                    r_bidx  <= 2'd0;
+                    r_state <= S_DUMP_BYTES;
+                end else begin
+                    r_maddr <= r_maddr + 9'd1;
+                end
+            end
+
+            S_DUMP_CSUM: begin
+                if (!r_tx_valid) begin
+                    r_tx_valid <= 1'b1;
+                    r_tx_data  <= r_csum;
+                end else if (w_tx_accept) begin
+                    r_tx_valid <= 1'b0;
+                    r_state    <= S_IDLE;
+                end
+            end
 
             default: begin
                 r_state <= S_IDLE;

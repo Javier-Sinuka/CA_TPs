@@ -98,7 +98,28 @@ module tb_debug_unit;
             expect_silence(20_000.0, "V V V: sin tercera respuesta");
             @(negedge clk);
             check_eq(leds[2], 1, "V V V: LED de overrun");
+
+            // --- casos de B-14 (el CPU sigue con 0 ciclos) ---
+            en0 = en_cycles;
+            q_clear; q_push(8'h44);
+            n_exp = 0; exp_vec("dump_c0_h20.hex", 210);
+            transact(n_exp); check_exp("D");
+            check_eq(en_cycles - en0, 0, "D: o_cpu_en no se mueve");
+
+            q_clear; q_push(8'h44); q_push(8'h44);
+            n_exp = 0; exp_vec("dump_c0_h20.hex", 210); exp_vec("dump_c0_h20.hex", 210);
+            transact(n_exp); check_exp("D D seguidos");
+
+            rst0 = rst_cycles;
+            q_clear; q_push(8'h44); q_push(8'h58);
+            n_exp = 0; exp_vec("dump_c0_h20.hex", 210); exp_push(8'h4B);
+            transact(n_exp); check_exp("D X seguidos");
+            check_eq(rst_cycles - rst0, 1, "D X: la X paso por el pendiente");
         end else begin
+            // --- casos de B-14 (parte h0) ---
+            q_clear; q_push(8'h44);
+            n_exp = 0; exp_vec("dump_c0_h0.hex", 210);
+            transact(n_exp); check_exp("D h0");
             // casos de B-12 (parte h0)
         end
 
