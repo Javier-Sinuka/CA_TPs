@@ -31,6 +31,14 @@ module tb_debug_unit;
         if (dut.u_debug.o_cpu_rst) rst_cycles = rst_cycles + 1;
     end
 
+    // imem solo se escribe con cpu_rst = 1 (B-13)
+    always @(negedge clk) begin
+        if (dut.u_debug.o_imem_we && !dut.u_debug.o_cpu_rst) begin
+            errors = errors + 1;
+            $display("FAIL L: escritura de imem con cpu_rst = 0");
+        end
+    end
+
     task automatic check_eq(input integer got, input integer exp, input string caso);
         begin
             checks = checks + 1;
@@ -46,6 +54,57 @@ module tb_debug_unit;
     integer rst0, en0, k;
     integer c, x1, sum, m;
     reg [7:0] r_abort_dump [0:233];
+
+    // Programa de prueba de L (B-13)
+    reg [31:0] prog [0:255];
+    reg [31:0] snap [0:255];
+    integer seed = 32'h0000_0B13;
+
+    task automatic gen_prog(input integer n);
+        integer i;
+        begin
+            for (i = 0; i < n; i = i + 1) prog[i] = $random(seed);
+        end
+    endtask
+
+    // imem == prog[0..n-1] y HALT en el resto; un chequeo por palabra
+    task automatic check_imem(input integer n, input string caso);
+        integer i;
+        reg [31:0] exp_w;
+        begin
+            for (i = 0; i < 256; i = i + 1) begin
+                exp_w = (i < n) ? prog[i] : 32'h0000_0073;
+                checks = checks + 1;
+                if (dut.u_imem.r_mem[i] !== exp_w) begin
+                    errors = errors + 1;
+                    $display("FAIL %s: imem[%0d] exp=%08h got=%08h", caso, i, exp_w,
+                             dut.u_imem.r_mem[i]);
+                end
+            end
+        end
+    endtask
+
+    // L en dos fases: 4C NL NH -> K; 4*n bytes little-endian -> K
+    task automatic send_load(input integer n, input string caso);
+        integer i;
+        real saved_to;
+        begin
+            q_clear; q_push(8'h4C); q_push(n[7:0]); q_push(n[15:8]); exp_push(8'h4B);
+            transact(n_exp); check_exp({caso, ": fase N"});
+            q_clear;
+            for (i = 0; i < n; i = i + 1) begin
+                q_push(prog[i][7:0]);  q_push(prog[i][15:8]);
+                q_push(prog[i][23:16]); q_push(prog[i][31:24]);
+            end
+            exp_push(8'h4B);
+            // el receptor espera el K mientras el host sigue enviando: el timeout
+            // tiene que cubrir los 4*n bytes (N=256 son 6,5 ms, mas que los 2 ms base)
+            saved_to = bfm_timeout_ns;
+            bfm_timeout_ns = saved_to + n * 40.0 * bfm_bit_ns;
+            transact(n_exp); check_exp({caso, ": fase datos"});
+            bfm_timeout_ns = saved_to;
+        end
+    endtask
 
     initial begin
         bfm_bit_ns     = 640.0;
@@ -159,6 +218,64 @@ module tb_debug_unit;
             n_exp = 0; exp_vec("dump_c20_h20.hex", 234);
             transact(n_exp); check_exp("R hasta HALT");
             check_eq(en_cycles - en0, 21, "R hasta HALT: 21 ciclos con cpu_en");
+
+            // --- casos de B-13 (el CPU esta en halted con 20 ciclos) ---
+            en0 = en_cycles;
+            prog[0] = 32'h0050_0093; prog[1] = 32'h0000_0073;
+            send_load(2, "L N=2 ejemplo");
+            check_imem(2, "L N=2 ejemplo");
+            check_eq(en_cycles - en0, 0, "L N=2: cpu_en no se mueve");
+
+            q_clear; q_push(8'h44);
+            n_exp = 0; exp_vec("dump_c0_h20.hex", 210);
+            transact(n_exp); check_exp("D tras L");
+
+            gen_prog(1);
+            send_load(1, "L N=1"); check_imem(1, "L N=1");
+
+            gen_prog(37);
+            send_load(37, "L N=37"); check_imem(37, "L N=37");
+
+            gen_prog(256);
+            send_load(256, "L N=256"); check_imem(256, "L N=256");
+
+            q_clear; q_push(8'h4C); q_push(8'h00); q_push(8'h00);
+            exp_push(8'h4B); exp_push(8'h4B);
+            transact(n_exp); check_exp("L N=0");
+            check_imem(0, "L N=0");
+
+            // N=257: se rechaza y imem no cambia
+            gen_prog(256);
+            send_load(256, "L previo a N=257");
+            for (m = 0; m < 256; m = m + 1) snap[m] = dut.u_imem.r_mem[m];
+            q_clear; q_push(8'h4C); q_push(8'h01); q_push(8'h01);
+            exp_push(8'h45); exp_push(8'h02);
+            transact(n_exp); check_exp("L N=257");
+            for (m = 0; m < 256; m = m + 1) begin
+                checks = checks + 1;
+                if (dut.u_imem.r_mem[m] !== snap[m]) begin
+                    errors = errors + 1;
+                    $display("FAIL L N=257: imem[%0d] cambio", m);
+                end
+            end
+            check_eq(dut.u_debug.o_cpu_rst, 0, "L N=257: cpu_rst vuelve a 0");
+
+            // cortes: respuesta 45 03 y el comando siguiente se atiende bien
+            q_clear; q_push(8'h4C); q_push(8'h01); q_push(8'h00); exp_push(8'h4B);
+            transact(n_exp); check_exp("L corte en datos: fase N");
+            q_clear; q_push(8'h93); q_push(8'h00); exp_push(8'h45); exp_push(8'h03);
+            transact(n_exp); check_exp("L corte en datos");
+            q_clear; q_push(8'h56);
+            exp_push(8'h56); exp_push(8'h01); exp_push(8'h00);
+            exp_push(8'h01); exp_push(8'h00); exp_push(8'h01);
+            transact(n_exp); check_exp("V tras corte en datos");
+
+            q_clear; q_push(8'h4C); q_push(8'h01); exp_push(8'h45); exp_push(8'h03);
+            transact(n_exp); check_exp("L corte en N");
+            q_clear; q_push(8'h56);
+            exp_push(8'h56); exp_push(8'h01); exp_push(8'h00);
+            exp_push(8'h01); exp_push(8'h00); exp_push(8'h01);
+            transact(n_exp); check_exp("V tras corte en N");
         end else begin
             // --- casos de B-14 (parte h0) ---
             q_clear; q_push(8'h44);

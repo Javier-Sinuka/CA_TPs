@@ -201,7 +201,14 @@ module debug_unit #(
                             r_state   <= S_RUN;
                         end
                     end
-                    // B-13: CMD_LOAD
+                    CMD_LOAD: begin
+                        r_load_active <= 1'b1;   // cpu_rst = 1 hasta el K final
+                        r_timeout     <= 1'b0;
+                        r_aborted     <= 1'b0;
+                        r_n_high      <= 1'b0;
+                        r_to_cnt      <= 32'd0;
+                        r_state       <= S_LOAD_N;
+                    end
                     CMD_DUMP: begin
                         r_maddr  <= 9'd0;
                         r_mcount <= 9'd0;
@@ -262,7 +269,79 @@ module debug_unit #(
                     r_state   <= S_DUMP_COUNT;
                 end
             end
-            // B-13: S_LOAD_N, S_LOAD_DATA, S_LOAD_FILL
+            S_LOAD_N: begin
+                if (i_rx_valid) begin
+                    r_to_cnt <= 32'd0;
+                    if (!r_n_high) begin
+                        r_n[7:0] <= i_rx_data;
+                        r_n_high <= 1'b1;
+                    end else begin
+                        r_n[15:8] <= i_rx_data;
+                        if ({i_rx_data, r_n[7:0]} > 16'd256) begin
+                            r_load_active <= 1'b0;
+                            r_resp        <= {32'd0, ERR_N_RANGE, RESP_ERR};
+                            r_resp_len    <= 3'd2;
+                            r_ret_state   <= S_IDLE;
+                            r_state       <= S_RESP;
+                        end else begin
+                            r_lidx      <= 9'd0;
+                            r_lbyte     <= 2'd0;
+                            r_resp      <= {40'd0, RESP_OK};
+                            r_resp_len  <= 3'd1;
+                            r_ret_state <= S_LOAD_DATA;   // S_RESP pone r_to_cnt en 0 al volver
+                            r_state     <= S_RESP;
+                        end
+                    end
+                end else if (r_to_cnt == BYTE_TIMEOUT - 1) begin
+                    r_load_active <= 1'b0;
+                    r_resp        <= {32'd0, ERR_TIMEOUT, RESP_ERR};
+                    r_resp_len    <= 3'd2;
+                    r_ret_state   <= S_IDLE;
+                    r_state       <= S_RESP;
+                end else begin
+                    r_to_cnt <= r_to_cnt + 32'd1;
+                end
+            end
+
+            S_LOAD_DATA: begin
+                if (r_lidx == r_n[8:0]) begin            // N ≤ 256 garantizado
+                    r_state <= S_LOAD_FILL;
+                end else if (i_rx_valid) begin
+                    r_to_cnt <= 32'd0;
+                    r_lbyte  <= r_lbyte + 2'd1;
+                    if (r_lbyte == 2'd3) begin
+                        r_imem_we    <= 1'b1;
+                        r_imem_waddr <= r_lidx[7:0];
+                        r_imem_wdata <= {i_rx_data, r_wbuf};   // little-endian
+                        r_lidx       <= r_lidx + 9'd1;
+                    end else begin
+                        r_wbuf <= {i_rx_data, r_wbuf[23:8]};
+                    end
+                end else if (r_to_cnt == BYTE_TIMEOUT - 1) begin
+                    r_load_active <= 1'b0;
+                    r_resp        <= {32'd0, ERR_TIMEOUT, RESP_ERR};
+                    r_resp_len    <= 3'd2;
+                    r_ret_state   <= S_IDLE;
+                    r_state       <= S_RESP;
+                end else begin
+                    r_to_cnt <= r_to_cnt + 32'd1;
+                end
+            end
+
+            S_LOAD_FILL: begin
+                if (r_lidx[8]) begin                      // llegó a 256
+                    r_load_active <= 1'b0;
+                    r_resp        <= {40'd0, RESP_OK};
+                    r_resp_len    <= 3'd1;
+                    r_ret_state   <= S_IDLE;
+                    r_state       <= S_RESP;
+                end else begin
+                    r_imem_we    <= 1'b1;
+                    r_imem_waddr <= r_lidx[7:0];
+                    r_imem_wdata <= HALT_WORD;
+                    r_lidx       <= r_lidx + 9'd1;
+                end
+            end
             S_DUMP_COUNT: begin
                 // primera pasada: M = cantidad de palabras sucias
                 if (i_dbg_mem_dirty) begin
