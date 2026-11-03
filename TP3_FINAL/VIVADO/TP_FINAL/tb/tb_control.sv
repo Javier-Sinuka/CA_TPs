@@ -141,7 +141,7 @@ module tb_control;
         check_control({7'b000000z, 5'd2, 5'd1, 3'b000, 5'd3, 7'b0110011}, `ALU_ADD, 13'd0);
         check_control({7'b000000x, 5'd2, 5'd1, 3'b000, 5'd3, 7'b0010011}, `ALU_ADD, 13'd0);
 
-        $display("tb_control passed: %0d checks", r_checks);
+        $display("PASS tb_control: %0d chequeos", r_checks);
         $finish;
     end
 endmodule

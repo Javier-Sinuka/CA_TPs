@@ -53,7 +53,7 @@ module tb_alu;
         check_result(32'd1, 32'd2, `ALU_SLT, 32'd1);
         check_result(32'd2, 32'd2, `ALU_SLTU, 32'd0);
         check_result(32'd1, 32'd2, 4'd15, 32'd0);
-        $display("tb_alu passed: %0d checks", r_checks);
+        $display("PASS tb_alu: %0d chequeos", r_checks);
         $finish;
     end
 endmodule

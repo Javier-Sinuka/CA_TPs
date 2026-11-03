@@ -34,7 +34,7 @@ module tb_imm_gen;
         check_imm(32'h1234_50b7, 32'h1234_5000);
         check_imm(32'hffff_f0b7, 32'hffff_f000);
         check_imm(32'h0020_81b3, 32'd0);
-        $display("tb_imm_gen passed: %0d checks", r_checks);
+        $display("PASS tb_imm_gen: %0d chequeos", r_checks);
         $finish;
     end
 endmodule
