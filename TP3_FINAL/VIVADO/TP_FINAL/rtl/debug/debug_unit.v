@@ -187,7 +187,20 @@ module debug_unit #(
                         r_aborted <= 1'b0;
                         r_state   <= S_STEP;
                     end
-                    // B-12: CMD_RUN
+                    CMD_RUN: begin
+                        r_timeout <= 1'b0;
+                        r_aborted <= 1'b0;
+                        if (i_cpu_halted) begin
+                            // ya parado: dump enseguida
+                            r_maddr  <= 9'd0;
+                            r_mcount <= 9'd0;
+                            r_state  <= S_DUMP_COUNT;
+                        end else begin
+                            r_cpu_en  <= 1'b1;
+                            r_run_cnt <= 32'd0;
+                            r_state   <= S_RUN;
+                        end
+                    end
                     // B-13: CMD_LOAD
                     CMD_DUMP: begin
                         r_maddr  <= 9'd0;
@@ -226,7 +239,29 @@ module debug_unit #(
                 r_mcount <= 9'd0;
                 r_state  <= S_DUMP_COUNT;
             end
-            // B-12: S_RUN
+            S_RUN: begin
+                // r_cpu_en = 1 en todo este estado. r_run_cnt = ciclos con en = 1
+                // ya transcurridos antes de este; prioridad halted > A > timeout.
+                r_run_cnt <= r_run_cnt + 32'd1;
+                if (i_cpu_halted) begin
+                    r_cpu_en <= 1'b0;
+                    r_maddr  <= 9'd0;
+                    r_mcount <= 9'd0;
+                    r_state  <= S_DUMP_COUNT;
+                end else if (i_rx_valid && i_rx_data == CMD_ABORT) begin
+                    r_cpu_en  <= 1'b0;
+                    r_aborted <= 1'b1;
+                    r_maddr   <= 9'd0;
+                    r_mcount  <= 9'd0;
+                    r_state   <= S_DUMP_COUNT;
+                end else if (r_run_cnt == RUN_TIMEOUT - 1) begin
+                    r_cpu_en  <= 1'b0;
+                    r_timeout <= 1'b1;
+                    r_maddr   <= 9'd0;
+                    r_mcount  <= 9'd0;
+                    r_state   <= S_DUMP_COUNT;
+                end
+            end
             // B-13: S_LOAD_N, S_LOAD_DATA, S_LOAD_FILL
             S_DUMP_COUNT: begin
                 // primera pasada: M = cantidad de palabras sucias

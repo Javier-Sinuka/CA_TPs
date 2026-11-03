@@ -44,6 +44,8 @@ module tb_debug_unit;
     initial begin #(200_000_000); $fatal(1, "FAIL tb_debug_unit: watchdog"); end
 
     integer rst0, en0, k;
+    integer c, x1, sum, m;
+    reg [7:0] r_abort_dump [0:233];
 
     initial begin
         bfm_bit_ns     = 640.0;
@@ -141,12 +143,70 @@ module tb_debug_unit;
             n_exp = 0; exp_vec("dump_c20_h20.hex", 234);
             transact(n_exp); check_exp("S con halted");
             check_eq(en_cycles - en0, 1, "S con halted: el pulso existe");
+
+            // --- casos de B-12 (parte h20; el CPU esta en halted) ---
+            en0 = en_cycles;
+            q_clear; q_push(8'h52);
+            n_exp = 0; exp_vec("dump_c20_h20.hex", 234);
+            transact(n_exp); check_exp("R con halted");
+            check_eq(en_cycles - en0, 0, "R con halted: cpu_en no se mueve");
+
+            q_clear; q_push(8'h58); exp_push(8'h4B);
+            transact(n_exp); check_exp("X");
+
+            en0 = en_cycles;
+            q_clear; q_push(8'h52);
+            n_exp = 0; exp_vec("dump_c20_h20.hex", 234);
+            transact(n_exp); check_exp("R hasta HALT");
+            check_eq(en_cycles - en0, 21, "R hasta HALT: 21 ciclos con cpu_en");
         end else begin
             // --- casos de B-14 (parte h0) ---
             q_clear; q_push(8'h44);
             n_exp = 0; exp_vec("dump_c0_h0.hex", 210);
             transact(n_exp); check_exp("D h0");
-            // casos de B-12 (parte h0)
+
+            // --- casos de B-12 (parte h0; sin HALT) ---
+            en0 = en_cycles;
+            q_clear; q_push(8'h52);
+            n_exp = 0; exp_vec("dump_c1000_h0_t.hex", 234);
+            transact(n_exp); check_exp("R timeout");
+            check_eq(en_cycles - en0, 1000, "R timeout: 1000 ciclos con cpu_en");
+
+            q_clear; q_push(8'h58); exp_push(8'h4B);
+            transact(n_exp); check_exp("X");
+
+            q_clear; q_push(8'h52); q_push(8'h56);
+            n_exp = 0; exp_vec("dump_c1000_h0_t.hex", 234);
+            transact(n_exp); check_exp("R con otro byte");
+            expect_silence(20_000.0, "R con otro byte: la V se descarto");
+
+            q_clear; q_push(8'h58); exp_push(8'h4B);
+            transact(n_exp); check_exp("X");
+
+            en0 = en_cycles;
+            q_clear; q_push(8'h52); q_push(8'h41);
+            transact(234);
+            for (m = 0; m < 234; m = m + 1) r_abort_dump[m] = q_rx[m];
+            c   = q_rx[5] | (q_rx[6] << 8) | (q_rx[7] << 16) | (q_rx[8] << 24);
+            x1  = q_rx[17] | (q_rx[18] << 8) | (q_rx[19] << 16) | (q_rx[20] << 24);
+            sum = 0;
+            for (m = 1; m <= 232; m = m + 1) sum = sum + q_rx[m];
+            check_eq(q_rx[0], 8'hA5, "R con A: cabecera");
+            check_eq({q_rx[4], q_rx[3], q_rx[2], q_rx[1]}, 32'h0000_0104, "R con A: W0 (aborted, version 1)");
+            check_eq((c > 0) && (c < 1000), 1, "R con A: 0 < c < 1000");
+            check_eq(en_cycles - en0, c, "R con A: en_cycles == c");
+            check_eq(x1, (c << 8) | 1, "R con A: x1 == (c << 8) | 1");
+            check_eq({q_rx[208], q_rx[207], q_rx[206], q_rx[205]}, 3, "R con A: M");
+            check_eq(sum % 256, q_rx[233], "R con A: checksum");
+
+            q_clear; q_push(8'h44);
+            n_exp = 0;
+            for (m = 0; m < 234; m = m + 1) exp_push(r_abort_dump[m]);
+            transact(n_exp); check_exp("D tras A");
+
+            q_clear; q_push(8'h41);
+            send_all;
+            expect_silence(20_000.0, "A suelto");
         end
 
         if (errors != 0) $fatal(1, "FAIL tb_debug_unit: %0d errores (HALT_AT=%0d)", errors, HALT_AT);
