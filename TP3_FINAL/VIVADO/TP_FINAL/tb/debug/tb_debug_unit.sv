@@ -276,6 +276,43 @@ module tb_debug_unit;
             exp_push(8'h56); exp_push(8'h01); exp_push(8'h00);
             exp_push(8'h01); exp_push(8'h00); exp_push(8'h01);
             transact(n_exp); check_exp("V tras corte en N");
+
+            // --- casos de B-15 (memoria usada) ---
+            q_clear; q_push(8'h58); exp_push(8'h4B);
+            transact(n_exp); check_exp("X");
+
+            for (k = 1; k <= 3; k = k + 1) begin
+                q_clear; q_push(8'h53);
+                n_exp = 0; exp_vec($sformatf("dump_c%0d_h20.hex", k), 234);
+                transact(n_exp); check_exp($sformatf("S %0d (B-15)", k));
+            end
+
+            q_clear; q_push(8'h44);
+            n_exp = 0; exp_vec("dump_c3_h20.hex", 234);
+            transact(n_exp); check_exp("D con 3 sucias");
+            check_eq({q_rx[208], q_rx[207], q_rx[206], q_rx[205]}, 3, "D con 3 sucias: M");
+            check_eq({q_rx[212], q_rx[211], q_rx[210], q_rx[209]}, 32'h10, "D con 3 sucias: direccion 1");
+            check_eq({q_rx[220], q_rx[219], q_rx[218], q_rx[217]}, 32'h40, "D con 3 sucias: direccion 2");
+            check_eq({q_rx[228], q_rx[227], q_rx[226], q_rx[225]}, 32'hFC, "D con 3 sucias: direccion 3");
+
+            q_clear; q_push(8'h58); exp_push(8'h4B);
+            transact(n_exp); check_exp("X limpia");
+
+            q_clear; q_push(8'h44);
+            n_exp = 0; exp_vec("dump_c0_h20.hex", 210);
+            transact(n_exp); check_exp("D tras X");
+
+            q_clear; q_push(8'h53);
+            n_exp = 0; exp_vec("dump_c1_h20.hex", 234);
+            transact(n_exp); check_exp("S (B-15)");
+
+            q_clear; q_push(8'h4C); q_push(8'h00); q_push(8'h00);
+            exp_push(8'h4B); exp_push(8'h4B);
+            transact(n_exp); check_exp("L N=0 (B-15)");
+
+            q_clear; q_push(8'h44);
+            n_exp = 0; exp_vec("dump_c0_h20.hex", 210);
+            transact(n_exp); check_exp("D tras L (B-15)");
         end else begin
             // --- casos de B-14 (parte h0) ---
             q_clear; q_push(8'h44);
