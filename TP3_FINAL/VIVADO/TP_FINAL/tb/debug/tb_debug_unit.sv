@@ -43,7 +43,7 @@ module tb_debug_unit;
 
     initial begin #(200_000_000); $fatal(1, "FAIL tb_debug_unit: watchdog"); end
 
-    integer rst0, en0;
+    integer rst0, en0, k;
 
     initial begin
         bfm_bit_ns     = 640.0;
@@ -115,6 +115,32 @@ module tb_debug_unit;
             n_exp = 0; exp_vec("dump_c0_h20.hex", 210); exp_push(8'h4B);
             transact(n_exp); check_exp("D X seguidos");
             check_eq(rst_cycles - rst0, 1, "D X: la X paso por el pendiente");
+
+            // --- casos de B-11 (parte de 0 ciclos) ---
+            for (k = 1; k <= 10; k = k + 1) begin
+                en0 = en_cycles;
+                q_clear; q_push(8'h53);
+                n_exp = 0; exp_vec($sformatf("dump_c%0d_h20.hex", k), 234);
+                transact(n_exp); check_exp($sformatf("S %0d", k));
+                check_eq(en_cycles - en0, 1, $sformatf("S %0d: un flanco habilitado", k));
+            end
+            for (k = 11; k <= 19; k = k + 1) begin
+                en0 = en_cycles;
+                q_clear; q_push(8'h53);
+                transact(234);
+                check_eq(en_cycles - en0, 1, $sformatf("S %0d: un flanco habilitado", k));
+            end
+            en0 = en_cycles;
+            q_clear; q_push(8'h53);
+            n_exp = 0; exp_vec("dump_c20_h20.hex", 234);
+            transact(n_exp); check_exp("S 20");
+            check_eq(en_cycles - en0, 1, "S 20: un flanco habilitado");
+
+            en0 = en_cycles;
+            q_clear; q_push(8'h53);
+            n_exp = 0; exp_vec("dump_c20_h20.hex", 234);
+            transact(n_exp); check_exp("S con halted");
+            check_eq(en_cycles - en0, 1, "S con halted: el pulso existe");
         end else begin
             // --- casos de B-14 (parte h0) ---
             q_clear; q_push(8'h44);

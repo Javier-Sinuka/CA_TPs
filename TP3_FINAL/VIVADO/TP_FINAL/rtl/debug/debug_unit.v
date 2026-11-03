@@ -181,7 +181,12 @@ module debug_unit #(
                     CMD_ABORT: begin
                         // fuera de R se ignora (protocolo.md §2, regla 5)
                     end
-                    // B-11: CMD_STEP
+                    CMD_STEP: begin
+                        r_cpu_en  <= 1'b1;       // 1 durante el ciclo de S_STEP
+                        r_timeout <= 1'b0;
+                        r_aborted <= 1'b0;
+                        r_state   <= S_STEP;
+                    end
                     // B-12: CMD_RUN
                     // B-13: CMD_LOAD
                     CMD_DUMP: begin
@@ -214,7 +219,13 @@ module debug_unit #(
                 end
             end
 
-            // B-11: S_STEP
+            S_STEP: begin
+                // cpu_en estuvo en 1 durante exactamente el flanco al final de este ciclo
+                r_cpu_en <= 1'b0;
+                r_maddr  <= 9'd0;
+                r_mcount <= 9'd0;
+                r_state  <= S_DUMP_COUNT;
+            end
             // B-12: S_RUN
             // B-13: S_LOAD_N, S_LOAD_DATA, S_LOAD_FILL
             S_DUMP_COUNT: begin
