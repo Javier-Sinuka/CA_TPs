@@ -5,9 +5,9 @@ TB = "TP3_FINAL/VIVADO/TP_FINAL/tb"
 UART_RTL = [f"{RTL}/uart/baud_gen.v", f"{RTL}/uart/uart_rx.v",
             f"{RTL}/uart/uart_tx.v", f"{RTL}/uart/uart_if.v"]
 
-DEBUG_FILES = UART_RTL + [f"{RTL}/debug/debug_unit.v", f"{RTL}/debug/cpu_stub.v",
-                          f"{RTL}/debug/imem.v", f"{RTL}/debug/system.v",
-                          f"{TB}/debug/tb_debug_unit.sv"]
+DEBUG_FILES_BASE = UART_RTL + [f"{RTL}/debug/debug_unit.v", f"{RTL}/debug/cpu_stub.v",
+                               f"{RTL}/debug/imem.v", f"{RTL}/debug/system.v"]
+DEBUG_FILES = DEBUG_FILES_BASE + [f"{TB}/debug/tb_debug_unit.sv"]
 
 # Claves de cada entrada: "top", "files"; opcionales "incdirs" (lista de directorios para -I,
 # por ejemplo f"{TB}/common" para `include "uart_bfm.svh"), "defines", "params", "legacy".
@@ -40,6 +40,9 @@ TBS = {
     "tb_debug_unit_h0": {"top": "tb_debug_unit", "files": DEBUG_FILES,
                          "incdirs": [f"{TB}/common"], "defines": {"CPU_STUB": "1"},
                          "params": {"HALT_AT": 0}},
+    "tb_system_debug": {"top": "tb_system_debug",
+                        "files": DEBUG_FILES_BASE + [f"{TB}/debug/tb_system_debug.sv"],
+                        "incdirs": [f"{TB}/common"], "defines": {"CPU_STUB": "1"}},
 }
 
 # Síntesis out-of-context: top -> archivos.

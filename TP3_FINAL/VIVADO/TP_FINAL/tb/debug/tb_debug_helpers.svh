@@ -1,5 +1,6 @@
 // Tareas comunes de los TB de la Debug Unit (B-10). Se incluye DENTRO del módulo
-// TB, después de uart_bfm.svh. El TB debe declarar errors, checks y la instancia dut.
+// TB, después de uart_bfm.svh. El TB debe declarar errors, checks y la instancia dut
+// (con u_imem, para check_imem).
 
 `define VEC_DIR "TP3_FINAL/VIVADO/TP_FINAL/tb/debug/vectors/"
 
@@ -133,5 +134,58 @@ task automatic expect_silence(input real t_ns, input string caso);
             errors = errors + 1;
             $display("FAIL %s: llegó el byte %02h y se esperaba silencio", caso, b);
         end
+    end
+endtask
+
+// ---- Comunes a tb_debug_unit y tb_system_debug (B-13, B-16) ----
+
+task automatic check_eq(input integer got, input integer exp, input string caso);
+    begin
+        checks = checks + 1;
+        if (got !== exp) begin
+            errors = errors + 1;
+            $display("FAIL %s: exp=%0d got=%0d", caso, exp, got);
+        end
+    end
+endtask
+
+reg [31:0] prog [0:255];     // programa que envía send_load y que verifica check_imem
+
+// imem == prog[0..n-1] y HALT en el resto; un chequeo por palabra
+task automatic check_imem(input integer n, input string caso);
+    integer i;
+    reg [31:0] exp_w;
+    begin
+        for (i = 0; i < 256; i = i + 1) begin
+            exp_w = (i < n) ? prog[i] : 32'h0000_0073;
+            checks = checks + 1;
+            if (dut.u_imem.r_mem[i] !== exp_w) begin
+                errors = errors + 1;
+                $display("FAIL %s: imem[%0d] exp=%08h got=%08h", caso, i, exp_w,
+                         dut.u_imem.r_mem[i]);
+            end
+        end
+    end
+endtask
+
+// L en dos fases: 4C NL NH -> K; 4*n bytes little-endian -> K
+task automatic send_load(input integer n, input string caso);
+    integer i;
+    real saved_to;
+    begin
+        q_clear; q_push(8'h4C); q_push(n[7:0]); q_push(n[15:8]); exp_push(8'h4B);
+        transact(n_exp); check_exp({caso, ": fase N"});
+        q_clear;
+        for (i = 0; i < n; i = i + 1) begin
+            q_push(prog[i][7:0]);  q_push(prog[i][15:8]);
+            q_push(prog[i][23:16]); q_push(prog[i][31:24]);
+        end
+        exp_push(8'h4B);
+        // el receptor espera el K mientras el host sigue enviando: el timeout
+        // tiene que cubrir los 4*n bytes (N=256 son 6,5 ms, mas que los 2 ms base)
+        saved_to = bfm_timeout_ns;
+        bfm_timeout_ns = saved_to + n * 40.0 * bfm_bit_ns;
+        transact(n_exp); check_exp({caso, ": fase datos"});
+        bfm_timeout_ns = saved_to;
     end
 endtask

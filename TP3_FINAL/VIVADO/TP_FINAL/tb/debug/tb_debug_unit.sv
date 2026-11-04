@@ -39,24 +39,13 @@ module tb_debug_unit;
         end
     end
 
-    task automatic check_eq(input integer got, input integer exp, input string caso);
-        begin
-            checks = checks + 1;
-            if (got !== exp) begin
-                errors = errors + 1;
-                $display("FAIL %s: exp=%0d got=%0d", caso, exp, got);
-            end
-        end
-    endtask
-
     initial begin #(200_000_000); $fatal(1, "FAIL tb_debug_unit: watchdog"); end
 
     integer rst0, en0, k;
     integer c, x1, sum, m;
     reg [7:0] r_abort_dump [0:233];
 
-    // Programa de prueba de L (B-13)
-    reg [31:0] prog [0:255];
+    // Programas aleatorios de L (B-13); prog, check_imem y send_load estan en los helpers
     reg [31:0] snap [0:255];
     integer seed = 32'h0000_0B13;
 
@@ -64,45 +53,6 @@ module tb_debug_unit;
         integer i;
         begin
             for (i = 0; i < n; i = i + 1) prog[i] = $random(seed);
-        end
-    endtask
-
-    // imem == prog[0..n-1] y HALT en el resto; un chequeo por palabra
-    task automatic check_imem(input integer n, input string caso);
-        integer i;
-        reg [31:0] exp_w;
-        begin
-            for (i = 0; i < 256; i = i + 1) begin
-                exp_w = (i < n) ? prog[i] : 32'h0000_0073;
-                checks = checks + 1;
-                if (dut.u_imem.r_mem[i] !== exp_w) begin
-                    errors = errors + 1;
-                    $display("FAIL %s: imem[%0d] exp=%08h got=%08h", caso, i, exp_w,
-                             dut.u_imem.r_mem[i]);
-                end
-            end
-        end
-    endtask
-
-    // L en dos fases: 4C NL NH -> K; 4*n bytes little-endian -> K
-    task automatic send_load(input integer n, input string caso);
-        integer i;
-        real saved_to;
-        begin
-            q_clear; q_push(8'h4C); q_push(n[7:0]); q_push(n[15:8]); exp_push(8'h4B);
-            transact(n_exp); check_exp({caso, ": fase N"});
-            q_clear;
-            for (i = 0; i < n; i = i + 1) begin
-                q_push(prog[i][7:0]);  q_push(prog[i][15:8]);
-                q_push(prog[i][23:16]); q_push(prog[i][31:24]);
-            end
-            exp_push(8'h4B);
-            // el receptor espera el K mientras el host sigue enviando: el timeout
-            // tiene que cubrir los 4*n bytes (N=256 son 6,5 ms, mas que los 2 ms base)
-            saved_to = bfm_timeout_ns;
-            bfm_timeout_ns = saved_to + n * 40.0 * bfm_bit_ns;
-            transact(n_exp); check_exp({caso, ": fase datos"});
-            bfm_timeout_ns = saved_to;
         end
     endtask
 
