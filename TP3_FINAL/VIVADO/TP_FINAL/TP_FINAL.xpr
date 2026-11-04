@@ -185,6 +185,11 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PPRDIR/tb/tb_dmem_dirty.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/tb/tb_imem_bridge.sv">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>

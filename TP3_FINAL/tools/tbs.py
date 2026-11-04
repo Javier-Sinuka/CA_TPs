@@ -20,6 +20,7 @@ TBS = {
     "tb_control": {"top": "tb_control", "files": (f"TP3_FINAL/{RTL}/alu_control.v", f"TP3_FINAL/{RTL}/control.v", f"TP3_FINAL/{RTL}/imm_gen.v", f"TP3_FINAL/{TB}/tb_control.sv")},
     "tb_regfile": {"top": "tb_regfile", "files": (f"TP3_FINAL/{RTL}/regfile.v", f"TP3_FINAL/{TB}/tb_regfile.sv")},
     "tb_dmem": {"top": "tb_dmem", "files": (f"TP3_FINAL/{RTL}/dmem.v", f"TP3_FINAL/{TB}/tb_dmem.sv")},
+    "tb_dmem_dirty": {"top": "tb_dmem_dirty", "files": (f"TP3_FINAL/{RTL}/dmem.v", f"TP3_FINAL/{TB}/tb_dmem_dirty.sv")},
 }
 
 EXTERNAL_TBS = {
