@@ -84,4 +84,15 @@ operaciones pertenecen al futuro datapath. Las cargas y stores usan
 ADD para calcular dirección. LUI requiere elegir cero como primer
 operando en EX, mediante `o_lui`.
 
-Pruebas y límites de esta matriz: [A-05](../validation/A-05.md).
+## Estado de la baseline A-M01
+
+Las 33 filas tienen decodificación dirigida en `tb_control`; la ALU,
+`alu_control` y los formatos de inmediato cuentan además con pruebas
+aisladas en sus respectivos TB. La regresión de la baseline se registra
+en [A-M01](../validation/A-M01.md). El contrato de dump v1 sitúa
+`alu_op` en `info[21:18]` de ID/EX y toma el valor de los macros
+`ALU_*` de `riscv_defs.vh`; los campos ausentes de MEM/WB salen cero.
+La lógica de WB, memoria, branches, HALT, stalls y validez de etapa
+todavía no existe en esta Fase 1 y requiere las issues posteriores.
+
+Pruebas detalladas de control: [A-05](../validation/A-05.md).

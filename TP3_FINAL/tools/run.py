@@ -88,10 +88,14 @@ def main() -> int:
         return run_tb(args.name)
     if args.name is not None:
         parser.error("tbs does not accept a testbench name")
+    failed = []
     for top in TBS:
-        result = run_tb(top)
-        if result:
-            return result
+        if run_tb(top):
+            failed.append(top)
+    if failed:
+        print("FAIL tbs: " + ", ".join(failed), file=sys.stderr)
+        return 1
+    print(f"PASS tbs: {len(TBS)} testbenches")
     return 0
 
 

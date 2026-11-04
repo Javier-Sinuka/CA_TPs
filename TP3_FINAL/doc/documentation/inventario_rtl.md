@@ -31,7 +31,8 @@ ALU dentro del RTL de Fase 1. No se encontraron redefiniciones en estos
 módulos. Códigos internos: ADD=0, SUB=1, SLL=2, SRL=3, SRA=4, AND=5,
 OR=6, XOR=7, SLT=8, SLTU=9. `o_alu_op` mide 4 bits y cabe en `info[21:18]`
 del dump v1 recibido en `planning/_fuentes/documentacion_companero/dump.md`.
-El documento aún está rotulado como propuesta pendiente de aprobación de A.
+Su encabezado aún lo rotula como propuesta; A confirmó el 2026-11-04
+que el contrato ya fue acordado con B y debe cumplirse.
 Sus palabras `info` transportan `alu_op` solo en EX; MEM/WB exponen cero
 en ese campo, según presencia por etapa.
 
@@ -97,11 +98,11 @@ codificación, distinta del futuro bit `valid` de los registros de pipeline.
   decodificación dirigida, no resultados arquitectónicos.
 - **A-06:** congelar la baseline solo después de esas auditorías.
 - **Interfaz B-08:** existe el documento completo
-  `planning/_fuentes/documentacion_companero/interfaz_cpu.md`, aún marcado
-  como propuesta pendiente de aprobación de A. No existe en el árbol de
+  `planning/_fuentes/documentacion_companero/interfaz_cpu.md`, cuyo encabezado
+  conserva el estado anterior aunque A confirmó el acuerdo con B. No existe en el árbol de
   implementación `rtl/debug/cpu_ports.vh` ni `cpu.v`. Son puertos del futuro
   módulo `cpu`, no de estos bloques internos; no se detecta incompatibilidad
-  de nombres/ancho en Fase 1. La revisión A+B del contrato queda pendiente.
+  de nombres/ancho en Fase 1. La implementación futura debe cumplirlo.
 - **Convenciones de TB:** los tres TB existentes tenían 81 checks y `$fatal`
   ante discrepancia, pero imprimían `tb_* passed` en vez de `PASS <top>:`.
   A-01 ajustó solo esas líneas finales para que el runner reconozca el éxito.
