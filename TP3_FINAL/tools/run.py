@@ -6,6 +6,9 @@ Uso, desde la raíz del repo:
     py TP3_FINAL/tools/run.py mutate
     py TP3_FINAL/tools/run.py synth_ooc <top>
     py TP3_FINAL/tools/run.py vectors
+    py TP3_FINAL/tools/run.py pytest
+    py TP3_FINAL/tools/run.py iss
+    py TP3_FINAL/tools/run.py test
     py TP3_FINAL/tools/run.py bit <top> [--mhz 50|100] [--clk wiz|mmcm] [--define NAME]
     py TP3_FINAL/tools/run.py program <archivo.bit>
 iverilog y vvp corren con cwd = raíz del repo: los TB abren archivos con rutas relativas a esa raíz.
@@ -100,6 +103,51 @@ def run_vectors() -> bool:
     return rc == 0
 
 
+def run_pytest() -> bool:
+    rc = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=REPO / "TP3_FINAL" / "sw").returncode
+    return rc == 0
+
+
+GPP = ["g++", "-std=c++17", "-O2", "-Wall", "-Wextra", "-Werror"]
+
+
+def run_iss() -> str:
+    """Devuelve "OK", "FAIL" o "SKIP" (todavía no hay test_iss.cpp: B-21)."""
+    iss = REPO / "TP3_FINAL" / "sw" / "iss"
+    if not (iss / "test_iss.cpp").exists():
+        print("SKIP iss: sw/iss/test_iss.cpp no existe (B-21)")
+        return "SKIP"
+    BUILD.mkdir(parents=True, exist_ok=True)
+    for exe, sources in (("iss.exe", ["iss.cpp", "iss_main.cpp"]),
+                         ("test_iss.exe", ["iss.cpp", "test_iss.cpp"])):
+        cmd = GPP + ["-o", (BUILD / exe).as_posix()] + [(iss / s).as_posix() for s in sources]
+        if subprocess.run(cmd, cwd=REPO).returncode != 0:
+            print(f"FAIL iss: no compila {exe}")
+            return "FAIL"
+    ok = subprocess.run([(BUILD / "test_iss.exe").as_posix()], cwd=REPO).returncode == 0
+    print(f"{'PASS' if ok else 'FAIL'} iss")
+    return "OK" if ok else "FAIL"
+
+
+def run_test() -> bool:
+    """Orden de convenciones.md §3: iss, vectors --check, tbs, pytest, mutate; sin cortar en la primera falla."""
+    steps = [
+        ("iss", run_iss),
+        ("vectors", run_vectors),
+        ("tbs", run_tbs),
+        ("pytest", run_pytest),
+        ("mutate", run_mutate),
+    ]
+    results = []
+    for name, fn in steps:
+        r = fn()
+        results.append((name, r if isinstance(r, str) else ("OK" if r else "FAIL")))
+    print("resumen:")
+    for name, r in results:
+        print(f"  {name:<9}{r}")
+    return all(r != "FAIL" for _, r in results)
+
+
 def run_vivado(tcl: str, log: Path, args: list[str]) -> int:
     log.parent.mkdir(parents=True, exist_ok=True)
     cmd = [VIVADO, "-mode", "batch", "-nojournal", "-log", log.as_posix(),
@@ -167,6 +215,9 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("tbs")
     sub.add_parser("mutate")
     sub.add_parser("vectors")
+    sub.add_parser("pytest")
+    sub.add_parser("iss")
+    sub.add_parser("test")
     sub.add_parser("synth_ooc").add_argument("top", choices=sorted(SYNTH))
     pb = sub.add_parser("bit")
     pb.add_argument("top", choices=sorted(BITS))
@@ -184,6 +235,12 @@ def main(argv: list[str] | None = None) -> int:
         ok = run_mutate()
     elif a.cmd == "vectors":
         ok = run_vectors()
+    elif a.cmd == "pytest":
+        ok = run_pytest()
+    elif a.cmd == "iss":
+        ok = run_iss() != "FAIL"
+    elif a.cmd == "test":
+        ok = run_test()
     elif a.cmd == "bit":
         ok = run_bit(a.top, a.mhz, a.clk, a.define)
     elif a.cmd == "program":
