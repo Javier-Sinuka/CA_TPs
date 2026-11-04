@@ -1,2 +1,3 @@
 planning/
-TP3_FINAL/tools/
+TP3_FINAL/tools/*
+!TP3_FINAL/tools/synth_ooc.tcl

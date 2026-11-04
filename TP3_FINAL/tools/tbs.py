@@ -41,3 +41,11 @@ EXTERNAL_TBS = {
         ),
     },
 }
+
+SYNTH = {
+    "regfile": (f"TP3_FINAL/{RTL}/regfile.v",),
+    "dmem": (f"TP3_FINAL/{RTL}/dmem.v",),
+    "imem": (f"TP3_FINAL/{RTL}/debug/imem.v",),
+}
+
+EXTERNAL_SYNTH = {"imem"}

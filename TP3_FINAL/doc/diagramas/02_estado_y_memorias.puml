@@ -1,0 +1,39 @@
+@startdot
+digraph estado_memorias {
+  graph [rankdir=LR, bgcolor="white", pad="0.30", nodesep="0.48", ranksep="0.68",
+         splines=polyline, fontname="DejaVu Sans", fontsize=19, fontcolor="#0f172a",
+         label="A-M02: estado arquitectónico y memorias", labelloc=t];
+  node [shape=box, style="rounded,filled", color="#334155", fontname="DejaVu Sans",
+        fontsize=12, fontcolor="#0f172a", margin="0.18,0.13"];
+  edge [fontname="DejaVu Sans", fontsize=10, color="#475569", arrowsize=0.7];
+
+  wb [label="WB futuro\nrd, dato, write, avance", fillcolor="#f1f5f9"];
+  id [label="ID futuro\nrs1, rs2", fillcolor="#f1f5f9"];
+  rf [label="regfile.v\nx1…x31: 31 × 32 bits\nx0 = 0\nreset síncrono", fillcolor="#dbeafe"];
+  rfdbg [label="Debug registros\níndice de 5 bits\nsolo lectura", fillcolor="#fef3c7"];
+
+  memstage [label="MEM futuro\ndirección byte, dato store\nfunct3, enable", fillcolor="#f1f5f9"];
+  dm [label="dmem.v\n256 × 32 bits físicos\n256 bits dirty\nreset lógico", fillcolor="#dbeafe"];
+  dmdbg [label="Debug datos\níndice de palabra de 8 bits\ndato + dirty", fillcolor="#fef3c7"];
+
+  cpuif [label="IF futuro\nPC byte de 32 bits", fillcolor="#f1f5f9"];
+  sys [label="system.v de B\nselecciona PC[9:2]", fillcolor="#e2e8f0"];
+  im [label="imem.v de B\n256 × 32 bits\nHALT inicial\nsin reset CPU", fillcolor="#dcfce7"];
+  loader [label="Debug Unit de B\ncarga programa", fillcolor="#fef3c7"];
+
+  wb -> rf [label="escritura en flanco"];
+  rf -> id [label="dos lecturas combinacionales\ncon bypass WB→ID"];
+  rf -> rfdbg [label="dato almacenado"];
+  memstage -> dm [label="store parcial en flanco"];
+  dm -> memstage [label="load combinacional"];
+  dm -> dmdbg [label="lectura combinacional"];
+  cpuif -> sys [label="o_imem_addr"];
+  sys -> im [label="i_raddr[7:0]"];
+  cpuif -> im [label="i_imem_data", dir=back, constraint=false];
+  loader -> im [label="escritura en flanco"];
+
+  note [shape=note, fillcolor="#fff7ed", color="#9a3412", fontsize=10,
+        label="Las conexiones con etapas futuras describen el contrato.\nAún no hay CPU real ni pipeline integrado.\nimem y system son fuentes del worktree de B."];
+  {rank=same; rfdbg; dmdbg; note;}
+}
+@enddot

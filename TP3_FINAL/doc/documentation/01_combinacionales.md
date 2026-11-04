@@ -230,4 +230,4 @@ La [evidencia A-06](../validation/A-06.md) registra una corrida desde copia sin 
 
 No se implementaron aún el banco de registros, las memorias, los latches del pipeline, los muxes de forwarding, la detección de riesgos, el control real de HALT, la Debug Unit ni UART. Este límite es importante al interpretar las pruebas: **validan la lógica combinacional de la etapa 1**, no la ejecución completa de un programa.
 
-Las próximas etapas deberán implementar el tratamiento de instrucciones ilegales y la propagación de `o_valid_instr` junto al bit `valid` del pipeline, según los contratos ya acordados. El nombre de los siguientes documentos de bloques seguirá la forma `02_nombre.md`, `03_nombre.md`, etc., dentro de `doc/documentation`.
+Las próximas etapas deberán implementar el tratamiento de instrucciones ilegales y la propagación de `o_valid_instr` junto al bit `valid` del pipeline, según los contratos ya acordados. El milestone siguiente se describe en [02 — Estado y memorias](02_estado_y_memorias.md).
