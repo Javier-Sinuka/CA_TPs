@@ -7,7 +7,7 @@ import tempfile
 from pathlib import Path
 
 sys.dont_write_bytecode = True
-from tbs import PHASE1_TOPS, RTL, TBS
+from tbs import EXTERNAL_TBS, PHASE1_TOPS, RTL, TBS
 
 
 TP3_FINAL = Path(__file__).resolve().parents[1]
@@ -35,19 +35,28 @@ def elaborate_phase1() -> int:
     return 0
 
 
-def run_tb(name: str) -> int:
-    spec = TBS[name]
+def run_tb(name: str, companion: Path | None = None) -> int:
+    spec = TBS[name] if name in TBS else EXTERNAL_TBS[name]
     top = spec["top"]
     build = TP3_FINAL / "build"
     build.mkdir(exist_ok=True)
     output = build / f"{name}.vvp"
     log = build / f"{name}.log"
-    incdirs = {str((REPO / source).parent) for source in spec["files"]}
+    if name in EXTERNAL_TBS and companion is None:
+        print(f"{name} requires --companion PATH", file=sys.stderr)
+        return 1
+    sources = [REPO / source for source in spec["files"]]
+    sources.extend(companion / source for source in spec.get("companion_files", ()))
+    missing = [source for source in sources if not source.is_file()]
+    if missing:
+        print("Missing sources: " + ", ".join(str(source) for source in missing), file=sys.stderr)
+        return 1
+    incdirs = {str(source.parent) for source in sources}
     command = ["iverilog", "-g2012", "-Wall", "-Wno-timescale"]
     for incdir in sorted(incdirs):
         command.extend(("-I", incdir))
     command.extend(("-s", top, "-o", str(output)))
-    command.extend(str(REPO / source) for source in spec["files"])
+    command.extend(str(source) for source in sources)
     print(' '.join(command), flush=True)
     try:
         result = subprocess.run(command, cwd=REPO, check=False)
@@ -76,17 +85,18 @@ def run_tb(name: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target", choices=("elaborate_phase1", "tb", "tbs"))
-    parser.add_argument("name", nargs="?", choices=TBS)
+    parser.add_argument("name", nargs="?", choices=sorted(TBS | EXTERNAL_TBS))
+    parser.add_argument("--companion", type=Path)
     args = parser.parse_args()
     if args.target == "elaborate_phase1":
-        if args.name is not None:
+        if args.name is not None or args.companion is not None:
             parser.error("elaborate_phase1 does not accept a testbench name")
         return elaborate_phase1()
     if args.target == "tb":
         if args.name is None:
             parser.error("tb requires a testbench name")
-        return run_tb(args.name)
-    if args.name is not None:
+        return run_tb(args.name, args.companion)
+    if args.name is not None or args.companion is not None:
         parser.error("tbs does not accept a testbench name")
     failed = []
     for top in TBS:

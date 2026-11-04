@@ -20,3 +20,22 @@ TBS = {
     "tb_control": {"top": "tb_control", "files": (f"TP3_FINAL/{RTL}/alu_control.v", f"TP3_FINAL/{RTL}/control.v", f"TP3_FINAL/{RTL}/imm_gen.v", f"TP3_FINAL/{TB}/tb_control.sv")},
     "tb_regfile": {"top": "tb_regfile", "files": (f"TP3_FINAL/{RTL}/regfile.v", f"TP3_FINAL/{TB}/tb_regfile.sv")},
 }
+
+EXTERNAL_TBS = {
+    "tb_imem": {
+        "top": "tb_imem",
+        "files": (),
+        "companion_files": (
+            f"TP3_FINAL/{RTL}/debug/imem.v",
+            f"TP3_FINAL/{TB}/debug/tb_imem.sv",
+        ),
+    },
+    "tb_imem_bridge": {
+        "top": "tb_imem_bridge",
+        "files": (f"TP3_FINAL/{TB}/tb_imem_bridge.sv",),
+        "companion_files": (
+            f"TP3_FINAL/{RTL}/debug/imem.v",
+            f"TP3_FINAL/{RTL}/debug/cpu_stub.v",
+        ),
+    },
+}
