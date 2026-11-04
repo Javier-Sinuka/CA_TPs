@@ -180,3 +180,67 @@ Estas cuestiones aparecen en el diagrama o afectan su implementación, pero **no
 7. Mecanismo para identificar y mostrar la memoria de datos usada.
 
 Las decisiones ya fijadas para este dibujo son: **pipeline de cinco etapas**, **saltos resueltos en EX**, **forwarding y stall load-use**, **un solo clock con habilitación**, **memorias pequeñas de lectura asíncrona** y **HALT = `0x00000073`**. La síntesis y la temporización de Vivado permitirán comprobar más adelante si el tamaño elegido es apropiado.
+
+## 12. Registros de pipeline implementados en A-12
+
+Actualización del 2026-11-04: las secciones anteriores describen el diseño inicial. Los contratos posteriores resolvieron capacidad, alineación, dirty e interfaz, como explica [02 — Estado y memorias](02_estado_y_memorias.md). A-12 implementa los cuatro registros por flanco; todavía no existe el CPU que conecta sus etapas. La [evidencia de A-12](../validation/A-12.md) registra las pruebas y la síntesis aislada.
+
+```mermaid
+flowchart LR
+    IF[IF: PC e instrucción] --> IFID[if_id: 65 bits]
+    IFID --> ID[ID: decode, regfile e inmediato]
+    ID --> IDEX[id_ex: 163 bits]
+    IDEX --> EX[EX: operandos, ALU y salto]
+    EX --> EXMEM[ex_mem: 110 bits]
+    EXMEM --> MEM[MEM: dmem]
+    MEM --> MEMWB[mem_wb: 105 bits]
+    MEMWB --> WB[WB: selección y escritura]
+    IDEX -. info_ex .-> DBG[Debug futuro: selector A-30]
+    EXMEM -. info_mem .-> DBG
+    MEMWB -. info_wb .-> DBG
+```
+
+Los bloques `if_id`, `id_ex`, `ex_mem` y `mem_wb` son módulos implementados en `rtl/`. IF, ID, EX, MEM, WB y el selector del dibujo representan sus futuros consumidores/productores. Cada campo tiene su propio `always @(posedge i_clock)`, almacenamiento `r_<campo>` y salida `o_<campo>`. En el CPU se conectarán como `w_<campo>_id/ex/mem/wb`. No hay registros transparentes ni un clock diferente para cada etapa.
+
+### Campos, procedencia y uso
+
+| Registro | Campo almacenado y ancho | Productor previsto | Consumidor previsto | Selector debug |
+|---|---|---|---|---|
+| IF/ID | `pc[31:0]`, `instr[31:0]` | PC y lectura de imem en IF | Decode en ID; PC de la instrucción | 0, 1 |
+| IF/ID | `valid` | Permiso de entrada desde IF | Ocupación de ID; controles efectivos | 15, bit 0 |
+| ID/EX | `pc[31:0]` | IF/ID | Destinos relativos y enlace PC+4 en EX | 2 |
+| ID/EX | `rs1_data[31:0]`, `rs2_data[31:0]` | Lecturas de regfile en ID, incluido bypass WB→ID | Entradas anteriores a forwarding en EX | 3, 4 |
+| ID/EX | `imm[31:0]` | `imm_gen` en ID | ALU y cálculo de destino en EX | 5 |
+| ID/EX | `rd[4:0]`, `rs1[4:0]`, `rs2[4:0]` | Campos de instrucción en ID | Destino y comparación de dependencias | 6, bits 4:0, 9:5, 14:10 |
+| ID/EX | `funct3[2:0]`, `alu_op[3:0]` | Instrucción y `control` en ID | Tamaño de memoria, branch y ALU | 6, bits 17:15, 21:18 |
+| ID/EX | `alu_src_b`, `mem_read`, `mem_write`, `mem_to_reg`, `reg_write`, `branch`, `jump`, `jalr`, `lui`, `halt` | `control` en ID | EX y controles que siguen a MEM/WB | 6, bits 22…31 en ese orden |
+| ID/EX | `uses_rs1`, `uses_rs2` | `control` en ID | Habilitar comparación de dependencias de las fuentes en EX | Sin campo en `info` |
+| ID/EX | `valid` | Ocupación transferida de ID | Validez de EX | 15, bit 1 |
+| EX/MEM | `pc[31:0]`, `result[31:0]`, `store_data[31:0]` | PC y resultado arquitectónico de EX; rs2 forwardeado para store | Dirección/dato de dmem y bypass desde MEM | 7, 8, 9 |
+| EX/MEM | `rd[4:0]`, `funct3[2:0]` | ID/EX | Destino WB y tamaño del acceso MEM | 10, bits 4:0, 17:15 |
+| EX/MEM | `mem_read`, `mem_write`, `mem_to_reg`, `reg_write`, `halt` | ID/EX | Acceso MEM y controles que siguen a WB | 10, bits 23, 24, 25, 26, 31 |
+| EX/MEM | `valid` | Ocupación transferida de EX | Validez de MEM | 15, bit 2 |
+| MEM/WB | `pc[31:0]`, `result[31:0]`, `load_data[31:0]` | EX/MEM y load extendido de dmem | Selección WB; PC de HALT | 11, 12, 13 |
+| MEM/WB | `rd[4:0]`, `mem_to_reg`, `reg_write`, `halt` | EX/MEM | Destino, selección WB y detección de HALT | 14, bits 4:0, 25, 26, 31 |
+| MEM/WB | `valid` | Ocupación transferida de MEM | Validez de WB | 15, bit 3 |
+
+Los selectores son el mapa de conexión para A-30, no un mux implementado en A-12. Los selectores 3 y 4 mostrarán los operandos **capturados**; los futuros `w_rs1_fwd_ex` y `w_rs2_fwd_ex` son conexiones combinacionales separadas. `uses_rs1/uses_rs2` son controles internos de EX y no se añaden al dump. No se transportan rs1, rs2 ni controles de salto hasta MEM/WB para rellenar campos que el contrato declara ausentes.
+
+### Prioridades y representación de burbujas
+
+Los cuatro módulos reciben `i_reset`, `i_en`, `i_flush`, `i_stall` e `i_valid`. El CPU conectará `i_en` a `w_adv`; los permisos locales de flush/stall dependerán de la etapa. En particular, un load-use no deberá detener EX/MEM ni MEM/WB.
+
+| Condición al flanco | PC, datos e identificadores | `valid` y controles |
+|---|---|---|
+| `i_reset=1`, con cualquier otro permiso | Cero | Cero |
+| Sin reset, `i_en=0` | Conservan | Conservan, aunque flush/stall estén activos |
+| `i_en=1`, `i_flush=1` | Conservan | Cero, incluso si también hay stall |
+| `i_en=1`, sin flush, `i_stall=1` | Conservan | Conservan |
+| Captura normal, `i_valid=1` | Capturan sus entradas | Capturan sus entradas |
+| Captura normal, `i_valid=0` | Capturan sus entradas | Cero |
+
+En esta tabla, identificadores incluye `rd`, `rs1`, `rs2` y `funct3`; controles incluye `alu_op`, `alu_src_b`, `uses_rs1/uses_rs2` y todas las señales booleanas de efectos. Una burbuja conserva o captura datos según su origen, pero siempre tiene `valid=0` y controles apagados. Por eso su palabra `info` puede contener identificadores distintos de cero. No se ocultan las salidas con `valid`: el debug conserva la representación almacenada.
+
+### Palabras `info` sin almacenamiento adicional
+
+`id_ex`, `ex_mem` y `mem_wb` ofrecen `o_info[31:0]` mediante concatenación combinacional de sus registros. El layout es el de [dump §3.1](../../../planning/_fuentes/documentacion_companero/dump.md); `o_info` no agrega otro flop. EX incluye los campos definidos en el contrato. MEM solo permite bits de la máscara `0x8783801F`; WB solo permite `0x8600001F`. Los bits restantes están conectados a cero. El selector 15 y sus flags globales se implementarán con el CPU; A-12 solo aporta los cuatro bits de validez de etapa.

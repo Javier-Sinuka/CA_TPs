@@ -17,3 +17,9 @@ La escritura local efectiva es `i_en && i_we && !i_reset && tamaño_store_válid
 La palabra física y el vector de dirty están en procesos `always @(posedge i_clock)` separados, con un solo almacenamiento asignado por proceso. Una carga o lectura debug no cambia ninguno de ellos. El `casez` de selección usa comodines solo en los bits bajos de dirección, porque el tamaño decide cuáles no importan; los patrones de `funct3` son explícitos.
 
 La política de signo se aplica después de escoger el byte o half de la palabra little endian. Así, sobre `0x11223344`, los bytes de direcciones 0 a 3 son `44`, `33`, `22`, `11`. Si el byte elegido es `0x80`, `lb` entrega `0xFFFFFF80` y `lbu` `0x00000080`.
+
+## A-12: representación local de los registros de pipeline
+
+Se aplica la prioridad `reset > conservar sin enable > flush > stall > captura` prevista por A-12. El reset pone todos los campos a cero. El flush borra `valid` y controles, pero conserva PC, datos, identificadores de registros y `funct3` para facilitar inspección. Una captura con `i_valid=0` actualiza esos datos e identificadores y fuerza todos los controles a cero. Esta es la concreción interna de la política de burbujas que A-12 pide documentar; no modifica puertos públicos ni posiciones del dump de B.
+
+Cada campo almacenado tiene un proceso secuencial propio. Los operandos de ID/EX son los capturados en ID; el forwarding futuro usará conexiones separadas. `uses_rs1/uses_rs2` solo se almacenan en ID/EX para identificar consumidores reales y no ocupan bits de `info`. Las tres palabras `o_info` son concatenaciones combinacionales de los campos presentes; no se añaden registros ni se llevan campos ausentes a etapas posteriores. El detalle de campos y selectores está en [datapath §12](00_datapath.md#12-registros-de-pipeline-implementados-en-a-12).

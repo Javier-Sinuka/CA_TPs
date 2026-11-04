@@ -21,6 +21,16 @@ TBS = {
     "tb_regfile": {"top": "tb_regfile", "files": (f"TP3_FINAL/{RTL}/regfile.v", f"TP3_FINAL/{TB}/tb_regfile.sv")},
     "tb_dmem": {"top": "tb_dmem", "files": (f"TP3_FINAL/{RTL}/dmem.v", f"TP3_FINAL/{TB}/tb_dmem.sv")},
     "tb_dmem_dirty": {"top": "tb_dmem_dirty", "files": (f"TP3_FINAL/{RTL}/dmem.v", f"TP3_FINAL/{TB}/tb_dmem_dirty.sv")},
+    "tb_pipeline_regs": {
+        "top": "tb_pipeline_regs",
+        "files": (
+            f"TP3_FINAL/{RTL}/if_id.v",
+            f"TP3_FINAL/{RTL}/id_ex.v",
+            f"TP3_FINAL/{RTL}/ex_mem.v",
+            f"TP3_FINAL/{RTL}/mem_wb.v",
+            f"TP3_FINAL/{TB}/tb_pipeline_regs.sv",
+        ),
+    },
 }
 
 EXTERNAL_TBS = {
@@ -43,6 +53,10 @@ EXTERNAL_TBS = {
 }
 
 SYNTH = {
+    "if_id": (f"TP3_FINAL/{RTL}/if_id.v",),
+    "id_ex": (f"TP3_FINAL/{RTL}/id_ex.v",),
+    "ex_mem": (f"TP3_FINAL/{RTL}/ex_mem.v",),
+    "mem_wb": (f"TP3_FINAL/{RTL}/mem_wb.v",),
     "regfile": (f"TP3_FINAL/{RTL}/regfile.v",),
     "dmem": (f"TP3_FINAL/{RTL}/dmem.v",),
     "imem": (f"TP3_FINAL/{RTL}/debug/imem.v",),
