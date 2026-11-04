@@ -18,4 +18,5 @@ TBS = {
     "tb_alu_control": {"top": "tb_alu_control", "files": (f"TP3_FINAL/{RTL}/alu.v", f"TP3_FINAL/{RTL}/alu_control.v", f"TP3_FINAL/{RTL}/control.v", f"TP3_FINAL/{TB}/tb_alu_control.sv")},
     "tb_imm_gen": {"top": "tb_imm_gen", "files": (f"TP3_FINAL/{RTL}/imm_gen.v", f"TP3_FINAL/{TB}/tb_imm_gen.sv")},
     "tb_control": {"top": "tb_control", "files": (f"TP3_FINAL/{RTL}/alu_control.v", f"TP3_FINAL/{RTL}/control.v", f"TP3_FINAL/{RTL}/imm_gen.v", f"TP3_FINAL/{TB}/tb_control.sv")},
+    "tb_regfile": {"top": "tb_regfile", "files": (f"TP3_FINAL/{RTL}/regfile.v", f"TP3_FINAL/{TB}/tb_regfile.sv")},
 }
