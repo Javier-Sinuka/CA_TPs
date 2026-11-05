@@ -13,6 +13,34 @@ module cpu (
     wire [31:0] w_pc_id;
     wire [31:0] w_instr_id;
 
+    wire         w_valid_ex;
+    wire [31:0]  w_pc_ex;
+    wire [31:0]  w_rs1_data_ex;
+    wire [31:0]  w_rs2_data_ex;
+    wire [31:0]  w_imm_ex;
+    wire [4:0]   w_rd_ex;
+    wire [4:0]   w_rs1_ex;
+    wire [4:0]   w_rs2_ex;
+    wire [2:0]   w_funct3_ex;
+    wire [3:0]   w_alu_op_ex;
+    wire         w_alu_src_b_ex;
+    wire         w_mem_read_ex;
+    wire         w_mem_write_ex;
+    wire         w_mem_to_reg_ex;
+    wire         w_reg_write_ex;
+    wire         w_branch_ex;
+    wire         w_jump_ex;
+    wire         w_jalr_ex;
+    wire         w_lui_ex;
+    wire         w_halt_ex;
+    wire         w_uses_rs1_ex;
+    wire         w_uses_rs2_ex;
+    wire [31:0]  w_info_ex;
+    wire w_valid_wb = 1'b0;
+    wire w_reg_write_wb = 1'b0;
+    wire [4:0] w_rd_wb = 5'd0;
+    wire [31:0] w_wb_data = 32'd0;
+
     always @(posedge i_clock) begin
         if (i_reset)
             r_pc_if <= 32'd0;
@@ -34,13 +62,58 @@ module cpu (
         .o_instr(w_instr_id)
     );
 
+    decode_stage u_decode (
+        .i_clock(i_clock),
+        .i_reset(i_reset),
+        .i_en(w_adv),
+        .i_flush(1'b0),
+        .i_stall(1'b0),
+        .i_valid_id(w_valid_id),
+        .i_pc_id(w_pc_id),
+        .i_instr_id(w_instr_id),
+        .i_valid_wb(w_valid_wb),
+        .i_reg_write_wb(w_reg_write_wb),
+        .i_rd_wb(w_rd_wb),
+        .i_wdata_wb(w_wb_data),
+        .i_dbg_reg_addr(i_dbg_reg_addr),
+        .o_valid_ex(w_valid_ex),
+        .o_pc_ex(w_pc_ex),
+        .o_rs1_data_ex(w_rs1_data_ex),
+        .o_rs2_data_ex(w_rs2_data_ex),
+        .o_imm_ex(w_imm_ex),
+        .o_rd_ex(w_rd_ex),
+        .o_rs1_ex(w_rs1_ex),
+        .o_rs2_ex(w_rs2_ex),
+        .o_funct3_ex(w_funct3_ex),
+        .o_alu_op_ex(w_alu_op_ex),
+        .o_alu_src_b_ex(w_alu_src_b_ex),
+        .o_mem_read_ex(w_mem_read_ex),
+        .o_mem_write_ex(w_mem_write_ex),
+        .o_mem_to_reg_ex(w_mem_to_reg_ex),
+        .o_reg_write_ex(w_reg_write_ex),
+        .o_branch_ex(w_branch_ex),
+        .o_jump_ex(w_jump_ex),
+        .o_jalr_ex(w_jalr_ex),
+        .o_lui_ex(w_lui_ex),
+        .o_halt_ex(w_halt_ex),
+        .o_uses_rs1_ex(w_uses_rs1_ex),
+        .o_uses_rs2_ex(w_uses_rs2_ex),
+        .o_info_ex(w_info_ex),
+        .o_dbg_reg_data(o_dbg_reg_data)
+    );
+
     always @(*) begin
         r_dbg_latch_word = 32'd0;
         if ((^i_dbg_latch_sel) !== 1'bx) begin
             casez (i_dbg_latch_sel)
                 4'd0: r_dbg_latch_word = w_pc_id;
                 4'd1: r_dbg_latch_word = w_instr_id;
-                4'd15: r_dbg_latch_word = {31'd0, w_valid_id};
+                4'd2: r_dbg_latch_word = w_pc_ex;
+                4'd3: r_dbg_latch_word = w_rs1_data_ex;
+                4'd4: r_dbg_latch_word = w_rs2_data_ex;
+                4'd5: r_dbg_latch_word = w_imm_ex;
+                4'd6: r_dbg_latch_word = w_info_ex;
+                4'd15: r_dbg_latch_word = {30'd0, w_valid_ex, w_valid_id};
                 default: begin end
             endcase
         end
@@ -50,7 +123,6 @@ module cpu (
     assign o_dbg_pc = r_pc_if;
     assign o_dbg_latch_word = r_dbg_latch_word;
     assign o_halted = 1'b0;
-    assign o_dbg_reg_data = 32'd0;
     assign o_dbg_mem_data = 32'd0;
     assign o_dbg_mem_dirty = 1'b0;
 endmodule

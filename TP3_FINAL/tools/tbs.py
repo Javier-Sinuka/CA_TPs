@@ -6,6 +6,10 @@ TBS paths are relative to the repository root (Practico/TPs).
 RTL = "VIVADO/TP_FINAL/rtl"
 TB = "VIVADO/TP_FINAL/tb"
 
+DECODE_FILES = tuple(f"TP3_FINAL/{RTL}/{name}.v" for name in (
+    "alu_control", "control", "imm_gen", "regfile", "id_ex", "decode_stage",
+))
+
 PHASE1_TOPS = {
     "alu": (f"{RTL}/alu.v",),
     "alu_control": (f"{RTL}/alu_control.v",),
@@ -14,6 +18,10 @@ PHASE1_TOPS = {
 }
 
 TBS = {
+    "tb_decode_stage": {
+        "top": "tb_decode_stage",
+        "files": (*DECODE_FILES, f"TP3_FINAL/{TB}/tb_decode_stage.sv"),
+    },
     "tb_alu": {"top": "tb_alu", "files": (f"TP3_FINAL/{RTL}/alu.v", f"TP3_FINAL/{TB}/tb_alu.sv")},
     "tb_alu_control": {"top": "tb_alu_control", "files": (f"TP3_FINAL/{RTL}/alu.v", f"TP3_FINAL/{RTL}/alu_control.v", f"TP3_FINAL/{RTL}/control.v", f"TP3_FINAL/{TB}/tb_alu_control.sv")},
     "tb_imm_gen": {"top": "tb_imm_gen", "files": (f"TP3_FINAL/{RTL}/imm_gen.v", f"TP3_FINAL/{TB}/tb_imm_gen.sv")},
@@ -39,6 +47,7 @@ EXTERNAL_TBS = {
         "files": (
             f"TP3_FINAL/{RTL}/cpu.v",
             f"TP3_FINAL/{RTL}/if_id.v",
+            *DECODE_FILES,
             f"TP3_FINAL/{TB}/tb_fetch.sv",
         ),
         "companion_files": (f"TP3_FINAL/{RTL}/debug/imem.v",),
@@ -62,7 +71,8 @@ EXTERNAL_TBS = {
 }
 
 SYNTH = {
-    "cpu": (f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/if_id.v"),
+    "cpu": (f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/if_id.v", *DECODE_FILES),
+    "decode_stage": DECODE_FILES,
     "if_id": (f"TP3_FINAL/{RTL}/if_id.v",),
     "id_ex": (f"TP3_FINAL/{RTL}/id_ex.v",),
     "ex_mem": (f"TP3_FINAL/{RTL}/ex_mem.v",),

@@ -29,3 +29,11 @@ Cada campo almacenado tiene un proceso secuencial propio. Los operandos de ID/EX
 El primer `cpu.v` contiene solo el PC y `u_if_id`, con un mismo permiso de avance. El PC público es byte y no se trunca al índice de imem. El header público `cpu_ports.vh` y la memoria de B permanecen en su worktree: se incorporan como referencias externas en el proyecto y como dependencias del runner.
 
 Se exponen los campos ya existentes mediante los selectores 0, 1 y el bit 0 de 15; los campos y salidas aún no implementados se conectan a cero, sin emular el stub. La implementación completa de flags/debug corresponde a A-30. No hay detección de HALT, stall ni redirección en esta versión: [datapath §13](00_datapath.md#13-if-implementada-en-a-13-pc-y-captura-de-instrucciones) documenta dónde deberán integrarse y qué prioridades conservar.
+
+## A-14: módulo ID y arnés con WB independiente
+
+`decode_stage` encapsula los bloques ya auditados y es la única implementación de ID tanto para `cpu.u_decode` como para `tb_decode_stage`. Su interfaz interna permite controlar WB, flush y stall en pruebas sin añadir puertos al CPU público ni forzar registros desde el TB. El CPU conserva señales WB nulas hasta A-16; no se implementa commit anticipadamente.
+
+Se mantienen separados encoding y ocupación como pide A-14: controles y consumo efectivos usan `i_valid_id && w_valid_instr_id`, mientras ID/EX transporta `i_valid_id` como ocupación. Una instrucción no soportada no produce efectos ni una nueva excepción; el tratamiento del retiro se revisará al integrar WB. Reset/flush/captura inválida mantienen la política de A-12. WB válido puede completar su escritura durante un stall/flush de una instrucción más joven, pero la pausa global o reset lo impiden.
+
+Los selectores 2…6 y valid EX del debug parcial ahora muestran los registros de ID/EX. Los operandos siguen siendo los capturados y el layout de B no cambia. La estructura, los permisos y los límites actuales se detallan en [datapath §14](00_datapath.md#14-id-implementada-en-a-14-decode-regfile-e-idex).

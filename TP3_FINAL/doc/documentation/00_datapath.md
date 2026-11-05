@@ -247,7 +247,7 @@ En esta tabla, identificadores incluye `rd`, `rs1`, `rs2` y `funct3`; controles 
 
 ## 13. IF implementada en A-13: PC y captura de instrucciones
 
-`cpu.v` declara la interfaz pública mediante el `cpu_ports.vh` original de B. Por ahora integra únicamente `r_pc_if` y una instancia `u_if_id`; las etapas ID/EX/MEM/WB todavía no se conectan. La [evidencia A-13](../validation/A-13.md) distingue las pruebas de fetch de la futura ejecución de programas.
+`cpu.v` declara la interfaz pública mediante el `cpu_ports.vh` original de B. Al cerrar A-13 integraba únicamente `r_pc_if` y una instancia `u_if_id`; las etapas ID/EX/MEM/WB todavía no se conectaban. La [evidencia A-13](../validation/A-13.md) distingue las pruebas de fetch de la futura ejecución de programas. La sección 14 describe la integración posterior de ID.
 
 ```mermaid
 flowchart LR
@@ -280,4 +280,61 @@ Los puertos flush y stall de `u_if_id` están conectados a cero en A-13. A-22 in
 
 ```bash
 python3 TP3_FINAL/tools/run.py tb tb_fetch --companion ../TPs-companion
+```
+
+## 14. ID implementada en A-14: decode, regfile e ID/EX
+
+`cpu.v` instancia `decode_stage u_decode` y entrega el PC, la instrucción y la ocupación que salen de IF/ID. Este módulo reúne `control`, `imm_gen`, `regfile` y `id_ex`, sin duplicar sus implementaciones. La separación permite probar ID con WB controlado por el testbench antes de que exista el recorrido completo hasta WB. El CPU usa ese mismo módulo, por lo que el arnés verifica su implementación real.
+
+```mermaid
+flowchart LR
+    IFID[IF/ID: PC, instrucción y valid] --> ID[decode_stage]
+    ID --> CTRL[control con alu_control interno]
+    ID --> IMM[imm_gen]
+    ID --> RF[regfile: dos lecturas y bypass WB a ID]
+    WB[WB: valid, permiso, rd y dato] -.-> RF
+    CTRL --> MASK[Controles efectivos]
+    ID --> MASK
+    MASK --> IDEX[id_ex]
+    IMM --> IDEX
+    RF --> IDEX
+    ID -->|PC e identificadores| IDEX
+    IDEX --> EX[Salidas para EX]
+    IDEX --> DBG[Debug: selectores 2 a 6]
+    RF --> REGDBG[Lectura debug de registros]
+```
+
+Los campos se extraen de una única palabra `i_instr_id`: `rs1=[19:15]`, `rs2=[24:20]`, `rd=[11:7]` y `funct3=[14:12]`. `control` e `imm_gen` reciben esa misma instrucción. `i_pc_id` se captura directamente: no se usa el PC actual de IF ni se añade 4. Las salidas `o_*_ex` del módulo se conectan como `w_*_ex` en el CPU; el almacenamiento sigue perteneciendo a `u_decode.u_id_ex`.
+
+### Ocupación, encoding y consumo de fuentes
+
+`w_decode_effective_id = i_valid_id && w_valid_instr_id` habilita los controles enviados a ID/EX. Esta condición incluye escritura de registros/memoria, saltos, HALT, selección de ALU y consumo de fuentes. El latch también neutraliza controles en una captura inválida según A-12. Un inmediato conserva sus bits crudos de `rs2` para debug, pero `uses_rs2=0` impide tratarlo como una dependencia real.
+
+`o_valid_ex` conserva la ocupación de ID. Si la instrucción no está soportada, el encoding se rechaza y los controles quedan en cero; el bit de ocupación puede seguir siendo uno. No se añade una excepción ni se decide todavía cómo contabilizar su retiro en WB. Un load reconocido por `control` sigue siendo válido aunque el subdecoder `alu_control` no reconozca su opcode: este último solo decodifica familias R/I-ALU.
+
+Los operandos capturados conservan el resultado de las lecturas de regfile, incluso cuando la instrucción no consume una fuente. Por ejemplo, los bits altos de ADDI pueden seleccionar un registro para la lectura física de rs2; ese dato puede verse en el selector 4, pero no afecta la operación porque `uses_rs2=0`. Los selectores 3/4 siguen mostrando datos capturados y no valores futuros de forwarding.
+
+### Escritura efectiva y bypass WB→ID
+
+`decode_stage` recibe `i_valid_wb`, `i_reg_write_wb`, `i_rd_wb` e `i_wdata_wb`. La escritura requiere avance, ausencia de reset y ambos permisos de WB; `regfile` bloquea además `rd=0`. El bypass entrega el nuevo dato en las lecturas de ID antes del flanco cuando coinciden con esa escritura efectiva. En cambio, debug muestra el dato almacenado anterior hasta que ocurre el flanco.
+
+| Situación | Captura ID/EX | Escritura del WB anterior |
+|---|---|---|
+| Avance normal | PC, operandos, inmediato, campos y controles coherentes | Se acepta si WB es válido y escribe rd distinto de cero |
+| Pausa externa | Conserva todo | Bloqueada |
+| Stall local de ID/EX con avance | Conserva todo | Puede completarse |
+| Flush local con avance | Invalida y limpia controles; conserva datos | Puede completarse |
+| Reset, incluso pausado | Pone todo a cero | Bloqueada; regfile se limpia |
+
+En el CPU de A-14, las señales de WB permanecen conectadas a cero hasta A-16. El arnés `tb_decode_stage` las maneja de forma independiente para validar escritura y bypass reales; esto no representa un commit de un programa ejecutado por el CPU actual. Flush/stall del CPU también siguen desactivados hasta integrar riesgos y saltos. El módulo dispone de esos controles para verificar su comportamiento local desde ahora.
+
+### Observación e integración verificada
+
+El puerto público de registros ahora lee `u_decode.u_regfile`. El mux parcial agrega selectores 2=PC EX, 3=rs1 capturado, 4=rs2 capturado, 5=inmediato y 6=info EX; el selector 15 presenta valid ID en bit 0 y valid EX en bit 1. Los campos MEM/WB y los flags de riesgos todavía son cero, y `o_halted` continúa en cero.
+
+`tb_decode_stage` prueba las 32 instrucciones más HALT con datos precargados por WB, encodings inválidos, burbujas, colisiones de ambas fuentes, x0, pausa, flush/stall y reset. `tb_fetch` también comprueba el paso IF/ID→ID/EX dentro del CPU contra expectativas independientes de PC, inmediato y controles. [La evidencia A-14](../validation/A-14.md) conserva los resultados y límites.
+
+```bash
+python3 TP3_FINAL/tools/run.py tb tb_decode_stage
+python3 TP3_FINAL/tools/run.py test --companion ../TPs-companion
 ```
