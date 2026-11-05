@@ -385,12 +385,73 @@ El resultado arquitectónico es `u_execute.w_result_ex`, expuesto como `o_result
 
 Una captura con `valid=0` puede conservar valores de datos, pero anula valid y todos los controles de MEM. El resultado combinacional puede cambiar al cambiar entradas durante una pausa; el estado EX/MEM permanece estable. Eso no es una escritura de memoria: la instancia de dmem y el commit se conectarán en A-16.
 
-El CPU conecta `i_en=w_adv` a EX/MEM y mantiene sus flush/stall locales en cero. Los controles futuros no deben congelar las instrucciones antiguas ante un load-use de etapas jóvenes. WB sigue conectado a cero, por lo que todavía no se actualizan registros arquitectónicos mediante ejecución de programas.
+El CPU conecta `i_en=w_adv` a EX/MEM y mantiene sus flush/stall locales en cero. Los controles futuros no deben congelar las instrucciones antiguas ante un load-use de etapas jóvenes. Al cerrar A-15, WB seguía conectado a cero; la sección 16 describe su conexión posterior.
 
 El debug parcial ahora incluye 7=PC MEM, 8=resultado MEM, 9=dato de store y 10=info MEM. El selector 15 agrega valid MEM en bit 2; los campos de WB y riesgos siguen pendientes. `tb_fetch` comprueba el recorrido hasta EX/MEM con instrucciones conocidas, incluidos LUI, ADDI negativo y enlaces JAL/JALR, manteniendo avance secuencial porque la redirección aún no se implementó.
 
 ```bash
 python3 TP3_FINAL/tools/run.py tb tb_execute_stage
 python3 TP3_FINAL/tools/run.py tb tb_decode_stage
+python3 TP3_FINAL/tools/run.py test --companion ../TPs-companion
+```
+
+## 16. MEM/WB implementada en A-16: memoria y commit
+
+`cpu.v` instancia `memory_stage u_memory`, que conecta `dmem` y el registro `mem_wb` ya implementados. Recibe exclusivamente el paquete de EX/MEM: PC, resultado/dirección, dato de store, rd, funct3, valid y controles. El wrapper no agrega almacenamiento fuera de dmem/MEM-WB. [La evidencia A-16](../validation/A-16.md) conserva pruebas de escrituras, programa sin riesgos y reportes de síntesis.
+
+```mermaid
+flowchart LR
+    EXMEM[EX/MEM: PC, resultado, dato y controles] --> DMEM[dmem: lectura combinacional]
+    EXMEM --> STORE[Permiso efectivo de store]
+    ADV[Avance y reset] --> STORE
+    STORE -->|escritura en flanco| DMEM
+    EXMEM --> MWB[mem_wb]
+    DMEM -->|dato de load extendido| MWB
+    ADV --> MWB
+    MWB --> MUX[Selección resultado o load]
+    MWB --> COMMIT[Permiso efectivo de escritura de registro]
+    ADV --> COMMIT
+    MUX --> RF[regfile dentro de decode_stage]
+    COMMIT --> RF
+    MWB --> WBDBG[Debug WB: selectores 11 a 14]
+    DMEM --> MEMDBG[Debug memoria: dato y dirty]
+```
+
+### Lectura y escritura en MEM
+
+`w_result_mem` es la dirección byte de dmem; `w_store_data_mem` es el dato del registro fuente y `w_funct3_mem` determina el tamaño. Los tres pertenecen a la misma instrucción en MEM. Se mantiene la política de A-M02: 256 palabras little-endian, índice `[9:2]`, wrap por bits altos, selección de carril y alineación según tamaño, y palabras limpias visibles como cero.
+
+`w_dmem_we = w_adv && !i_reset && w_valid_mem && w_mem_write_mem`. Es el permiso de store del CPU; dmem aplica además su validación de tamaño antes de escribir físicamente. Una lectura nunca activa dirty. Un store de cero sí lo activa y un store parcial sobre palabra limpia mezcla contra cero, sin recuperar bytes físicos anteriores al reset.
+
+El load leído y extendido se captura en MEM/WB en el siguiente flanco habilitado. `w_load_data_mem` se fuerza a cero cuando la instrucción MEM no es un load válido; esa normalización afecta únicamente el campo de datos sin uso. La dirección original se conserva por separado en `w_result_wb`: una carga no debe escribir esa dirección en rd.
+
+### WB y permisos de commit
+
+MEM/WB conserva PC, resultado de EX, dato de load, rd, mem_to_reg, reg_write, halt y valid. WB selecciona `w_load_data_wb` si `w_mem_to_reg_wb=1`, o `w_result_wb` en otro caso. El valor elegido es `w_wb_data` y llega al puerto de escritura de `u_decode`, incluido su bypass WB→ID.
+
+`w_regfile_we = w_adv && !i_reset && w_valid_wb && w_reg_write_wb && w_rd_wb!=0`. El CPU entrega ese permiso a decode; regfile conserva sus protecciones locales de enable, reset y x0. El dato y el destino deben tomarse de WB, aunque MEM ya esté procesando otra instrucción.
+
+| Situación | Store de MEM | Escritura de registro de WB | MEM/WB |
+|---|---|---|---|
+| Avance con instrucciones válidas y controles activos | Se acepta si el tamaño es válido | Se acepta si rd es distinto de cero | Captura la instrucción de MEM |
+| Burbuja con bits de control no nulos | Bloqueado | Bloqueada si WB es inválido | Captura valid/control en cero |
+| Pausa global | Bloqueado | Bloqueada | Conserva todos sus campos |
+| Reanudación tras pausa | Se acepta la instrucción pendiente una vez, al avanzar | Se acepta el WB pendiente una vez, al avanzar | Avanza normalmente |
+| Reset, incluso pausado | Bloqueado; dirty queda en cero | Bloqueada; regfile queda en cero | Cero e inválido |
+
+La cuenta de escrituras aceptadas del arnés mide efectos arquitectónicos, no instrucciones retiradas: NOP, store y otras instrucciones pueden recorrer WB sin escribir un registro.
+
+### Observación y pruebas
+
+Los puertos públicos de memoria debug ahora leen `u_memory.u_dmem`. El mux debug agrega 11=PC WB, 12=resultado/dirección WB, 13=dato de load WB y 14=info WB, con máscara `0x8600001F`. El selector 15 incorpora valid WB en bit 3. La ocupación de las cuatro etapas ya es visible, pero halted y los flags de riesgos siguen pendientes de sus milestones.
+
+`tb_mem_wb` maneja MEM de forma independiente, conecta la salida WB al regfile real y mantiene modelos de bytes, dirty y registros. Pausa con un store y un WB pendientes y cuenta las aceptaciones para detectar repeticiones aunque el dato escrito sea el mismo. Comprueba cargas con signo/cero, stores parciales, wrap, x0, burbujas y reset con escrituras pendientes.
+
+`tb_fetch` ahora modela los operandos capturados, la escritura WB y la memoria real; dejó de asumir registros siempre en cero. Su modelo por ciclos conserva los resultados de los programas de prueba anteriores incluso cuando hay dependencias todavía sin resolver. Además ejecuta un programa corto con NOP de separación y expectativas arquitectónicas constantes: x1=5, x2=10, x3=x8=15, x9=x10=14, memoria[0]=15 y memoria[1]=14; los restantes registros y la siguiente palabra permanecen en cero.
+
+El CPU ya conecta las cinco etapas, pero aún no incorpora forwarding, load-use, redirección ni detención HALT. El programa de esta prueba termina por un número acotado de avances, y `o_halted` sigue en cero hasta A-28. A-17 ampliará la validación del pipeline base; los milestones siguientes resolverán los riesgos y el fin real. No se presenta esta prueba con NOP como validación de esas funciones.
+
+```bash
+python3 TP3_FINAL/tools/run.py tb tb_mem_wb
 python3 TP3_FINAL/tools/run.py test --companion ../TPs-companion
 ```

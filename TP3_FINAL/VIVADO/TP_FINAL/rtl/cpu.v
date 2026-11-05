@@ -52,10 +52,18 @@ module cpu (
     wire [31:0] w_rs2_fwd_ex = w_rs2_data_ex;
     wire [31:0] w_result_ex;
 
-    wire w_valid_wb = 1'b0;
-    wire w_reg_write_wb = 1'b0;
-    wire [4:0] w_rd_wb = 5'd0;
-    wire [31:0] w_wb_data = 32'd0;
+    wire         w_valid_wb;
+    wire [31:0]  w_pc_wb;
+    wire [31:0]  w_result_wb;
+    wire [31:0]  w_load_data_wb;
+    wire [4:0]   w_rd_wb;
+    wire         w_mem_to_reg_wb;
+    wire         w_reg_write_wb;
+    wire         w_halt_wb;
+    wire [31:0]  w_info_wb;
+    wire [31:0] w_wb_data;
+    wire w_regfile_we;
+    wire w_dmem_we;
 
     always @(posedge i_clock) begin
         if (i_reset)
@@ -88,7 +96,7 @@ module cpu (
         .i_pc_id(w_pc_id),
         .i_instr_id(w_instr_id),
         .i_valid_wb(w_valid_wb),
-        .i_reg_write_wb(w_reg_write_wb),
+        .i_reg_write_wb(w_regfile_we),
         .i_rd_wb(w_rd_wb),
         .i_wdata_wb(w_wb_data),
         .i_dbg_reg_addr(i_dbg_reg_addr),
@@ -155,6 +163,38 @@ module cpu (
         .o_info_mem(w_info_mem)
     );
 
+    memory_stage u_memory (
+        .i_clock(i_clock),
+        .i_reset(i_reset),
+        .i_en(w_adv),
+        .i_valid_mem(w_valid_mem),
+        .i_pc_mem(w_pc_mem),
+        .i_result_mem(w_result_mem),
+        .i_store_data_mem(w_store_data_mem),
+        .i_rd_mem(w_rd_mem),
+        .i_funct3_mem(w_funct3_mem),
+        .i_mem_read_mem(w_mem_read_mem),
+        .i_mem_write_mem(w_mem_write_mem),
+        .i_mem_to_reg_mem(w_mem_to_reg_mem),
+        .i_reg_write_mem(w_reg_write_mem),
+        .i_halt_mem(w_halt_mem),
+        .i_dbg_mem_addr(i_dbg_mem_addr),
+        .o_valid_wb(w_valid_wb),
+        .o_pc_wb(w_pc_wb),
+        .o_result_wb(w_result_wb),
+        .o_load_data_wb(w_load_data_wb),
+        .o_rd_wb(w_rd_wb),
+        .o_mem_to_reg_wb(w_mem_to_reg_wb),
+        .o_reg_write_wb(w_reg_write_wb),
+        .o_halt_wb(w_halt_wb),
+        .o_info_wb(w_info_wb),
+        .o_wb_data(w_wb_data),
+        .o_regfile_we(w_regfile_we),
+        .o_dmem_we(w_dmem_we),
+        .o_dbg_mem_data(o_dbg_mem_data),
+        .o_dbg_mem_dirty(o_dbg_mem_dirty)
+    );
+
     always @(*) begin
         r_dbg_latch_word = 32'd0;
         if ((^i_dbg_latch_sel) !== 1'bx) begin
@@ -170,7 +210,11 @@ module cpu (
                 4'd8: r_dbg_latch_word = w_result_mem;
                 4'd9: r_dbg_latch_word = w_store_data_mem;
                 4'd10: r_dbg_latch_word = w_info_mem;
-                4'd15: r_dbg_latch_word = {29'd0, w_valid_mem, w_valid_ex, w_valid_id};
+                4'd11: r_dbg_latch_word = w_pc_wb;
+                4'd12: r_dbg_latch_word = w_result_wb;
+                4'd13: r_dbg_latch_word = w_load_data_wb;
+                4'd14: r_dbg_latch_word = w_info_wb;
+                4'd15: r_dbg_latch_word = {28'd0, w_valid_wb, w_valid_mem, w_valid_ex, w_valid_id};
                 default: begin end
             endcase
         end
@@ -180,8 +224,6 @@ module cpu (
     assign o_dbg_pc = r_pc_if;
     assign o_dbg_latch_word = r_dbg_latch_word;
     assign o_halted = 1'b0;
-    assign o_dbg_mem_data = 32'd0;
-    assign o_dbg_mem_dirty = 1'b0;
 endmodule
 
 `default_nettype wire

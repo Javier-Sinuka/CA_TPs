@@ -43,3 +43,11 @@ Los selectores 2…6 y valid EX del debug parcial ahora muestran los registros d
 `execute_stage` encapsula ALU y EX/MEM para reutilizar exactamente el mismo circuito en CPU y arnés. LUI selecciona el inmediato U completo; JAL/JALR seleccionan PC EX+4; las demás operaciones seleccionan ALU. El dato de store proviene del segundo registro antes del mux de inmediato. Los operandos `w_rs1_fwd_ex/w_rs2_fwd_ex` del CPU preparan la conexión de forwarding y hoy equivalen a los datos capturados.
 
 El enlace y la salida de ALU son señales separadas. No se implementan todavía destino definitivo, condición de branch, `take_ex`, alineación JALR ni redirección; A-24/A-25 conservan ese alcance. EX/MEM aplica la política de A-12 y el debug agrega solo los campos existentes de MEM. El detalle está en [datapath §15](00_datapath.md#15-ex-implementada-en-a-15-cálculo-y-captura-exmem).
+
+## A-16: memoria, WB y habilitaciones efectivas
+
+`memory_stage` encapsula dmem/MEM-WB y el mux final de WB para compartir el circuito entre CPU y arnés. La dirección y los controles de dmem son los de MEM; el dato y destino de commit son los capturados en WB. El permiso de store incluye avance, ausencia de reset, valid MEM y mem_write; dmem conserva su filtro de tamaño. El permiso de regfile incluye avance, ausencia de reset, valid WB, reg_write y rd distinto de cero.
+
+Se normaliza a cero el dato de load capturado para instrucciones que no son cargas válidas, manteniendo la dirección/resultado en su campo separado. Esta es una política local del dato sin uso, no un cambio del layout de B. Las burbujas, pausa y reset mantienen A-12/D-19, incluido dirty lógico en lugar de borrado físico de RAM.
+
+WB sustituye las conexiones constantes de A-14/A-15 y alimenta el regfile existente de decode. Los selectores 11…14 y valid WB se conectan a sus registros reales; `o_halted` conserva cero hasta implementar la detención acordada en A-28. No se anticipan forwarding, stalls ni redirección. [Datapath §16](00_datapath.md#16-memwb-implementada-en-a-16-memoria-y-commit) describe el recorrido y la validación sin riesgos.
