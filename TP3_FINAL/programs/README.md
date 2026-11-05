@@ -69,3 +69,29 @@ PY
 ```
 
 Esto valida el pipeline sin riesgos. Forwarding, load-use, redirección y finalización HALT se comprobarán en sus milestones; A-29 repetirá aceptación con HALT real.
+
+## Programa `raw_distance` de A-M04
+
+`raw_distance.s` contiene 76 palabras: grupos de distancias RAW 1, 2 y 3 en `rs1` y `rs2`, dos productores distintos, dos escrituras sucesivas al mismo destino, un intento de escritura a `x0`, instrucciones independientes y un marcador final en x31. `raw_distance.hex` tiene 256 palabras; las posiciones 76…255 se completan con NOP. El HALT agregado automáticamente por el ensamblador de B se retira porque el CPU aún no implementa la detención. No hay cargas, stores ni saltos en este programa.
+
+Los valores esperados están escritos como constantes en `tb/tb_raw.sv` y se explican en el [informe A-M04](../doc/documentation/04_forwarding.md). La instrucción final significativa está en PC 288 y escribe x31=`0x000005a5` en el avance 77. El TB verifica PC consecutivos, selectores, operandos, resultados, los 32 registros y las 256 palabras/dirty de dmem.
+
+Desde `Practico/TPs`:
+
+```bash
+python3 TP3_FINAL/tools/run.py tb tb_raw --companion ../TPs-companion
+```
+
+Para comprobar que el hex sigue correspondiendo al ensamblador del worktree de B:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=../TPs-companion/TP3_FINAL/sw python3 - <<'PY'
+from pathlib import Path
+from asm.rvasm import assemble, to_hex
+base = Path('TP3_FINAL/programs/raw_distance')
+words = assemble(base.with_suffix('.s').read_text())
+assert words[-1] == 0x73 and len(words) == 77
+assert to_hex(words[:-1] + [0x13] * (256 - len(words[:-1]))) == base.with_suffix('.hex').read_text()
+print('PASS raw_distance encoding')
+PY
+```

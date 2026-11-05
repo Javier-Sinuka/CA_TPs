@@ -96,3 +96,21 @@ La lógica de WB, memoria, branches, HALT, stalls y validez de etapa
 todavía no existe en esta Fase 1 y requiere las issues posteriores.
 
 Pruebas detalladas de control: [A-05](../validation/A-05.md).
+
+## Cobertura de forwarding en A-M04
+
+La matriz anterior describe la decodificación combinacional de A-M01. El milestone [A-M04](04_forwarding.md) conecta el bypass al CPU; su [evidencia](../validation/A-M04.md) cubre los caminos de datos siguientes:
+
+| Familia | Fuente dependiente | Camino probado | Programa o TB |
+|---|---|---|---|
+| I-ALU | `rs1` a distancia 1/2/3 | EX/MEM, MEM/WB y captura por bypass WB→ID | `raw_distance`, PC 4/48/100 |
+| R-ALU | `rs2` a distancia 1/2/3 | EX/MEM, MEM/WB y captura por bypass WB→ID | `raw_distance`, PC 24/72/128 |
+| R-ALU | `rs1` y `rs2` simultáneos | MEM/WB y EX/MEM en ambos órdenes | `raw_distance`, PC 152/248 |
+| R/I-ALU | dos escrituras al mismo `rd` | gana el productor joven de EX/MEM | `raw_distance`, PC 176/272 |
+| I-ALU | lectura y escritura de `x0` | selector 00, resultado sin dato ficticio | `raw_distance`, PC 196 |
+| Store | `rs2` recién producido | EX/MEM alimenta `store_data` | `tb_forwarding_paths`, PC 4 |
+| JAL/JALR | enlace usado inmediatamente | se reenvía PC+4; JALR recibe base reenviada | `tb_forwarding_paths`, PC 28/36/68/72 |
+| Load con separación | dato desde WB | se usa el mux de writeback, no la dirección | `tb_forwarding_paths`, PC 48 |
+| Branch | ambos operandos en EX | datos preparados; decisión y redirección pendientes de A-24/A-25 | `tb_forwarding_paths`, PC 60 |
+
+Una carga seguida inmediatamente por su consumidor exige el interlock de A-M05; esta tabla no la presenta como aprobada. El programa `raw_distance` usa solo instrucciones aritméticas y NOP, y termina por un número acotado de ciclos mientras HALT sigue pendiente.
