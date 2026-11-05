@@ -12,6 +12,11 @@ module cpu (
     wire        w_valid_id;
     wire [31:0] w_pc_id;
     wire [31:0] w_instr_id;
+    wire [4:0]  w_rs1_id;
+    wire [4:0]  w_rs2_id;
+    wire        w_uses_rs1_id;
+    wire        w_uses_rs2_id;
+    wire        w_load_use_stall;
 
     wire         w_valid_ex;
     wire [31:0]  w_pc_ex;
@@ -87,7 +92,7 @@ module cpu (
     always @(posedge i_clock) begin
         if (i_reset)
             r_pc_if <= 32'd0;
-        else if (w_adv)
+        else if (w_adv && !w_load_use_stall)
             r_pc_if <= w_pc_next_if;
     end
 
@@ -96,7 +101,7 @@ module cpu (
         .i_reset(i_reset),
         .i_en(w_adv),
         .i_flush(1'b0),
-        .i_stall(1'b0),
+        .i_stall(w_load_use_stall),
         .i_valid(1'b1),
         .i_pc(r_pc_if),
         .i_instr(i_imem_data),
@@ -109,7 +114,7 @@ module cpu (
         .i_clock(i_clock),
         .i_reset(i_reset),
         .i_en(w_adv),
-        .i_flush(1'b0),
+        .i_flush(w_load_use_stall),
         .i_stall(1'b0),
         .i_valid_id(w_valid_id),
         .i_pc_id(w_pc_id),
@@ -119,6 +124,10 @@ module cpu (
         .i_rd_wb(w_rd_wb),
         .i_wdata_wb(w_wb_data),
         .i_dbg_reg_addr(i_dbg_reg_addr),
+        .o_rs1_id(w_rs1_id),
+        .o_rs2_id(w_rs2_id),
+        .o_uses_rs1_id(w_uses_rs1_id),
+        .o_uses_rs2_id(w_uses_rs2_id),
         .o_valid_ex(w_valid_ex),
         .o_pc_ex(w_pc_ex),
         .o_rs1_data_ex(w_rs1_data_ex),
@@ -143,6 +152,18 @@ module cpu (
         .o_uses_rs2_ex(w_uses_rs2_ex),
         .o_info_ex(w_info_ex),
         .o_dbg_reg_data(o_dbg_reg_data)
+    );
+
+    hazard_unit u_hazard (
+        .i_valid_ex(w_valid_ex),
+        .i_mem_read_ex(w_mem_read_ex),
+        .i_rd_ex(w_rd_ex),
+        .i_valid_id(w_valid_id),
+        .i_uses_rs1_id(w_uses_rs1_id),
+        .i_uses_rs2_id(w_uses_rs2_id),
+        .i_rs1_id(w_rs1_id),
+        .i_rs2_id(w_rs2_id),
+        .o_stall(w_load_use_stall)
     );
 
     forwarding_unit u_forwarding (

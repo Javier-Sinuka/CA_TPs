@@ -67,10 +67,20 @@ TBS = {
 }
 
 EXTERNAL_TBS = {
+    "tb_load_use": {
+        "top": "tb_load_use",
+        "files": (
+            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/hazard_unit.v",
+            f"TP3_FINAL/{RTL}/forwarding_unit.v", f"TP3_FINAL/{RTL}/if_id.v",
+            *DECODE_FILES, *EXECUTE_FILES, *MEMORY_FILES,
+            f"TP3_FINAL/{TB}/tb_load_use.sv",
+        ),
+        "companion_headers": (f"TP3_FINAL/{RTL}/debug/cpu_ports.vh",),
+    },
     "tb_raw": {
         "top": "tb_raw",
         "files": (
-            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/forwarding_unit.v",
+            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/hazard_unit.v", f"TP3_FINAL/{RTL}/forwarding_unit.v",
             f"TP3_FINAL/{RTL}/if_id.v", *DECODE_FILES, *EXECUTE_FILES,
             *MEMORY_FILES, f"TP3_FINAL/{TB}/tb_raw.sv",
         ),
@@ -79,7 +89,7 @@ EXTERNAL_TBS = {
     "tb_forwarding_paths": {
         "top": "tb_forwarding_paths",
         "files": (
-            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/forwarding_unit.v",
+            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/hazard_unit.v", f"TP3_FINAL/{RTL}/forwarding_unit.v",
             f"TP3_FINAL/{RTL}/if_id.v", *DECODE_FILES, *EXECUTE_FILES,
             *MEMORY_FILES, f"TP3_FINAL/{TB}/tb_forwarding_paths.sv",
         ),
@@ -88,7 +98,7 @@ EXTERNAL_TBS = {
     "tb_cpu_no_hazard": {
         "top": "tb_cpu_no_hazard",
         "files": (
-            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/forwarding_unit.v",
+            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/hazard_unit.v", f"TP3_FINAL/{RTL}/forwarding_unit.v",
             f"TP3_FINAL/{RTL}/if_id.v",
             *DECODE_FILES, *EXECUTE_FILES, *MEMORY_FILES,
             f"TP3_FINAL/{TB}/tb_cpu_no_hazard.sv",
@@ -98,7 +108,7 @@ EXTERNAL_TBS = {
     "tb_fetch": {
         "top": "tb_fetch",
         "files": (
-            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/forwarding_unit.v",
+            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/hazard_unit.v", f"TP3_FINAL/{RTL}/forwarding_unit.v",
             f"TP3_FINAL/{RTL}/if_id.v",
             *DECODE_FILES,
             *EXECUTE_FILES,
@@ -128,7 +138,7 @@ EXTERNAL_TBS = {
 SYNTH = {
     "hazard_unit": (f"TP3_FINAL/{RTL}/hazard_unit.v",),
     "forwarding_unit": (f"TP3_FINAL/{RTL}/forwarding_unit.v",),
-    "cpu": (f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/forwarding_unit.v", f"TP3_FINAL/{RTL}/if_id.v", *DECODE_FILES, *EXECUTE_FILES, *MEMORY_FILES),
+    "cpu": (f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/hazard_unit.v", f"TP3_FINAL/{RTL}/forwarding_unit.v", f"TP3_FINAL/{RTL}/if_id.v", *DECODE_FILES, *EXECUTE_FILES, *MEMORY_FILES),
     "memory_stage": MEMORY_FILES,
     "execute_stage": EXECUTE_FILES,
     "decode_stage": DECODE_FILES,

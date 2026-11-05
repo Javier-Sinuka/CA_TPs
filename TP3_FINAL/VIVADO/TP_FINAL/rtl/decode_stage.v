@@ -15,6 +15,10 @@ module decode_stage (
     input  wire [4:0]   i_rd_wb,
     input  wire [31:0]  i_wdata_wb,
     input  wire [4:0]   i_dbg_reg_addr,
+    output wire [4:0]   o_rs1_id,
+    output wire [4:0]   o_rs2_id,
+    output wire         o_uses_rs1_id,
+    output wire         o_uses_rs2_id,
     output wire         o_valid_ex,
     output wire [31:0]  o_pc_ex,
     output wire [31:0]  o_rs1_data_ex,
@@ -64,6 +68,11 @@ module decode_stage (
     wire         w_valid_instr_id;
     wire w_decode_effective_id = i_valid_id && w_valid_instr_id;
     wire w_regfile_we = i_en && !i_reset && i_valid_wb && i_reg_write_wb;
+
+    assign o_rs1_id = w_rs1_id;
+    assign o_rs2_id = w_rs2_id;
+    assign o_uses_rs1_id = w_decode_effective_id && w_uses_rs1_id;
+    assign o_uses_rs2_id = w_decode_effective_id && w_uses_rs2_id;
 
     control u_control (
         .i_instr(i_instr_id),
