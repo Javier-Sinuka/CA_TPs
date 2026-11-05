@@ -26,6 +26,11 @@ PHASE1_TOPS = {
 }
 
 TBS = {
+    "tb_hazard_unit": {
+        "top": "tb_hazard_unit",
+        "files": (f"TP3_FINAL/{RTL}/hazard_unit.v", f"TP3_FINAL/{RTL}/alu_control.v",
+                  f"TP3_FINAL/{RTL}/control.v", f"TP3_FINAL/{TB}/tb_hazard_unit.sv"),
+    },
     "tb_forwarding_unit": {
         "top": "tb_forwarding_unit",
         "files": (f"TP3_FINAL/{RTL}/forwarding_unit.v", f"TP3_FINAL/{TB}/tb_forwarding_unit.sv"),
@@ -121,6 +126,7 @@ EXTERNAL_TBS = {
 }
 
 SYNTH = {
+    "hazard_unit": (f"TP3_FINAL/{RTL}/hazard_unit.v",),
     "forwarding_unit": (f"TP3_FINAL/{RTL}/forwarding_unit.v",),
     "cpu": (f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/forwarding_unit.v", f"TP3_FINAL/{RTL}/if_id.v", *DECODE_FILES, *EXECUTE_FILES, *MEMORY_FILES),
     "memory_stage": MEMORY_FILES,
