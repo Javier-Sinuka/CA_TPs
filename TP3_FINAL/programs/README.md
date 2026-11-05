@@ -70,6 +70,52 @@ PY
 
 Esto valida el pipeline sin riesgos. Forwarding, load-use, redirección y finalización HALT se comprobarán en sus milestones; A-29 repetirá aceptación con HALT real.
 
+## Programa `load_use` de A-M05
+
+`load_use.s` contiene 113 instrucciones y `load_use.hex` completa las 256 palabras con NOP. Se retira el HALT automático del ensamblador de B: el fin actual es el commit de x31=`0x5a5`, en PC 448, tras **127 avances**. La validación con HALT real se repetirá en A-29.
+
+La preparación escribe 73 en memoria byte 0 y 96 en byte 4, además de x8=73, x9=21, x10=96 y x12=31. Cada grupo ocupa ocho instrucciones: asigna a x1 un centinela negativo distinto, realiza el load, ejecuta su consumidor y agrega cinco NOP. Así el dato capturado antes del bypass difiere del resultado cargado y cada caso queda separado del siguiente. Los offsets y valores esperados son constantes independientes del RTL.
+
+| Grupo | PC load / consumidor | Consumidor | Stalls esperados | Resultado |
+|---|---|---|---:|---|
+| `alu_both` | 36 / 40 | ADD por rs1 y rs2 | 1 | x2=146. |
+| `store_data` | 68 / 72 | SW por dato | 1 | Memoria byte 64=73. |
+| `store_base` | 100 / 104 | SW por base | 1 | Memoria byte 100=21; base cargada 96. |
+| `false_rs2` | 132 / 136 | ADDI cuyo inmediato aparenta rs2=x1 | 0 | x3=1. |
+| `independent_alu` | 164 / 168 | ADD de x9+x9 | 0 | x4=42. |
+| `branch_rs1_equal` | 196 / 200 | BEQ por rs1 | 1 | Operandos 73/73, condición del arnés verdadera. |
+| `branch_rs2_different` | 228 / 232 | BNE por rs2 | 1 | Operandos 21/73, condición del arnés verdadera. |
+| `alu_rs2` | 260 / 264 | ADD por rs2 | 1 | x5=94. |
+| `alu_rs1` | 292 / 296 | ADDI por rs1 | 1 | x6=75. |
+| `load_x0` | 324 / 328 | Load a x0 seguido por ADDI de x0 | 0 | x0=0 y x7=0. |
+| `branch_rs1_different` | 356 / 360 | BEQ por rs1 | 1 | Operandos 73/21, condición del arnés falsa. |
+| `branch_rs2_equal` | 388 / 392 | BNE por rs2 | 1 | Operandos 73/73, condición del arnés falsa. |
+| `store_both` | 420 / 424 | SW por base y dato | 1 | Memoria byte 104=96. |
+
+Hay diez stalls habilitados, 36 escrituras de registros y cinco stores. El estado final de x1 es 96; las únicas palabras sucias son los índices 0, 1, 16, 25 y 26, con datos 73, 96, 73, 21 y 96. Los cuatro branches usan offset 4. Se observan sus operandos en EX mediante un comparador del testbench, sin exigir redirección ni flush al CPU de este milestone. Esa aceptación funcional pertenece a A-26.
+
+Desde `Practico/TPs`:
+
+```bash
+python3 TP3_FINAL/tools/run.py tb tb_load_use_consumers --companion ../TPs-companion
+```
+
+El TB corre el programa continuo y con pausas antes/después de cada dependencia, compara cada commit con constantes y recorre toda la memoria/dirty final. Produce `build/a23_consumers.vcd` y `build/a23_trace.csv`. En Vivado, el TB y el hex están en `sim_1`, y el ensamblador fuente está en `utils_1`. El TB admite `+ROOT=/ruta/a/TPs/` con barra final o el hex local al directorio de simulación.
+
+Para verificar la codificación sin copiar las herramientas de B:
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=../TPs-companion/TP3_FINAL/sw python3 - <<'PY'
+from pathlib import Path
+from asm.rvasm import assemble, to_hex
+base = Path('TP3_FINAL/programs/load_use')
+words = assemble(base.with_suffix('.s').read_text())
+assert len(words) == 114 and words[-1] == 0x73
+assert to_hex(words[:-1] + [0x13] * (256 - len(words[:-1]))) == base.with_suffix('.hex').read_text()
+print('PASS load_use encoding')
+PY
+```
+
 ## Programa `raw_distance` de A-M04
 
 `raw_distance.s` contiene 76 palabras: grupos de distancias RAW 1, 2 y 3 en `rs1` y `rs2`, dos productores distintos, dos escrituras sucesivas al mismo destino, un intento de escritura a `x0`, instrucciones independientes y un marcador final en x31. `raw_distance.hex` tiene 256 palabras; las posiciones 76…255 se completan con NOP. El HALT agregado automáticamente por el ensamblador de B se retira porque el CPU aún no implementa la detención. No hay cargas, stores ni saltos en este programa.

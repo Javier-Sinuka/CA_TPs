@@ -232,6 +232,16 @@
     </FileSet>
     <FileSet Name="sim_1" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_1" RelGenDir="$PGENDIR/sim_1">
       <Filter Type="Srcs"/>
+      <File Path="$PPRDIR/tb/tb_load_use_consumers.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/load_use.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/tb/tb_load_use.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -383,6 +393,7 @@
       </Config>
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
+      <File Path="$PPRDIR/../../programs/load_use.s"/>
       <File Path="$PPRDIR/../../programs/raw_distance.s"/>
       <Filter Type="Utils"/>
       <File Path="$PPRDIR/../../programs/arith_no_hazard.s"/>

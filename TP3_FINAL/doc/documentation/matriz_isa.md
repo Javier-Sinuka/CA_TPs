@@ -114,3 +114,19 @@ La matriz anterior describe la decodificación combinacional de A-M01. El milest
 | Branch | ambos operandos en EX | datos preparados; decisión y redirección pendientes de A-24/A-25 | `tb_forwarding_paths`, PC 60 |
 
 Una carga seguida inmediatamente por su consumidor exige el interlock de A-M05; esta tabla no la presenta como aprobada. El programa `raw_distance` usa solo instrucciones aritméticas y NOP, y termina por un número acotado de ciclos mientras HALT sigue pendiente.
+
+## Cobertura de load-use en A-M05
+
+El [informe A-M05](05_load_use.md) y su [gate](../validation/A-M05.md) amplían la cobertura anterior mediante `load_use.s` y `tb_load_use_consumers`:
+
+| Consumidor | PC byte | Criterio |
+|---|---|---|
+| ADD por ambas fuentes / solo rs2 | 40 / 264 | Una burbuja y bypass WB; resultados 146 / 94. |
+| ADDI por rs1 | 296 | Una burbuja; resultado 75. |
+| SW por dato / base / ambos | 72 / 104 / 424 | Una burbuja; direcciones 64 / 100 / 104 y datos 73 / 21 / 96. |
+| BEQ/BNE por rs1 o rs2 | 200 / 232 / 360 / 392 | Una burbuja y operandos correctos; comparación en arnés, redirección pendiente de A-26. |
+| ADDI con inmediato que aparenta rs2 | 136 | Cero stalls, resultado 1. |
+| ADD independiente | 168 | Cero stalls, resultado 42. |
+| Load a x0 y consumidor de x0 | 324 / 328 | Cero stalls; x0 sigue cero. |
+
+La regresión también conserva los TB anteriores de 32 instrucciones y RAW. Esta ampliación no reemplaza la aceptación de control de flujo, HALT ni debug de los próximos milestones.
