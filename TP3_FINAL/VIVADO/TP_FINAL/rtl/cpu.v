@@ -36,6 +36,22 @@ module cpu (
     wire         w_uses_rs1_ex;
     wire         w_uses_rs2_ex;
     wire [31:0]  w_info_ex;
+    wire         w_valid_mem;
+    wire [31:0]  w_pc_mem;
+    wire [31:0]  w_result_mem;
+    wire [31:0]  w_store_data_mem;
+    wire [4:0]   w_rd_mem;
+    wire [2:0]   w_funct3_mem;
+    wire         w_mem_read_mem;
+    wire         w_mem_write_mem;
+    wire         w_mem_to_reg_mem;
+    wire         w_reg_write_mem;
+    wire         w_halt_mem;
+    wire [31:0]  w_info_mem;
+    wire [31:0] w_rs1_fwd_ex = w_rs1_data_ex;
+    wire [31:0] w_rs2_fwd_ex = w_rs2_data_ex;
+    wire [31:0] w_result_ex;
+
     wire w_valid_wb = 1'b0;
     wire w_reg_write_wb = 1'b0;
     wire [4:0] w_rd_wb = 5'd0;
@@ -102,6 +118,43 @@ module cpu (
         .o_dbg_reg_data(o_dbg_reg_data)
     );
 
+    execute_stage u_execute (
+        .i_clock(i_clock),
+        .i_reset(i_reset),
+        .i_en(w_adv),
+        .i_flush(1'b0),
+        .i_stall(1'b0),
+        .i_valid_ex(w_valid_ex),
+        .i_pc_ex(w_pc_ex),
+        .i_rs1_data_ex(w_rs1_fwd_ex),
+        .i_rs2_data_ex(w_rs2_fwd_ex),
+        .i_imm_ex(w_imm_ex),
+        .i_rd_ex(w_rd_ex),
+        .i_funct3_ex(w_funct3_ex),
+        .i_alu_op_ex(w_alu_op_ex),
+        .i_alu_src_b_ex(w_alu_src_b_ex),
+        .i_jump_ex(w_jump_ex),
+        .i_lui_ex(w_lui_ex),
+        .i_mem_read_ex(w_mem_read_ex),
+        .i_mem_write_ex(w_mem_write_ex),
+        .i_mem_to_reg_ex(w_mem_to_reg_ex),
+        .i_reg_write_ex(w_reg_write_ex),
+        .i_halt_ex(w_halt_ex),
+        .o_result_ex(w_result_ex),
+        .o_valid_mem(w_valid_mem),
+        .o_pc_mem(w_pc_mem),
+        .o_result_mem(w_result_mem),
+        .o_store_data_mem(w_store_data_mem),
+        .o_rd_mem(w_rd_mem),
+        .o_funct3_mem(w_funct3_mem),
+        .o_mem_read_mem(w_mem_read_mem),
+        .o_mem_write_mem(w_mem_write_mem),
+        .o_mem_to_reg_mem(w_mem_to_reg_mem),
+        .o_reg_write_mem(w_reg_write_mem),
+        .o_halt_mem(w_halt_mem),
+        .o_info_mem(w_info_mem)
+    );
+
     always @(*) begin
         r_dbg_latch_word = 32'd0;
         if ((^i_dbg_latch_sel) !== 1'bx) begin
@@ -113,7 +166,11 @@ module cpu (
                 4'd4: r_dbg_latch_word = w_rs2_data_ex;
                 4'd5: r_dbg_latch_word = w_imm_ex;
                 4'd6: r_dbg_latch_word = w_info_ex;
-                4'd15: r_dbg_latch_word = {30'd0, w_valid_ex, w_valid_id};
+                4'd7: r_dbg_latch_word = w_pc_mem;
+                4'd8: r_dbg_latch_word = w_result_mem;
+                4'd9: r_dbg_latch_word = w_store_data_mem;
+                4'd10: r_dbg_latch_word = w_info_mem;
+                4'd15: r_dbg_latch_word = {29'd0, w_valid_mem, w_valid_ex, w_valid_id};
                 default: begin end
             endcase
         end

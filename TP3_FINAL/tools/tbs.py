@@ -10,6 +10,10 @@ DECODE_FILES = tuple(f"TP3_FINAL/{RTL}/{name}.v" for name in (
     "alu_control", "control", "imm_gen", "regfile", "id_ex", "decode_stage",
 ))
 
+EXECUTE_FILES = tuple(f"TP3_FINAL/{RTL}/{name}.v" for name in (
+    "alu", "ex_mem", "execute_stage",
+))
+
 PHASE1_TOPS = {
     "alu": (f"{RTL}/alu.v",),
     "alu_control": (f"{RTL}/alu_control.v",),
@@ -18,6 +22,10 @@ PHASE1_TOPS = {
 }
 
 TBS = {
+    "tb_execute_stage": {
+        "top": "tb_execute_stage",
+        "files": (*EXECUTE_FILES, f"TP3_FINAL/{TB}/tb_execute_stage.sv"),
+    },
     "tb_decode_stage": {
         "top": "tb_decode_stage",
         "files": (*DECODE_FILES, f"TP3_FINAL/{TB}/tb_decode_stage.sv"),
@@ -48,6 +56,7 @@ EXTERNAL_TBS = {
             f"TP3_FINAL/{RTL}/cpu.v",
             f"TP3_FINAL/{RTL}/if_id.v",
             *DECODE_FILES,
+            *EXECUTE_FILES,
             f"TP3_FINAL/{TB}/tb_fetch.sv",
         ),
         "companion_files": (f"TP3_FINAL/{RTL}/debug/imem.v",),
@@ -71,7 +80,8 @@ EXTERNAL_TBS = {
 }
 
 SYNTH = {
-    "cpu": (f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/if_id.v", *DECODE_FILES),
+    "cpu": (f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/if_id.v", *DECODE_FILES, *EXECUTE_FILES),
+    "execute_stage": EXECUTE_FILES,
     "decode_stage": DECODE_FILES,
     "if_id": (f"TP3_FINAL/{RTL}/if_id.v",),
     "id_ex": (f"TP3_FINAL/{RTL}/id_ex.v",),

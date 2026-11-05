@@ -338,3 +338,59 @@ El puerto público de registros ahora lee `u_decode.u_regfile`. El mux parcial a
 python3 TP3_FINAL/tools/run.py tb tb_decode_stage
 python3 TP3_FINAL/tools/run.py test --companion ../TPs-companion
 ```
+
+## 15. EX implementada en A-15: cálculo y captura EX/MEM
+
+`cpu.v` incorpora `execute_stage u_execute`, que recibe las salidas de ID/EX y reúne la ALU auditada con el registro `ex_mem` de A-12. El módulo no añade almacenamiento fuera de ese registro. `tb_execute_stage` controla directamente sus entradas de EX y verifica tanto el resultado combinacional como el paquete capturado para MEM. [La evidencia A-15](../validation/A-15.md) registra resultados, recursos y límites.
+
+```mermaid
+flowchart LR
+    IDEX[ID/EX: datos, PC y controles] --> RS1[rs1 preparado para forwarding]
+    IDEX --> RS2[rs2 preparado para forwarding]
+    IDEX --> IMM[Inmediato]
+    RS2 --> B[Selección rs2 o inmediato]
+    IMM --> B
+    RS1 --> ALU[ALU auditada]
+    B --> ALU
+    IDEX --> LINK[PC EX + 4]
+    ALU --> RESULT[Selección del resultado arquitectónico]
+    IMM -->|LUI: inmediato completo| RESULT
+    LINK -->|JAL y JALR| RESULT
+    RESULT --> EXMEM[ex_mem]
+    RS2 -->|dato de store independiente| EXMEM
+    IDEX -->|PC, rd, funct3, valid y controles MEM| EXMEM
+    EXMEM --> NEXT[Salidas para futura MEM]
+    EXMEM --> DBG[Selectores debug 7 a 10]
+```
+
+### Operandos y selección de resultado
+
+El CPU prepara `w_rs1_fwd_ex` y `w_rs2_fwd_ex`; por ahora son conexiones directas a los operandos capturados. A-M04 sustituirá esa selección con forwarding real. Esas conexiones entran a `u_execute`, mientras los selectores debug 3/4 continúan mostrando los operandos originales de ID/EX.
+
+`i_alu_src_b_ex` selecciona entre rs2 y el inmediato para la segunda entrada de ALU. El dato de store toma rs2 **antes** de ese mux, de modo que un store usa el inmediato para la dirección y conserva el valor del registro como dato. La primera entrada de ALU recibe rs1.
+
+| Operación | Resultado enviado hacia EX/MEM |
+|---|---|
+| Aritmética, lógica, comparación o dirección de load/store | Salida de `alu` con los operandos seleccionados y `alu_op` de ID/EX |
+| LUI | `i_imm_ex` completo; el generador ya colocó los 12 ceros bajos |
+| JAL o JALR (`i_jump_ex=1`) | `i_pc_ex + 4`, con aritmética de 32 bits |
+
+El resultado arquitectónico es `u_execute.w_result_ex`, expuesto como `o_result_ex` y capturado como `w_result_mem`. Para LUI no se vuelve a desplazar el inmediato ni se suma el valor físico leído de rs1. El enlace toma el PC de la instrucción en EX: con `PC_EX=0x40`, JAL/JALR producen `0x44` aunque IF esté buscando otra dirección.
+
+`w_link_ex` está separado de `w_alu_result_ex`. En un JALR, la ALU puede tener la suma base+inmediato mientras el resultado de escritura sigue siendo PC+4; el arnés comprueba ambos valores distintos. Esto no implementa todavía el destino definitivo: la selección branch/JAL/JALR, el borrado del bit 0 de JALR y `take_ex` corresponden a A-24, y la redirección/flush a A-25. Un enlace no debe usarse como dirección de salto.
+
+### Paquete hacia MEM y permisos
+
+`u_execute.u_ex_mem` captura PC, resultado, dato de store, rd, funct3 y los controles `mem_read`, `mem_write`, `mem_to_reg`, `reg_write`, `halt`, junto con valid. Su `o_info` conserva la máscara `0x8783801F`; los campos ausentes siguen en cero. Reset, pausa, flush y stall conservan las prioridades de A-12.
+
+Una captura con `valid=0` puede conservar valores de datos, pero anula valid y todos los controles de MEM. El resultado combinacional puede cambiar al cambiar entradas durante una pausa; el estado EX/MEM permanece estable. Eso no es una escritura de memoria: la instancia de dmem y el commit se conectarán en A-16.
+
+El CPU conecta `i_en=w_adv` a EX/MEM y mantiene sus flush/stall locales en cero. Los controles futuros no deben congelar las instrucciones antiguas ante un load-use de etapas jóvenes. WB sigue conectado a cero, por lo que todavía no se actualizan registros arquitectónicos mediante ejecución de programas.
+
+El debug parcial ahora incluye 7=PC MEM, 8=resultado MEM, 9=dato de store y 10=info MEM. El selector 15 agrega valid MEM en bit 2; los campos de WB y riesgos siguen pendientes. `tb_fetch` comprueba el recorrido hasta EX/MEM con instrucciones conocidas, incluidos LUI, ADDI negativo y enlaces JAL/JALR, manteniendo avance secuencial porque la redirección aún no se implementó.
+
+```bash
+python3 TP3_FINAL/tools/run.py tb tb_execute_stage
+python3 TP3_FINAL/tools/run.py tb tb_decode_stage
+python3 TP3_FINAL/tools/run.py test --companion ../TPs-companion
+```

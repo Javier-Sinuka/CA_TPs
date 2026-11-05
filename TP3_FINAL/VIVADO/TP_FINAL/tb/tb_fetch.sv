@@ -25,6 +25,8 @@ module tb_fetch;
     reg [31:0] r_expected_instr_id;
     reg r_expected_valid_id;
     reg r_expected_valid_ex;
+    reg r_expected_valid_mem;
+    reg [31:0] r_expected_pc_mem, r_expected_instr_mem;
     reg [31:0] r_expected_pc_ex, r_expected_instr_ex;
     reg [31:0] r_seed;
     integer checks;
@@ -65,6 +67,9 @@ module tb_fetch;
                 32'h0050_0093: expected_decode_imm = 32'd5;
                 32'h00a0_0113: expected_decode_imm = 32'd10;
                 32'h0ff0_0213: expected_decode_imm = 32'd255;
+                32'h0080_02ef: expected_decode_imm = 32'd8;
+                32'h0040_8367: expected_decode_imm = 32'd4;
+                32'hfff0_0393: expected_decode_imm = 32'hffff_ffff;
                 32'h1234_50b7: expected_decode_imm = 32'h1234_5000;
                 default: begin end
             endcase
@@ -77,15 +82,32 @@ module tb_fetch;
             controls = 32'd0;
             if (valid) begin
                 casez (instruction)
-                    32'h0050_0093, 32'h00a0_0113, 32'h0ff0_0213: controls = 32'h0440_0000;
+                    32'h0050_0093, 32'h00a0_0113, 32'h0ff0_0213, 32'hfff0_0393: controls = 32'h0440_0000;
                     32'h0020_81b3: controls = 32'h0400_0000;
                     32'h0030_2023: controls = 32'h0140_0000;
                     32'h1234_50b7: controls = 32'h4440_0000;
                     32'h0000_0073: controls = 32'h8000_0000;
+                    32'h0080_02ef: controls = 32'h1400_0000;
+                    32'h0040_8367: controls = 32'h3440_0000;
                     default: begin end
                 endcase
             end
             expected_decode_info = controls | {14'd0, instruction[14:12], instruction[24:20], instruction[19:15], instruction[11:7]};
+        end
+    endfunction
+
+    function automatic [31:0] expected_execute_result(input [31:0] instruction, input [31:0] pc);
+        begin
+            expected_execute_result = 32'd0;
+            casez (instruction)
+                32'h0050_0093: expected_execute_result = 32'd5;
+                32'h00a0_0113: expected_execute_result = 32'd10;
+                32'h0ff0_0213: expected_execute_result = 32'd255;
+                32'hfff0_0393: expected_execute_result = 32'hffff_ffff;
+                32'h1234_50b7: expected_execute_result = 32'h1234_5000;
+                32'h0080_02ef, 32'h0040_8367: expected_execute_result = pc + 32'd4;
+                default: begin end
+            endcase
         end
     endfunction
 
@@ -115,6 +137,11 @@ module tb_fetch;
             check_word(u_cpu.w_info_ex, expected_decode_info(r_expected_instr_ex, r_expected_valid_ex), "EX controls and metadata");
             check_word(u_cpu.w_rs1_data_ex, 32'd0, "EX rs1 before WB integration");
             check_word(u_cpu.w_rs2_data_ex, 32'd0, "EX rs2 before WB integration");
+            check_word(u_cpu.w_pc_mem, r_expected_pc_mem, "MEM PC from previous EX");
+            check_word({31'd0, u_cpu.w_valid_mem}, {31'd0, r_expected_valid_mem}, "MEM valid");
+            check_word(u_cpu.w_result_mem, expected_execute_result(r_expected_instr_mem, r_expected_pc_mem), "MEM result and link from EX PC");
+            check_word(u_cpu.w_store_data_mem, 32'd0, "MEM store data before WB integration");
+            check_word(u_cpu.w_info_mem, expected_decode_info(r_expected_instr_mem, r_expected_valid_mem) & 32'h8783_801f, "MEM controls and metadata");
             check_word(w_imem_data, r_program[(r_expected_pc / 4) % 256],
                        "asynchronous imem");
             check_word({31'd0, w_halted}, 32'd0, "HALT not implemented yet");
@@ -133,7 +160,13 @@ module tb_fetch;
                 r_expected_valid_ex = 1'b0;
                 r_expected_pc_ex = 32'd0;
                 r_expected_instr_ex = 32'd0;
+                r_expected_valid_mem = 1'b0;
+                r_expected_pc_mem = 32'd0;
+                r_expected_instr_mem = 32'd0;
             end else if (r_en) begin
+                r_expected_pc_mem = r_expected_pc_ex;
+                r_expected_instr_mem = r_expected_instr_ex;
+                r_expected_valid_mem = r_expected_valid_ex;
                 r_expected_pc_ex = r_expected_pc_id;
                 r_expected_instr_ex = r_expected_instr_id;
                 r_expected_valid_ex = r_expected_valid_id;
@@ -186,7 +219,7 @@ module tb_fetch;
             check_word(w_dbg_latch_word, expected_decode_info(r_expected_instr_ex, r_expected_valid_ex), "selector 6");
             r_dbg_latch_sel = 4'd15;
             #1;
-            check_word(w_dbg_latch_word, {30'd0, r_expected_valid_ex, r_expected_valid_id}, "selector 15");
+            check_word(w_dbg_latch_word, {29'd0, r_expected_valid_mem, r_expected_valid_ex, r_expected_valid_id}, "selector 15");
         end
     endtask
 
@@ -223,6 +256,9 @@ module tb_fetch;
         write_instruction(8'd2, 32'h0020_81b3);
         write_instruction(8'd3, 32'h0030_2023);
         write_instruction(8'd255, 32'h1234_50b7);
+        write_instruction(8'd4, 32'h0080_02ef);
+        write_instruction(8'd5, 32'h0040_8367);
+        write_instruction(8'd6, 32'hfff0_0393);
         check_word(w_imem_data, 32'h0050_0093, "load while reset asserted");
 
         @(negedge r_clock);
@@ -304,7 +340,19 @@ module tb_fetch;
         end
         check_word(u_cpu.w_instr_id, 32'h0ff0_0213, "new program word survives reset");
         r_en = 1'b0;
-        for (index = 7; index < 15; index = index + 1) begin
+        r_dbg_latch_sel = 4'd7;
+        #1;
+        check_word(w_dbg_latch_word, r_expected_pc_mem, "selector 7");
+        r_dbg_latch_sel = 4'd8;
+        #1;
+        check_word(w_dbg_latch_word, expected_execute_result(r_expected_instr_mem, r_expected_pc_mem), "selector 8");
+        r_dbg_latch_sel = 4'd9;
+        #1;
+        check_word(w_dbg_latch_word, 32'd0, "selector 9 store data");
+        r_dbg_latch_sel = 4'd10;
+        #1;
+        check_word(w_dbg_latch_word, expected_decode_info(r_expected_instr_mem, r_expected_valid_mem) & 32'h8783_801f, "selector 10");
+        for (index = 11; index < 15; index = index + 1) begin
             r_dbg_latch_sel = index[3:0];
             #1;
             check_word(w_dbg_latch_word, 32'd0, "unimplemented selector");

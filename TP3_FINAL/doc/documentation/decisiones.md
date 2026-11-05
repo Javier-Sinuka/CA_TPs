@@ -37,3 +37,9 @@ Se exponen los campos ya existentes mediante los selectores 0, 1 y el bit 0 de 1
 Se mantienen separados encoding y ocupación como pide A-14: controles y consumo efectivos usan `i_valid_id && w_valid_instr_id`, mientras ID/EX transporta `i_valid_id` como ocupación. Una instrucción no soportada no produce efectos ni una nueva excepción; el tratamiento del retiro se revisará al integrar WB. Reset/flush/captura inválida mantienen la política de A-12. WB válido puede completar su escritura durante un stall/flush de una instrucción más joven, pero la pausa global o reset lo impiden.
 
 Los selectores 2…6 y valid EX del debug parcial ahora muestran los registros de ID/EX. Los operandos siguen siendo los capturados y el layout de B no cambia. La estructura, los permisos y los límites actuales se detallan en [datapath §14](00_datapath.md#14-id-implementada-en-a-14-decode-regfile-e-idex).
+
+## A-15: resultado EX separado del destino de salto
+
+`execute_stage` encapsula ALU y EX/MEM para reutilizar exactamente el mismo circuito en CPU y arnés. LUI selecciona el inmediato U completo; JAL/JALR seleccionan PC EX+4; las demás operaciones seleccionan ALU. El dato de store proviene del segundo registro antes del mux de inmediato. Los operandos `w_rs1_fwd_ex/w_rs2_fwd_ex` del CPU preparan la conexión de forwarding y hoy equivalen a los datos capturados.
+
+El enlace y la salida de ALU son señales separadas. No se implementan todavía destino definitivo, condición de branch, `take_ex`, alineación JALR ni redirección; A-24/A-25 conservan ese alcance. EX/MEM aplica la política de A-12 y el debug agrega solo los campos existentes de MEM. El detalle está en [datapath §15](00_datapath.md#15-ex-implementada-en-a-15-cálculo-y-captura-exmem).
