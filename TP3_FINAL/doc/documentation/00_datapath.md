@@ -183,7 +183,7 @@ Las decisiones ya fijadas para este dibujo son: **pipeline de cinco etapas**, **
 
 ## 12. Registros de pipeline implementados en A-12
 
-Actualización del 2026-11-04: las secciones anteriores describen el diseño inicial. Los contratos posteriores resolvieron capacidad, alineación, dirty e interfaz, como explica [02 — Estado y memorias](02_estado_y_memorias.md). A-12 implementa los cuatro registros por flanco; todavía no existe el CPU que conecta sus etapas. La [evidencia de A-12](../validation/A-12.md) registra las pruebas y la síntesis aislada.
+Actualización del 2026-11-04: las secciones anteriores describen el diseño inicial. Los contratos posteriores resolvieron capacidad, alineación, dirty e interfaz, como explica [02 — Estado y memorias](02_estado_y_memorias.md). A-12 implementa los cuatro registros por flanco; al cerrar esa issue todavía no existía el CPU que conecta sus etapas. La [evidencia de A-12](../validation/A-12.md) registra las pruebas y la síntesis aislada. La sección 13 describe el fetch incorporado después en A-13.
 
 ```mermaid
 flowchart LR
@@ -244,3 +244,40 @@ En esta tabla, identificadores incluye `rd`, `rs1`, `rs2` y `funct3`; controles 
 ### Palabras `info` sin almacenamiento adicional
 
 `id_ex`, `ex_mem` y `mem_wb` ofrecen `o_info[31:0]` mediante concatenación combinacional de sus registros. El layout es el de [dump §3.1](../../../planning/_fuentes/documentacion_companero/dump.md); `o_info` no agrega otro flop. EX incluye los campos definidos en el contrato. MEM solo permite bits de la máscara `0x8783801F`; WB solo permite `0x8600001F`. Los bits restantes están conectados a cero. El selector 15 y sus flags globales se implementarán con el CPU; A-12 solo aporta los cuatro bits de validez de etapa.
+
+## 13. IF implementada en A-13: PC y captura de instrucciones
+
+`cpu.v` declara la interfaz pública mediante el `cpu_ports.vh` original de B. Por ahora integra únicamente `r_pc_if` y una instancia `u_if_id`; las etapas ID/EX/MEM/WB todavía no se conectan. La [evidencia A-13](../validation/A-13.md) distingue las pruebas de fetch de la futura ejecución de programas.
+
+```mermaid
+flowchart LR
+    PC[r_pc_if: PC byte de 32 bits] --> ADD[PC + 4]
+    ADD -->|flanco con w_adv| PC
+    PC --> OUT[o_imem_addr y o_dbg_pc]
+    OUT --> IDX[Selección externa de bits 9:2]
+    IDX --> IMEM[imem de B: 256 palabras]
+    IMEM -->|i_imem_data combinacional| IFID[u_if_id]
+    PC -->|PC del mismo fetch| IFID
+    IFID --> ID[w_pc_id, w_instr_id, w_valid_id]
+    ID --> DBG[Lectura debug parcial]
+```
+
+En cada flanco con `w_adv = i_en && !o_halted`, IF/ID captura el PC **anterior** al flanco y el dato leído en esa dirección; al mismo tiempo, el PC de IF recibe PC+4. Se usan asignaciones no bloqueantes para que la instrucción no quede asociada al PC del siguiente fetch. Reset es síncrono y prioritario, incluso durante pausa: pone PC e IF/ID a cero y `valid_id=0`. Con `i_en=0`, ambos almacenamientos conservan todos sus bits.
+
+| Avance habilitado tras reset | `o_imem_addr` después del flanco | `w_pc_id` | `w_instr_id` en el TB |
+|---|---|---|---|
+| 1 | `0x00000004` | `0x00000000` | `0x00500093` |
+| 2 | `0x00000008` | `0x00000004` | `0x00A00113` |
+| 3 | `0x0000000C` | `0x00000008` | `0x002081B3` |
+
+La dirección pública conserva los 32 bits en bytes. El TB conecta `o_imem_addr[9:2]` a la única `imem` externa de B; CPU no contiene memoria de programa ni un puerto que la borre. Tras alcanzar PC 1024, la memoria vuelve al índice 0 y el PC sigue mostrando 1024. Escribir una instrucción en la memoria mientras el CPU está pausado cambia el dato combinacional de IF y no modifica lo capturado en IF/ID.
+
+Para observar esta etapa desde los puertos públicos, el mux debug parcial usa `casez` con selector conocido: 0 muestra PC ID, 1 muestra instrucción ID y 15 muestra únicamente `valid_id` en bit 0. Los selectores restantes devuelven cero. También quedan en cero `o_halted`, `o_dbg_reg_data`, `o_dbg_mem_data` y `o_dbg_mem_dirty`: sus etapas aún no están implementadas. A-30 completará el mapa debug; estos ceros no representan ejecución ni estado arquitectónico de un CPU completo.
+
+Los puertos flush y stall de `u_if_id` están conectados a cero en A-13. A-22 incorporará la retención común de PC/IFID por load-use; A-25 agregará redirección de PC y flush con prioridad sobre stall; A-27 incorporará `w_stop_fetch` y el drenado de HALT. Esas decisiones deben entrar dentro del guard de avance y respetar el reset prioritario. Todavía no se detiene fetch al leer `0x00000073`.
+
+`cpu.v` y `tb_fetch.sv` están registrados en el proyecto Vivado con tops `cpu` y `tb_fetch`. El proyecto referencia el header de B y su `imem.v` mediante rutas externas; requiere el worktree hermano `TPs-companion`. El runner permite otra ubicación mediante `--companion PATH`:
+
+```bash
+python3 TP3_FINAL/tools/run.py tb tb_fetch --companion ../TPs-companion
+```

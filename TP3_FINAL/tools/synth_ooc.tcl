@@ -7,8 +7,13 @@ file mkdir $output
 create_project -in_memory -part $part
 set include_dirs {}
 foreach source $sources {
-    read_verilog $source
     lappend include_dirs [file dirname $source]
+}
+set_property include_dirs [lsort -unique $include_dirs] [current_fileset]
+foreach source $sources {
+    if {[file extension $source] ne ".vh"} {
+        read_verilog $source
+    }
 }
 synth_design -top $top -part $part -mode out_of_context -include_dirs [lsort -unique $include_dirs]
 create_clock -name i_clock -period 10.000 [get_ports i_clock]

@@ -34,6 +34,15 @@ TBS = {
 }
 
 EXTERNAL_TBS = {
+    "tb_fetch": {
+        "top": "tb_fetch",
+        "files": (
+            f"TP3_FINAL/{RTL}/cpu.v",
+            f"TP3_FINAL/{RTL}/if_id.v",
+            f"TP3_FINAL/{TB}/tb_fetch.sv",
+        ),
+        "companion_files": (f"TP3_FINAL/{RTL}/debug/imem.v",),
+    },
     "tb_imem": {
         "top": "tb_imem",
         "files": (),
@@ -53,6 +62,7 @@ EXTERNAL_TBS = {
 }
 
 SYNTH = {
+    "cpu": (f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/if_id.v"),
     "if_id": (f"TP3_FINAL/{RTL}/if_id.v",),
     "id_ex": (f"TP3_FINAL/{RTL}/id_ex.v",),
     "ex_mem": (f"TP3_FINAL/{RTL}/ex_mem.v",),
@@ -63,3 +73,7 @@ SYNTH = {
 }
 
 EXTERNAL_SYNTH = {"imem"}
+
+SYNTH_COMPANION_HEADERS = {
+    "cpu": (f"TP3_FINAL/{RTL}/debug/cpu_ports.vh",),
+}

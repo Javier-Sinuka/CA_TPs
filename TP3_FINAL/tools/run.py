@@ -9,7 +9,7 @@ import tempfile
 from pathlib import Path
 
 sys.dont_write_bytecode = True
-from tbs import EXTERNAL_SYNTH, EXTERNAL_TBS, PHASE1_TOPS, RTL, SYNTH, TBS
+from tbs import EXTERNAL_SYNTH, EXTERNAL_TBS, PHASE1_TOPS, RTL, SYNTH, SYNTH_COMPANION_HEADERS, TBS
 
 
 TP3_FINAL = Path(__file__).resolve().parents[1]
@@ -85,11 +85,12 @@ def run_tb(name: str, companion: Path | None = None) -> int:
 
 
 def synth_ooc(top: str, companion: Path | None = None) -> int:
-    if top in EXTERNAL_SYNTH and companion is None:
+    if (top in EXTERNAL_SYNTH or top in SYNTH_COMPANION_HEADERS) and companion is None:
         print(f"{top} requires --companion PATH", file=sys.stderr)
         return 1
     root = companion.resolve() if top in EXTERNAL_SYNTH else REPO
     sources = [root / source for source in SYNTH[top]]
+    sources.extend(companion.resolve() / source for source in SYNTH_COMPANION_HEADERS.get(top, ()))
     missing = [source for source in sources if not source.is_file()]
     if missing:
         print("Missing sources: " + ", ".join(str(source) for source in missing), file=sys.stderr)

@@ -23,3 +23,9 @@ La política de signo se aplica después de escoger el byte o half de la palabra
 Se aplica la prioridad `reset > conservar sin enable > flush > stall > captura` prevista por A-12. El reset pone todos los campos a cero. El flush borra `valid` y controles, pero conserva PC, datos, identificadores de registros y `funct3` para facilitar inspección. Una captura con `i_valid=0` actualiza esos datos e identificadores y fuerza todos los controles a cero. Esta es la concreción interna de la política de burbujas que A-12 pide documentar; no modifica puertos públicos ni posiciones del dump de B.
 
 Cada campo almacenado tiene un proceso secuencial propio. Los operandos de ID/EX son los capturados en ID; el forwarding futuro usará conexiones separadas. `uses_rs1/uses_rs2` solo se almacenan en ID/EX para identificar consumidores reales y no ocupan bits de `info`. Las tres palabras `o_info` son concatenaciones combinacionales de los campos presentes; no se añaden registros ni se llevan campos ausentes a etapas posteriores. El detalle de campos y selectores está en [datapath §12](00_datapath.md#12-registros-de-pipeline-implementados-en-a-12).
+
+## A-13: integración inicial de fetch
+
+El primer `cpu.v` contiene solo el PC y `u_if_id`, con un mismo permiso de avance. El PC público es byte y no se trunca al índice de imem. El header público `cpu_ports.vh` y la memoria de B permanecen en su worktree: se incorporan como referencias externas en el proyecto y como dependencias del runner.
+
+Se exponen los campos ya existentes mediante los selectores 0, 1 y el bit 0 de 15; los campos y salidas aún no implementados se conectan a cero, sin emular el stub. La implementación completa de flags/debug corresponde a A-30. No hay detección de HALT, stall ni redirección en esta versión: [datapath §13](00_datapath.md#13-if-implementada-en-a-13-pc-y-captura-de-instrucciones) documenta dónde deberán integrarse y qué prioridades conservar.
