@@ -455,3 +455,7 @@ El CPU ya conecta las cinco etapas, pero aún no incorpora forwarding, load-use,
 python3 TP3_FINAL/tools/run.py tb tb_mem_wb
 python3 TP3_FINAL/tools/run.py test --companion ../TPs-companion
 ```
+
+## 17. Cierre del pipeline base en A-17
+
+El CPU de cinco etapas queda validado localmente con un programa de todas las R/I-ALU, LUI y memoria separado por tres NOP, en ejecución continua y pausada. El [informe completo A-M03](03_pipeline_base.md) explica la estructura con diagramas, campos por registro, etapas, permisos, debug y seguimiento temporal. El [gate A-M03](../validation/A-M03.md) y la [evidencia A-17](../validation/A-17.md) registran resultados y límites. Forwarding, riesgos, redirección y HALT se implementarán en las siguientes issues.

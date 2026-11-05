@@ -218,6 +218,21 @@
     </FileSet>
     <FileSet Name="sim_1" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_1" RelGenDir="$PGENDIR/sim_1">
       <Filter Type="Srcs"/>
+      <File Path="$PPRDIR/tb/tb_cpu_no_hazard.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/arith_no_hazard.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/arith_no_hazard.expected.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/tb/tb_mem_wb.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -296,7 +311,7 @@
       </File>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
-        <Option Name="TopModule" Val="tb_mem_wb"/>
+        <Option Name="TopModule" Val="tb_cpu_no_hazard"/>
         <Option Name="TopLib" Val="xil_defaultlib"/>
         <Option Name="TopAutoSet" Val="TRUE"/>
         <Option Name="VerilogDir" Val="$PPRDIR/rtl"/>
@@ -325,6 +340,8 @@
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
       <Filter Type="Utils"/>
+      <File Path="$PPRDIR/../../programs/arith_no_hazard.s"/>
+      <File Path="$PPRDIR/../../programs/arith_no_hazard.expected.json"/>
       <Config>
         <Option Name="TopAutoSet" Val="TRUE"/>
       </Config>

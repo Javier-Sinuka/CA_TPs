@@ -107,3 +107,7 @@ Desde `Practico/TPs`, la regresión local se ejecuta con `python3 TP3_FINAL/tool
 ## 6. Alcance de la verificación
 
 Los TB comprueban lectura y escritura, reset y pausa, bypass y acceso debug concurrente. La síntesis aislada muestra qué estructuras infiere Vivado y sus recursos para la parte Basys3. No mide el timing del sistema completo ni sustituye la prueba del CPU real. Las conexiones finales de `regfile` y `dmem` con WB/MEM, y la recepción de `i_imem_data` por IF/ID, pertenecen a las siguientes issues. Los contratos entre A y B se mantienen en [interfaz_cpu.md](interfaz_cpu.md) y las decisiones locales en [decisiones.md](decisiones.md).
+
+## 7. Integración posterior
+
+A-M03 ya conecta estos bloques con el CPU real. La [guía 03 — Pipeline base](03_pipeline_base.md) describe IF/ID/EX/MEM/WB, el retorno de writeback, los permisos efectivos, debug y la prueba de cierre sin riesgos. Las menciones a etapas futuras de esta guía corresponden al estado al cerrar A-M02.

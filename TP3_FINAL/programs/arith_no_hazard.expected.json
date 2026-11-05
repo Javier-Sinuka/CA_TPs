@@ -1,0 +1,193 @@
+{
+  "logical_advances": 145,
+  "marker_pc": 560,
+  "marker_rd": 31,
+  "marker_value": "000005a5",
+  "register_writes": 31,
+  "stores": 4,
+  "registers": [
+    "00000000",
+    "fffffff0",
+    "00000003",
+    "12345000",
+    "fffffff3",
+    "ffffffed",
+    "ffffff80",
+    "1ffffffe",
+    "fffffffe",
+    "00000000",
+    "fffffff3",
+    "fffffff3",
+    "00000001",
+    "00000000",
+    "ffffffeb",
+    "ffffff80",
+    "1ffffffe",
+    "fffffffe",
+    "00000050",
+    "fffffff5",
+    "0000000f",
+    "00000001",
+    "00000001",
+    "12345000",
+    "fffffff0",
+    "000000f0",
+    "fffffff0",
+    "0000fff0",
+    "fff0f000",
+    "00000000",
+    "12254000",
+    "000005a5"
+  ],
+  "dirty_words": {
+    "0": "12345000",
+    "1": "fff0f000",
+    "255": "00000000"
+  },
+  "instructions": [
+    {
+      "pc": 0,
+      "assembly": "addi x1,x0,-16"
+    },
+    {
+      "pc": 16,
+      "assembly": "addi x2,x0,3"
+    },
+    {
+      "pc": 32,
+      "assembly": "lui x3,0x12345"
+    },
+    {
+      "pc": 48,
+      "assembly": "add x4,x1,x2"
+    },
+    {
+      "pc": 64,
+      "assembly": "sub x5,x1,x2"
+    },
+    {
+      "pc": 80,
+      "assembly": "sll x6,x1,x2"
+    },
+    {
+      "pc": 96,
+      "assembly": "srl x7,x1,x2"
+    },
+    {
+      "pc": 112,
+      "assembly": "sra x8,x1,x2"
+    },
+    {
+      "pc": 128,
+      "assembly": "and x9,x1,x2"
+    },
+    {
+      "pc": 144,
+      "assembly": "or x10,x1,x2"
+    },
+    {
+      "pc": 160,
+      "assembly": "xor x11,x1,x2"
+    },
+    {
+      "pc": 176,
+      "assembly": "slt x12,x1,x2"
+    },
+    {
+      "pc": 192,
+      "assembly": "sltu x13,x1,x2"
+    },
+    {
+      "pc": 208,
+      "assembly": "addi x14,x1,-5"
+    },
+    {
+      "pc": 224,
+      "assembly": "slli x15,x1,3"
+    },
+    {
+      "pc": 240,
+      "assembly": "srli x16,x1,3"
+    },
+    {
+      "pc": 256,
+      "assembly": "srai x17,x1,3"
+    },
+    {
+      "pc": 272,
+      "assembly": "andi x18,x1,95"
+    },
+    {
+      "pc": 288,
+      "assembly": "ori x19,x1,5"
+    },
+    {
+      "pc": 304,
+      "assembly": "xori x20,x1,-1"
+    },
+    {
+      "pc": 320,
+      "assembly": "slti x21,x1,-1"
+    },
+    {
+      "pc": 336,
+      "assembly": "sltiu x22,x1,-1"
+    },
+    {
+      "pc": 352,
+      "assembly": "sw x3,0(x0)"
+    },
+    {
+      "pc": 368,
+      "assembly": "sb x1,5(x0)"
+    },
+    {
+      "pc": 384,
+      "assembly": "sh x1,6(x0)"
+    },
+    {
+      "pc": 400,
+      "assembly": "sw x0,1020(x0)"
+    },
+    {
+      "pc": 416,
+      "assembly": "lw x23,0(x0)"
+    },
+    {
+      "pc": 432,
+      "assembly": "lb x24,5(x0)"
+    },
+    {
+      "pc": 448,
+      "assembly": "lbu x25,5(x0)"
+    },
+    {
+      "pc": 464,
+      "assembly": "lh x26,6(x0)"
+    },
+    {
+      "pc": 480,
+      "assembly": "lhu x27,6(x0)"
+    },
+    {
+      "pc": 496,
+      "assembly": "lw x28,4(x0)"
+    },
+    {
+      "pc": 512,
+      "assembly": "lw x29,8(x0)"
+    },
+    {
+      "pc": 528,
+      "assembly": "add x30,x23,x28"
+    },
+    {
+      "pc": 544,
+      "assembly": "addi x0,x0,99"
+    },
+    {
+      "pc": 560,
+      "assembly": "addi x31,x0,1445"
+    }
+  ]
+}

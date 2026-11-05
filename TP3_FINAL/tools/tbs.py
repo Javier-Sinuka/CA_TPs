@@ -58,6 +58,15 @@ TBS = {
 }
 
 EXTERNAL_TBS = {
+    "tb_cpu_no_hazard": {
+        "top": "tb_cpu_no_hazard",
+        "files": (
+            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/if_id.v",
+            *DECODE_FILES, *EXECUTE_FILES, *MEMORY_FILES,
+            f"TP3_FINAL/{TB}/tb_cpu_no_hazard.sv",
+        ),
+        "companion_files": (f"TP3_FINAL/{RTL}/debug/imem.v",),
+    },
     "tb_fetch": {
         "top": "tb_fetch",
         "files": (

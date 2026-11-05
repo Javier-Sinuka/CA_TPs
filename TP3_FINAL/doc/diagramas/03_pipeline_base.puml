@@ -1,0 +1,31 @@
+@startdot
+digraph pipeline_base {
+ graph [rankdir=TB, bgcolor="white", pad="0.3", nodesep="0.35", ranksep="0.55", splines=polyline,
+        fontname="DejaVu Sans", fontsize=20, label="A-M03: CPU de cinco etapas", labelloc=t];
+ node [shape=box, style="rounded,filled", color="#334155", fontname="DejaVu Sans", fontsize=12, margin="0.16,0.13", fillcolor="#dbeafe"];
+ edge [fontname="DejaVu Sans", fontsize=10, color="#475569", arrowsize=0.7];
+ imem [label="imem.v externa (B) · 256 × 32\nPC[9:2] → lectura combinacional\nCarga desde el arnés",fillcolor="#dcfce7"];
+ subgraph cluster_cpu {
+  label="cpu.v (A) · avance común w_adv · reset síncrono prioritario"; labelloc=b; color="#94a3b8"; style=rounded;
+  fetch [label="IF\nr_pc_if\nPC → PC + 4"];
+  id [shape=plain,label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="10" COLOR="#334155"><TR><TD BGCOLOR="#bfdbfe">IF/ID · 65 bits<BR/>PC, instrucción, valid</TD></TR><TR><TD BGCOLOR="#dbeafe">ID · u_decode<BR/>control → alu_control<BR/>imm_gen + regfile</TD></TR></TABLE>>];
+  ex [shape=plain,label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="10" COLOR="#334155"><TR><TD BGCOLOR="#bfdbfe">ID/EX · 163 bits<BR/>PC, operandos, inmediato<BR/>rd/rs, controles, valid</TD></TR><TR><TD BGCOLOR="#dbeafe">EX · u_execute<BR/>ALU + selección<BR/>LUI / enlace PC + 4</TD></TR></TABLE>>];
+  mem [shape=plain,label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="10" COLOR="#334155"><TR><TD BGCOLOR="#bfdbfe">EX/MEM · 110 bits<BR/>PC, resultado, store<BR/>rd, controles, valid</TD></TR><TR><TD BGCOLOR="#dbeafe">MEM · u_memory<BR/>dmem + dirty<BR/>load / store parcial</TD></TR></TABLE>>];
+  wb [shape=plain,label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="10" COLOR="#334155"><TR><TD BGCOLOR="#bfdbfe">MEM/WB · 105 bits<BR/>PC, resultado, load<BR/>rd, controles, valid</TD></TR><TR><TD BGCOLOR="#dbeafe">WB · u_memory<BR/>mux resultado / load<BR/>permiso de escritura</TD></TR></TABLE>>];
+  {rank=same; fetch; id; ex; mem; wb;}
+  fetch -> id [label="PC + instrucción"];
+  id -> ex [label="paquete ID"];
+  ex -> mem [label="paquete EX"];
+  mem -> wb [label="paquete MEM"];
+  wb -> id [label="WB → regfile y bypass ID: rd, dato, write efectivo",constraint=false,color="#2563eb"];
+  debug [label="Debug combinacional\nPC IF · 16 selectores de latches\n32 registros · 256 palabras + dirty",fillcolor="#fef3c7"];
+  id -> debug [style=dashed];
+  ex -> debug [style=dashed];
+  mem -> debug [style=dashed];
+  wb -> debug [style=dashed];
+ }
+ imem -> fetch [label="i_imem_data / o_imem_addr"];
+ note [shape=note,label="Tres NOP entre instrucciones significativas.\nSin gestión de riesgos, redirección ni parada HALT todavía.\nB permanece en su worktree; no se integró system.v.",fillcolor="#fff7ed",fontsize=11];
+ debug -> note [style=invis];
+}
+@enddot
