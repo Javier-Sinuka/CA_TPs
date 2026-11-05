@@ -48,8 +48,10 @@ module cpu (
     wire         w_reg_write_mem;
     wire         w_halt_mem;
     wire [31:0]  w_info_mem;
-    wire [31:0] w_rs1_fwd_ex = w_rs1_data_ex;
-    wire [31:0] w_rs2_fwd_ex = w_rs2_data_ex;
+    wire [1:0] w_forward_a_ex;
+    wire [1:0] w_forward_b_ex;
+    wire [31:0] w_rs1_fwd_ex;
+    wire [31:0] w_rs2_fwd_ex;
     wire [31:0] w_result_ex;
 
     wire         w_valid_wb;
@@ -64,6 +66,23 @@ module cpu (
     wire [31:0] w_wb_data;
     wire w_regfile_we;
     wire w_dmem_we;
+
+    function [31:0] select_forward;
+        input [1:0] i_select;
+        input [31:0] i_captured;
+        input [31:0] i_result_mem;
+        input [31:0] i_wb_data;
+        begin
+            casez (i_select)
+                2'b10: select_forward = i_result_mem;
+                2'b01: select_forward = i_wb_data;
+                default: select_forward = i_captured;
+            endcase
+        end
+    endfunction
+
+    assign w_rs1_fwd_ex = select_forward(w_forward_a_ex, w_rs1_data_ex, w_result_mem, w_wb_data);
+    assign w_rs2_fwd_ex = select_forward(w_forward_b_ex, w_rs2_data_ex, w_result_mem, w_wb_data);
 
     always @(posedge i_clock) begin
         if (i_reset)
@@ -124,6 +143,23 @@ module cpu (
         .o_uses_rs2_ex(w_uses_rs2_ex),
         .o_info_ex(w_info_ex),
         .o_dbg_reg_data(o_dbg_reg_data)
+    );
+
+    forwarding_unit u_forwarding (
+        .i_valid_ex(w_valid_ex),
+        .i_uses_rs1_ex(w_uses_rs1_ex),
+        .i_uses_rs2_ex(w_uses_rs2_ex),
+        .i_rs1_ex(w_rs1_ex),
+        .i_rs2_ex(w_rs2_ex),
+        .i_valid_mem(w_valid_mem),
+        .i_reg_write_mem(w_reg_write_mem),
+        .i_mem_read_mem(w_mem_read_mem),
+        .i_rd_mem(w_rd_mem),
+        .i_valid_wb(w_valid_wb),
+        .i_reg_write_wb(w_reg_write_wb),
+        .i_rd_wb(w_rd_wb),
+        .o_forward_a(w_forward_a_ex),
+        .o_forward_b(w_forward_b_ex)
     );
 
     execute_stage u_execute (

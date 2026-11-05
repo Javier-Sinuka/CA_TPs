@@ -35,6 +35,7 @@ module tb_fetch;
     reg [31:0] r_model_mem [0:255];
     reg r_model_dirty [0:255];
     reg [31:0] r_reference_info, r_reference_data;
+    reg [31:0] r_reference_a, r_reference_b;
     reg [31:0] r_golden_register;
     integer model_index;
     reg [31:0] r_expected_pc_mem, r_expected_instr_mem;
@@ -129,6 +130,49 @@ module tb_fetch;
             endcase
         end
     endfunction
+
+    function automatic expected_uses_rs1(input [31:0] instruction);
+        begin
+            expected_uses_rs1 = 1'b0;
+            casez (instruction)
+                32'h0050_0093, 32'h00a0_0113, 32'h0ff0_0213,
+                32'hfff0_0393, 32'hfff4_0493, 32'h0630_0013,
+                32'h0000_0013, 32'h0020_81b3, 32'h0030_2023,
+                32'h0090_2223, 32'h0000_2403, 32'h0040_2503,
+                32'h0040_8367: expected_uses_rs1 = 1'b1;
+                default: begin end
+            endcase
+        end
+    endfunction
+
+    function automatic expected_uses_rs2(input [31:0] instruction);
+        begin
+            expected_uses_rs2 = 1'b0;
+            casez (instruction)
+                32'h0020_81b3, 32'h0030_2023,
+                32'h0090_2223: expected_uses_rs2 = 1'b1;
+                default: begin end
+            endcase
+        end
+    endfunction
+
+    task automatic expected_forward(input [4:0] source, input [31:0] captured,
+                                    input used, output [31:0] resolved);
+        reg [31:0] mem_info;
+        reg [31:0] wb_info;
+        begin
+            resolved = captured;
+            mem_info = expected_decode_info(r_expected_instr_mem, r_expected_valid_mem);
+            wb_info = expected_decode_info(r_expected_instr_wb, r_expected_valid_wb);
+            if (r_expected_valid_ex && used && source != 5'd0) begin
+                if (r_expected_valid_mem && mem_info[26] && mem_info[4:0] == source) begin
+                    if (!mem_info[23]) resolved = r_expected_result_mem;
+                end else if (r_expected_valid_wb && wb_info[26] && wb_info[4:0] == source) begin
+                    resolved = wb_info[25] ? r_expected_load_wb : r_expected_result_wb;
+                end
+            end
+        end
+    endtask
 
     function automatic [31:0] model_load(input [31:0] address, input [2:0] funct3);
         reg [31:0] word_value;
@@ -244,13 +288,17 @@ module tb_fetch;
                 r_reference_data = (r_expected_valid_mem && r_reference_info[23]) ? model_load(r_expected_result_mem, r_expected_instr_mem[14:12]) : 32'd0;
                 if (r_expected_valid_mem && r_reference_info[24])
                     model_store(r_expected_result_mem, r_expected_instr_mem[14:12], r_expected_store_mem);
+                expected_forward(r_expected_instr_ex[19:15], r_expected_rs1_ex,
+                                 expected_uses_rs1(r_expected_instr_ex), r_reference_a);
+                expected_forward(r_expected_instr_ex[24:20], r_expected_rs2_ex,
+                                 expected_uses_rs2(r_expected_instr_ex), r_reference_b);
                 r_expected_pc_wb = r_expected_pc_mem;
                 r_expected_instr_wb = r_expected_instr_mem;
                 r_expected_valid_wb = r_expected_valid_mem;
                 r_expected_result_wb = r_expected_result_mem;
                 r_expected_load_wb = r_reference_data;
-                r_expected_result_mem = expected_execute_result(r_expected_instr_ex, r_expected_pc_ex, r_expected_rs1_ex, r_expected_rs2_ex);
-                r_expected_store_mem = r_expected_rs2_ex;
+                r_expected_result_mem = expected_execute_result(r_expected_instr_ex, r_expected_pc_ex, r_reference_a, r_reference_b);
+                r_expected_store_mem = r_reference_b;
                 r_expected_pc_mem = r_expected_pc_ex;
                 r_expected_instr_mem = r_expected_instr_ex;
                 r_expected_valid_mem = r_expected_valid_ex;

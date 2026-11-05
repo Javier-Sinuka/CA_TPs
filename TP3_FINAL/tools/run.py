@@ -44,16 +44,19 @@ def run_tb(name: str, companion: Path | None = None) -> int:
     build.mkdir(exist_ok=True)
     output = build / f"{name}.vvp"
     log = build / f"{name}.log"
-    if name in EXTERNAL_TBS and companion is None:
+    if (spec.get("companion_files") or spec.get("companion_headers")) and companion is None:
         print(f"{name} requires --companion PATH", file=sys.stderr)
         return 1
     sources = [REPO / source for source in spec["files"]]
-    sources.extend(companion / source for source in spec.get("companion_files", ()))
-    missing = [source for source in sources if not source.is_file()]
+    headers = []
+    if companion is not None:
+        sources.extend(companion / source for source in spec.get("companion_files", ()))
+        headers.extend(companion / source for source in spec.get("companion_headers", ()))
+    missing = [source for source in (*sources, *headers) if not source.is_file()]
     if missing:
         print("Missing sources: " + ", ".join(str(source) for source in missing), file=sys.stderr)
         return 1
-    incdirs = {str(source.parent) for source in sources}
+    incdirs = {str(source.parent) for source in (*sources, *headers)}
     command = ["iverilog", "-g2012", "-Wall", "-Wno-timescale"]
     for incdir in sorted(incdirs):
         command.extend(("-I", incdir))
