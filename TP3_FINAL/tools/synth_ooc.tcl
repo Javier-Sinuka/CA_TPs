@@ -16,6 +16,8 @@ foreach source $sources {
     }
 }
 synth_design -top $top -part $part -mode out_of_context -include_dirs [lsort -unique $include_dirs]
-create_clock -name i_clock -period 10.000 [get_ports i_clock]
+if {[llength [get_ports -quiet i_clock]] > 0} {
+    create_clock -name i_clock -period 10.000 [get_ports i_clock]
+}
 report_utilization -file [file join $output util.rpt]
 report_methodology -file [file join $output methodology.rpt]
