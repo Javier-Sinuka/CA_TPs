@@ -61,6 +61,7 @@ route_design
 
 report_timing_summary -file $out/timing.rpt
 report_utilization    -file $out/util.rpt
+report_utilization    -hierarchical -file $out/util_hier.rpt
 report_clocks         -file $out/clocks.rpt
 set wns [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
 set whs [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -hold]]

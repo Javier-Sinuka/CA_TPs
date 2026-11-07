@@ -70,4 +70,7 @@ CLK_GEN = f"{RTL}/top/clk_gen.v"
 BITS = {
     "top_uart_echo": {"files": UART_RTL + [f"{RTL}/top/top_uart_echo.v"],
                       "xdc": "TP3_FINAL/constraints/basys3_uart_echo.xdc"},
+    # El define CPU_STUB se pasa siempre por --define: no va acá (el CPU real usa el mismo top).
+    "top_debug": {"files": DEBUG_FILES_BASE + [f"{RTL}/top/top_debug.v"],
+                  "xdc": "TP3_FINAL/constraints/basys3_debug.xdc"},
 }
