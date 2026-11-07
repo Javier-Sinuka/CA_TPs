@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -201,7 +202,8 @@ def test_cli_error(tmp_path: Path) -> None:
     src.write_text("nop\nadd x1, x2\n", encoding="utf-8")
     out = tmp_path / "out"
     r = subprocess.run([sys.executable, "-m", "asm.rvasm", str(src), "-o", str(out)], cwd=SW,
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, encoding="utf-8",
+                       env={**os.environ, "PYTHONIOENCODING": "utf-8"})
     assert r.returncode == 1
     assert r.stderr.strip() == f"{src}:2: error: 'add' espera 3 operandos, recibió 2"
     assert not out.exists() and not (tmp_path / "bad.hex").exists()
