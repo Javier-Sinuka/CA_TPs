@@ -90,6 +90,12 @@ def regs(src: Path, out: Path) -> int:
         sys.stderr.write(res.stderr)
         print(f"rars_ref regs: RARS no terminó limpio ({len(found)} registros leídos)")
         return 2
+    if "terminated due to errors" in res.stdout + res.stderr:
+        # p. ej. lw desalineado: RARS lo trata como excepción (el ISS, D-18, no); el programa debe
+        # listar en `# rars-ignore:` los registros afectados.
+        extra = [l for l in (res.stdout + res.stderr).splitlines() if not _REG_LINE.match(l)]
+        sys.stderr.write("\n".join(extra) + "\n")
+        sys.stderr.write("rars_ref regs: aviso: RARS terminó con errores de ejecución\n")
     data: dict[str, list[str]] = {"x": ["0x00000000"] + [found[f"x{i}"] for i in range(1, 32)]}
     if ignore:
         data["ignore"] = ignore
