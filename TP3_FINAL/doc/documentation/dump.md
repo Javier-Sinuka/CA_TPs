@@ -148,3 +148,46 @@ Lo producen el ISS (B-21), la simulación RTL y la placa (B-27), y se comparan e
 | `mem` | Palabras de dmem escritas al menos una vez por el programa, `[dirección en bytes, dato]`, ascendente. En RTL/placa: los pares del dump |
 
 Con `stop = "limit"` solo se compara `stop` (las cuentas de ciclos e instrucciones no son comparables). `sw/host/canonical.py` tiene `from_dump(d: Dump) -> dict`, `load(path) -> dict`, `diff(a, b) -> list[str]` (una línea por diferencia: `x5: iss=0x00000003 rtl=0x00000004`).
+
+## 7. Ejemplos
+
+Dumps del `cpu_stub` con 0 y 1 ciclos, generados con `host.dump.encode` (los mismos que debe producir `stub_dump` en B-09).
+
+`stub_dump(0, 20)` (210 bytes):
+
+```
+a5 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 01 00 00 00 02 00 00 00 03 00 00 00 04 00 00
+00 05 00 00 00 06 00 00 00 07 00 00 00 08 00 00
+00 09 00 00 00 0a 00 00 00 0b 00 00 00 0c 00 00
+00 0d 00 00 00 0e 00 00 00 0f 00 00 00 10 00 00
+00 11 00 00 00 12 00 00 00 13 00 00 00 14 00 00
+00 15 00 00 00 16 00 00 00 17 00 00 00 18 00 00
+00 19 00 00 00 1a 00 00 00 1b 00 00 00 1c 00 00
+00 1d 00 00 00 1e 00 00 00 1f 00 00 00 00 00 00
+1a 00 00 01 1a 00 00 02 1a 00 00 03 1a 00 00 04
+1a 00 00 05 1a 00 00 06 1a 00 00 07 1a 00 00 08
+1a 00 00 09 1a 00 00 0a 1a 00 00 0b 1a 00 00 0c
+1a 00 00 0d 1a 00 00 0e 1a 00 00 0f 1a 00 00 00
+00 09
+```
+
+`stub_dump(1, 20)` (234 bytes):
+
+```
+a5 00 01 00 00 01 00 00 00 04 00 00 00 00 00 00
+00 01 01 00 00 02 01 00 00 03 01 00 00 04 01 00
+00 05 01 00 00 06 01 00 00 07 01 00 00 08 01 00
+00 09 01 00 00 0a 01 00 00 0b 01 00 00 0c 01 00
+00 0d 01 00 00 0e 01 00 00 0f 01 00 00 10 01 00
+00 11 01 00 00 12 01 00 00 13 01 00 00 14 01 00
+00 15 01 00 00 16 01 00 00 17 01 00 00 18 01 00
+00 19 01 00 00 1a 01 00 00 1b 01 00 00 1c 01 00
+00 1d 01 00 00 1e 01 00 00 1f 01 00 00 01 00 00
+1a 01 00 01 1a 01 00 02 1a 01 00 03 1a 01 00 04
+1a 01 00 05 1a 01 00 06 1a 01 00 07 1a 01 00 08
+1a 01 00 09 1a 01 00 0a 1a 01 00 0b 1a 01 00 0c
+1a 01 00 0d 1a 01 00 0e 1a 01 00 0f 1a 03 00 00
+00 10 00 00 00 04 00 00 d0 40 00 00 00 10 00 00
+d0 fc 00 00 00 3f 00 00 d0 4f
+```

@@ -12,7 +12,7 @@ DEBUG_FILES_BASE = SYSTEM_FILES + [f"{RTL}/debug/cpu_stub.v"]
 DEBUG_FILES = DEBUG_FILES_BASE + [f"{TB}/debug/tb_debug_unit.sv"]
 
 # Fase 10: A agrega acá los archivos del CPU (cpu.v y submódulos); con eso se habilita
-# tb_system_prog (system con el CPU real, sin CPU_STUB).
+# tb_system_prog (system con el CPU real, sin CPU_STUB) y se suman al bitstream de top_debug.
 CPU_FILES: list[str] = []
 
 # Claves de cada entrada: "top", "files"; opcionales "incdirs" (lista de directorios para -I,
@@ -69,6 +69,7 @@ SYNTH = {
                 f"{RTL}/uart/uart_tx.v", f"{RTL}/uart/uart_if.v"],
     "cpu_stub": [f"{RTL}/debug/cpu_stub.v"],
     "debug_unit": [f"{RTL}/debug/debug_unit.v"],
+    "imem": [f"{RTL}/debug/imem.v"],
 }
 
 # Cada mutación copia el archivo a build/mut/<name>/, reemplaza "old" (que tiene que aparecer
@@ -86,6 +87,6 @@ BITS = {
     "top_uart_echo": {"files": UART_RTL + [f"{RTL}/top/top_uart_echo.v"],
                       "xdc": "TP3_FINAL/constraints/basys3_uart_echo.xdc"},
     # El define CPU_STUB se pasa siempre por --define: no va acá (el CPU real usa el mismo top).
-    "top_debug": {"files": DEBUG_FILES_BASE + [f"{RTL}/top/top_debug.v"],
+    "top_debug": {"files": DEBUG_FILES_BASE + CPU_FILES + [f"{RTL}/top/top_debug.v"],
                   "xdc": "TP3_FINAL/constraints/basys3_debug.xdc"},
 }

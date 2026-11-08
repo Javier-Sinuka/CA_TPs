@@ -59,7 +59,7 @@ Un solo punto de entrada; devuelve 0 si todo pasó y 1 si algo falló. Se ejecut
 | `mutate` | Mutaciones de B-04 (y las que se agreguen) |
 | `vectors [--check]` | Regenera los vectores de `$TB/debug/vectors/` con `tools/gen_vectors.py`; con `--check` falla si cambian (B-09) |
 | `test` | `iss` + `vectors --check` + `tbs` + `pytest` + `mutate`, en ese orden (los tests de Python usan `build/iss.exe`), sin cortar en la primera falla; imprime un resumen |
-| `regress [--board COMx]` | B-27 |
+| `regress [--levels iss,fake,rtl,board] [--board COMx] [--program <nombre>] [--iss-mutant sra]` | B-27 |
 | `synth_ooc <top>` | Síntesis out-of-context con `tools/synth_ooc.tcl` |
 | `bit <top> [--mhz N] [--define NAME ...]` | Bitstream con `tools/build_bit.tcl`; cada `--define` va a `synth_design -verilog_define` (ej. `CPU_STUB`) |
 
