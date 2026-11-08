@@ -58,6 +58,13 @@ module cpu (
     wire [31:0] w_rs1_fwd_ex;
     wire [31:0] w_rs2_fwd_ex;
     wire [31:0] w_result_ex;
+    reg         r_branch_taken_ex;
+    wire        w_operands_equal_ex = w_rs1_fwd_ex == w_rs2_fwd_ex;
+    wire [31:0] w_jalr_sum_ex = w_rs1_fwd_ex + w_imm_ex;
+    wire [31:0] w_target_ex = w_jalr_ex
+        ? {w_jalr_sum_ex[31:1], 1'b0}
+        : w_pc_ex + w_imm_ex;
+    wire        w_take_ex = w_valid_ex && (w_jump_ex || (w_branch_ex && r_branch_taken_ex));
 
     wire         w_valid_wb;
     wire [31:0]  w_pc_wb;
@@ -88,6 +95,15 @@ module cpu (
 
     assign w_rs1_fwd_ex = select_forward(w_forward_a_ex, w_rs1_data_ex, w_result_mem, w_wb_data);
     assign w_rs2_fwd_ex = select_forward(w_forward_b_ex, w_rs2_data_ex, w_result_mem, w_wb_data);
+
+    always @(*) begin
+        r_branch_taken_ex = 1'b0;
+        casez (w_funct3_ex)
+            3'b000: r_branch_taken_ex = w_operands_equal_ex;
+            3'b001: r_branch_taken_ex = !w_operands_equal_ex;
+            default: begin end
+        endcase
+    end
 
     always @(posedge i_clock) begin
         if (i_reset)
