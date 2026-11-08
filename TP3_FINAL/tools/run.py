@@ -9,6 +9,7 @@ Uso, desde la raíz del repo:
     py TP3_FINAL/tools/run.py pytest
     py TP3_FINAL/tools/run.py iss
     py TP3_FINAL/tools/run.py test
+    py TP3_FINAL/tools/run.py regress [--levels iss,fake,rtl,board] [--board COMx] [--program <nombre>] [--iss-mutant sra]
     py TP3_FINAL/tools/run.py bit <top> [--mhz 50|100] [--clk wiz|mmcm] [--define NAME]
     py TP3_FINAL/tools/run.py program <archivo.bit>
 iverilog y vvp corren con cwd = raíz del repo: los TB abren archivos con rutas relativas a esa raíz.
@@ -218,6 +219,11 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("pytest")
     sub.add_parser("iss")
     sub.add_parser("test")
+    pr = sub.add_parser("regress")
+    pr.add_argument("--levels", default="iss,fake,rtl", help="lista separada por comas: iss,fake,rtl,board")
+    pr.add_argument("--board", metavar="COMx", help="puerto de la placa; agrega el nivel board")
+    pr.add_argument("--program", help="un solo programa (nombre sin .s)")
+    pr.add_argument("--iss-mutant", choices=["sra"], help="corre el nivel iss con un ISS con bug inyectado")
     sub.add_parser("synth_ooc").add_argument("top", choices=sorted(SYNTH))
     pb = sub.add_parser("bit")
     pb.add_argument("top", choices=sorted(BITS))
@@ -241,6 +247,9 @@ def main(argv: list[str] | None = None) -> int:
         ok = run_iss() != "FAIL"
     elif a.cmd == "test":
         ok = run_test()
+    elif a.cmd == "regress":
+        import regress
+        return regress.main(a)
     elif a.cmd == "bit":
         ok = run_bit(a.top, a.mhz, a.clk, a.define)
     elif a.cmd == "program":
