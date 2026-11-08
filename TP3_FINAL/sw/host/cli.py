@@ -79,10 +79,8 @@ class Session:
         out.append(f"conectado: protocolo {v.proto}, imem {v.imem_words}, "
                    f"dmem {v.dmem_words} palabras")
 
-    def _cmd_load(self, args: list[str], out: list[str]) -> None:
-        if len(args) != 1:
-            raise CliError("uso: load <ruta>")
-        path = Path(args[0])
+    def load_path(self, path: Path) -> list[int]:
+        """Ensambla (.s) o lee (.hex), carga en la placa y deja el dump inicial como estado."""
         if path.suffix == ".s":
             words = assemble(path.read_text(encoding="utf-8"))
         elif path.suffix == ".hex":
@@ -93,6 +91,12 @@ class Session:
         self.words = words
         d = self.link.dump()
         self.prev, self.cur = None, d
+        return words
+
+    def _cmd_load(self, args: list[str], out: list[str]) -> None:
+        if len(args) != 1:
+            raise CliError("uso: load <ruta>")
+        words = self.load_path(Path(args[0]))
         out.append(f"cargado: {len(words)} palabras ({args[0]})")
 
     def _cmd_reset(self, args: list[str], out: list[str]) -> None:

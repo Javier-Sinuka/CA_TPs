@@ -201,6 +201,16 @@ def test_argumentos_invalidos(s, line, msg):
     assert s.execute(line) == [f"error: {msg}"]
 
 
+def test_load_path_acepta_rutas_con_espacios(s, tmp_path):
+    d = tmp_path / "carpeta con espacios"
+    d.mkdir()
+    p = d / "un programa.s"
+    p.write_text("addi x1, x0, 5\n", encoding="utf-8")
+    words = s.load_path(p)
+    assert words[0] == 0x00500093 and s.words == words
+    assert s.prev is None and s.cur is not None and s.cur.cycles == 0
+
+
 def test_load_errores(s, tmp_path):
     assert s.execute("load prog.txt") == [
         "error: extensión no soportada '.txt' (usar .s o .hex)"]
