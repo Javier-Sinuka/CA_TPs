@@ -5,9 +5,15 @@ TB = "TP3_FINAL/VIVADO/TP_FINAL/tb"
 UART_RTL = [f"{RTL}/uart/baud_gen.v", f"{RTL}/uart/uart_rx.v",
             f"{RTL}/uart/uart_tx.v", f"{RTL}/uart/uart_if.v"]
 
-DEBUG_FILES_BASE = UART_RTL + [f"{RTL}/debug/debug_unit.v", f"{RTL}/debug/cpu_stub.v",
-                               f"{RTL}/debug/imem.v", f"{RTL}/debug/system.v"]
+# Todo lo de `system` menos el CPU. Con CPU_STUB se le suma cpu_stub.v; con el CPU real, CPU_FILES.
+SYSTEM_FILES = UART_RTL + [f"{RTL}/debug/debug_unit.v", f"{RTL}/debug/imem.v",
+                           f"{RTL}/debug/system.v"]
+DEBUG_FILES_BASE = SYSTEM_FILES + [f"{RTL}/debug/cpu_stub.v"]
 DEBUG_FILES = DEBUG_FILES_BASE + [f"{TB}/debug/tb_debug_unit.sv"]
+
+# Fase 10: A agrega acá los archivos del CPU (cpu.v y submódulos); con eso se habilita
+# tb_system_prog (system con el CPU real, sin CPU_STUB).
+CPU_FILES: list[str] = []
 
 # Claves de cada entrada: "top", "files"; opcionales "incdirs" (lista de directorios para -I,
 # por ejemplo f"{TB}/common" para `include "uart_bfm.svh"), "defines", "params", "legacy".
@@ -43,7 +49,16 @@ TBS = {
     "tb_system_debug": {"top": "tb_system_debug",
                         "files": DEBUG_FILES_BASE + [f"{TB}/debug/tb_system_debug.sv"],
                         "incdirs": [f"{TB}/common"], "defines": {"CPU_STUB": "1"}},
+    "tb_system_prog_stub": {"top": "tb_system_prog",
+                            "files": SYSTEM_FILES + [f"{RTL}/debug/cpu_stub.v",
+                                                     f"{TB}/system/tb_system_prog.sv"],
+                            "incdirs": [f"{TB}/common"], "defines": {"CPU_STUB": "1"}},
 }
+
+if CPU_FILES:
+    TBS["tb_system_prog"] = {"top": "tb_system_prog",
+                             "files": SYSTEM_FILES + CPU_FILES + [f"{TB}/system/tb_system_prog.sv"],
+                             "incdirs": [f"{TB}/common"], "defines": {}}
 
 # Síntesis out-of-context: top -> archivos.
 SYNTH = {
