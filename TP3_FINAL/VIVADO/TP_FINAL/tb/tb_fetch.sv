@@ -250,7 +250,7 @@ module tb_fetch;
             check_word({31'd0, w_dbg_mem_dirty}, {31'd0, r_model_dirty[r_dbg_mem_addr]}, "committed dirty");
             check_word(w_imem_data, r_program[(r_expected_pc / 4) % 256],
                        "asynchronous imem");
-            check_word({31'd0, w_halted}, 32'd0, "HALT not implemented yet");
+            check_word({31'd0, w_halted}, 32'd0, "fetch program has no HALT");
         end
     endtask
 
@@ -387,6 +387,9 @@ module tb_fetch;
             r_program[index] = 32'h0000_0073;
         tick();
         check_debug();
+
+        for (index = 0; index < 256; index = index + 1)
+            write_instruction(index[7:0], 32'h0000_0013);
 
         write_instruction(8'd0, 32'h0050_0093);
         write_instruction(8'd1, 32'h00a0_0113);

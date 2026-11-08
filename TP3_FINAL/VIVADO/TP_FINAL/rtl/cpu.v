@@ -1,11 +1,13 @@
 `timescale 1ns/1ps
 `default_nettype none
+`include "riscv_defs.vh"
 
 module cpu (
 `include "cpu_ports.vh"
 );
     reg [31:0] r_pc_if;
     reg [31:0] r_dbg_latch_word;
+    reg        r_fetch_stopped;
 
     wire        w_adv = i_en && !o_halted;
     wire [31:0] w_pc_next_if = r_pc_if + 32'd4;
@@ -65,6 +67,10 @@ module cpu (
         ? {w_jalr_sum_ex[31:1], 1'b0}
         : w_pc_ex + w_imm_ex;
     wire        w_take_ex = w_valid_ex && (w_jump_ex || (w_branch_ex && r_branch_taken_ex));
+    wire        w_halt_id = w_instr_id == `RISCV_HALT_INSTR;
+    wire        w_halt_accept_id = !i_reset && w_adv && w_valid_id && w_halt_id
+                                  && !w_take_ex && !w_load_use_stall;
+    wire        w_stop_fetch = !w_take_ex && (r_fetch_stopped || w_halt_accept_id);
 
     wire         w_valid_wb;
     wire [31:0]  w_pc_wb;
@@ -111,8 +117,19 @@ module cpu (
         else if (w_adv) begin
             if (w_take_ex)
                 r_pc_if <= w_target_ex;
-            else if (!w_load_use_stall)
+            else if (!w_load_use_stall && !w_stop_fetch)
                 r_pc_if <= w_pc_next_if;
+        end
+    end
+
+    always @(posedge i_clock) begin
+        if (i_reset)
+            r_fetch_stopped <= 1'b0;
+        else if (w_adv) begin
+            if (w_take_ex)
+                r_fetch_stopped <= 1'b0;
+            else if (w_halt_accept_id)
+                r_fetch_stopped <= 1'b1;
         end
     end
 
@@ -120,7 +137,7 @@ module cpu (
         .i_clock(i_clock),
         .i_reset(i_reset),
         .i_en(w_adv),
-        .i_flush(w_take_ex),
+        .i_flush(w_take_ex || w_stop_fetch),
         .i_stall(w_load_use_stall),
         .i_valid(1'b1),
         .i_pc(r_pc_if),
@@ -134,7 +151,7 @@ module cpu (
         .i_clock(i_clock),
         .i_reset(i_reset),
         .i_en(w_adv),
-        .i_flush(w_take_ex || w_load_use_stall),
+        .i_flush(w_take_ex || w_load_use_stall || r_fetch_stopped),
         .i_stall(1'b0),
         .i_valid_id(w_valid_id),
         .i_pc_id(w_pc_id),
@@ -300,7 +317,7 @@ module cpu (
     assign o_imem_addr = r_pc_if;
     assign o_dbg_pc = r_pc_if;
     assign o_dbg_latch_word = r_dbg_latch_word;
-    assign o_halted = 1'b0;
+    assign o_halted = w_valid_wb && w_halt_wb;
 endmodule
 
 `default_nettype wire
