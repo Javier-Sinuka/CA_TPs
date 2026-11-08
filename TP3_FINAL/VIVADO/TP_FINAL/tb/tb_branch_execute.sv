@@ -250,12 +250,12 @@ module tb_branch_execute;
             r_en = 1'b1;
             stalls = 0;
             observations = 0;
-            for (cycle = 0; cycle < 12; cycle = cycle + 1) begin
+            for (cycle = 0; cycle < 12 && observations == 0; cycle = cycle + 1) begin
                 #1;
                 if (dut.w_load_use_stall) stalls = stalls + 1;
                 @(posedge r_clock);
                 #1;
-                check_word(w_dbg_pc, (cycle + 1 - stalls)*4, "sequential IF before A-25");
+                check_word(w_dbg_pc, (cycle + 1 - stalls)*4, "sequential IF before first control transfer");
                 if (dut.w_valid_ex && dut.w_pc_ex == r_operation_pc) begin
                     observations = observations + 1;
                     check_operation();
@@ -270,6 +270,11 @@ module tb_branch_execute;
                     @(negedge r_clock);
                     r_en = 1'b1;
                 end else @(negedge r_clock);
+            end
+            repeat (4) begin
+                @(posedge r_clock);
+                #1;
+                @(negedge r_clock);
             end
             check_word(observations, 1, "operation observed exactly once");
             check_word(stalls, scenario == 8 || scenario == 9 ? 1 : 0, "load-use count");

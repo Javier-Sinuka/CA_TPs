@@ -89,13 +89,13 @@ module tb_forwarding_paths;
                     end
                     32'd28: begin
                         r_seen[3] = 1'b1;
-                        check_word({30'd0, dut.w_forward_a_ex}, 32'd2, "JAL link selector");
+                        check_word({30'd0, dut.w_forward_a_ex}, 32'd0, "JAL link captured through WB to ID");
                         check_word(dut.w_rs1_fwd_ex, 32'd28, "JAL link value");
                         check_word(dut.w_result_ex, 32'd30, "JAL dependent result");
                     end
                     32'd36: begin
                         r_seen[4] = 1'b1;
-                        check_word({30'd0, dut.w_forward_a_ex}, 32'd2, "JALR link selector");
+                        check_word({30'd0, dut.w_forward_a_ex}, 32'd0, "JALR link captured through WB to ID");
                         check_word(dut.w_rs1_fwd_ex, 32'd36, "JALR link value");
                         check_word(dut.w_result_ex, 32'd39, "JALR dependent result");
                     end
@@ -118,12 +118,12 @@ module tb_forwarding_paths;
                         r_seen[7] = 1'b1;
                         check_word({30'd0, dut.w_forward_a_ex}, 32'd2, "JALR base selector");
                         check_word(dut.w_rs1_fwd_ex, 32'd64, "JALR forwarded base");
-                        check_word(dut.u_execute.w_alu_result_ex, 32'd64, "JALR target calculation");
+                        check_word(dut.u_execute.w_alu_result_ex, 32'd72, "JALR target calculation");
                         check_word(dut.w_result_ex, 32'd72, "JALR architectural link");
                     end
                     32'd72: begin
                         r_seen[8] = 1'b1;
-                        check_word({30'd0, dut.w_forward_a_ex}, 32'd2, "second JALR link selector");
+                        check_word({30'd0, dut.w_forward_a_ex}, 32'd0, "second JALR link captured through WB to ID");
                         check_word(dut.w_rs1_fwd_ex, 32'd72, "second JALR link value");
                         check_word(dut.w_result_ex, 32'd73, "second JALR dependent result");
                     end
@@ -178,7 +178,7 @@ module tb_forwarding_paths;
         r_program[5] = 32'h00a1_8213;
         r_program[6] = 32'h0040_04ef;
         r_program[7] = 32'h0024_8513;
-        r_program[8] = 32'h0000_05e7;
+        r_program[8] = 32'h0240_05e7;
         r_program[9] = 32'h0035_8613;
         r_program[10] = 32'h0000_2683;
         r_program[11] = 32'h0010_0713;
@@ -187,14 +187,14 @@ module tb_forwarding_paths;
         r_program[14] = 32'h0160_0913;
         r_program[15] = 32'h0128_8063;
         r_program[16] = 32'h0400_0993;
-        r_program[17] = 32'h0009_8a67;
+        r_program[17] = 32'h0089_8a67;
         r_program[18] = 32'h001a_0a93;
 
         tick();
         tick();
         @(negedge r_clock);
         r_reset = 1'b0;
-        repeat (28) tick();
+        repeat (40) tick();
 
         check_word({23'd0, r_seen}, 32'h0000_01ff, "all forwarding paths observed");
         check_reg(5'd0, 32'd0);

@@ -2,7 +2,7 @@
 `default_nettype none
 
 module tb_load_use_consumers;
-    localparam ADVANCES = 127;
+    localparam ADVANCES = 131;
     reg r_clock, r_reset, r_en;
     reg [4:0] r_dbg_reg_addr;
     reg [3:0] r_dbg_latch_sel;
@@ -22,7 +22,8 @@ module tb_load_use_consumers;
     reg [31:0] r_snapshot [0:303];
     reg [31:0] r_snapshot_pc;
     reg [1:0] r_snapshot_usage;
-    reg r_expected_stall, r_observed_stall;
+    reg r_expected_stall, r_observed_stall, r_expected_take;
+    reg [31:0] r_expected_target, r_instr_id_model;
     reg [37:0] r_event;
     reg r_expected_store;
     wire [31:0] w_imem_addr;
@@ -165,6 +166,9 @@ module tb_load_use_consumers;
             #1;
             r_expected_stall = r_valid[0] && r_valid[1] && r_hazard_at[r_pc[0][9:2]] &&
                                (r_pc[1] + 32'd4 == r_pc[0]);
+            r_expected_take = r_valid[1] && (r_pc[1] == 200 || r_pc[1] == 232);
+            r_expected_target = r_pc[1] + 32'd4;
+            if (!r_reset) check_word(dut.w_take_ex, r_expected_take, "scheduled control transfer");
             r_observed_stall = dut.w_load_use_stall;
             if (!r_reset) check_word(r_observed_stall, r_expected_stall, "scheduled consumer stall");
             r_event = 38'd0;
@@ -197,7 +201,7 @@ module tb_load_use_consumers;
             clocks = clocks + 1;
             if (r_reset) begin
                 advances = 0; stalls = 0; paused_hazards = 0; writes = 0; stores = 0; markers = 0;
-                r_pc_if = 32'd0;
+                r_pc_if = 32'd0; r_instr_id_model = 32'd0;
                 r_valid = 4'd0; r_dirty = 256'd0; r_seen = 13'd0;
                 for (n = 0; n < 4; n = n + 1) r_pc[n] = 32'd0;
                 for (n = 0; n < 32; n = n + 1) r_regs[n] = 32'd0;
@@ -207,12 +211,17 @@ module tb_load_use_consumers;
                 if (r_observed_stall) stalls = stalls + 1;
                 r_pc[3] = r_pc[2]; r_valid[3] = r_valid[2];
                 r_pc[2] = r_pc[1]; r_valid[2] = r_valid[1];
-                if (r_expected_stall) begin
+                if (r_expected_take) begin
+                    r_valid[1:0] = 2'b00;
+                    r_pc_if = r_expected_target;
+                    check_word(dut.w_info_ex[31:18], 0, "redirect bubble controls neutralized");
+                end else if (r_expected_stall) begin
                     r_valid[1] = 1'b0;
                     check_word(dut.w_info_ex[31:18], 0, "bubble controls neutralized");
                 end else begin
                     r_pc[1] = r_pc[0]; r_valid[1] = r_valid[0];
                     r_pc[0] = r_pc_if; r_valid[0] = 1'b1;
+                    r_instr_id_model = r_program[r_pc_if[9:2]];
                     r_pc_if = r_pc_if + 32'd4;
                 end
                 check_consumer();
@@ -227,7 +236,7 @@ module tb_load_use_consumers;
             check_word(dut.w_pc_mem, r_pc[2], "MEM PC");
             check_word(dut.w_pc_wb, r_pc[3], "WB PC");
             check_word({dut.w_valid_wb, dut.w_valid_mem, dut.w_valid_ex, dut.w_valid_id}, r_valid, "valid pattern");
-            check_word(dut.w_instr_id, r_valid[0] ? r_program[r_pc[0][9:2]] : 0, "IFID instruction");
+            check_word(dut.w_instr_id, r_instr_id_model, "IFID instruction including retained flush payload");
             for (n = 0; n < 32; n = n + 1) begin
                 r_dbg_reg_addr = n[4:0];
                 #1;
@@ -301,7 +310,7 @@ module tb_load_use_consumers;
             check_word(stalls, 10, "ten real dependencies, no false stalls");
             check_word(paused_hazards, mode == 1 ? 30 : 0, "paused risk does not add enabled stalls");
             check_word(advances, ADVANCES, "exact logical completion");
-            check_word(clocks, mode == 1 ? 168 : 128, "physical clocks including reset and pauses");
+            check_word(clocks, mode == 1 ? 172 : 132, "physical clocks including reset and pauses");
             check_word(r_seen, 13'h1fff, "all thirteen consumers observed");
             check_word(writes, 36, "exact commit count");
             check_word(stores, 5, "exact store count");
@@ -317,7 +326,7 @@ module tb_load_use_consumers;
         end
         $fclose(trace_file);
         if (errors != 0) $fatal(1, "FAIL tb_load_use_consumers: %0d errors in %0d checks", errors, checks);
-        $display("PASS tb_load_use_consumers: %0d checks, 13 consumers, continuous and paused; branch operands only", checks);
+        $display("PASS tb_load_use_consumers: %0d checks, 13 consumers, continuous and paused; branch operands and real redirects", checks);
         $finish;
     end
 endmodule

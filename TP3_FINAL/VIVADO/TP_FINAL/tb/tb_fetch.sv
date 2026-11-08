@@ -393,8 +393,8 @@ module tb_fetch;
         write_instruction(8'd2, 32'h0020_81b3);
         write_instruction(8'd3, 32'h0030_2023);
         write_instruction(8'd255, 32'h1234_50b7);
-        write_instruction(8'd4, 32'h0080_02ef);
-        write_instruction(8'd5, 32'h0040_8367);
+        write_instruction(8'd4, 32'h0000_0013);
+        write_instruction(8'd5, 32'h0000_0013);
         write_instruction(8'd6, 32'hfff0_0393);
         check_word(w_imem_data, 32'h0050_0093, "load while reset asserted");
 
