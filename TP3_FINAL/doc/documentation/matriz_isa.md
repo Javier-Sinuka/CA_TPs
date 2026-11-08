@@ -130,3 +130,19 @@ El [informe A-M05](05_load_use.md) y su [gate](../validation/A-M05.md) amplían 
 | Load a x0 y consumidor de x0 | 324 / 328 | Cero stalls; x0 sigue cero. |
 
 La regresión también conserva los TB anteriores de 32 instrucciones y RAW. Esta ampliación no reemplaza la aceptación de control de flujo, HALT ni debug de los próximos milestones.
+
+## Cobertura de control de flujo en A-M06
+
+El [informe A-M06](06_saltos_y_flush.md) y su [gate](../validation/A-M06.md) completan las verificaciones de control que permanecían pendientes en las secciones históricas anteriores:
+
+| Instrucción / combinación | Evidencia |
+|---|---|
+| BEQ/BNE con operandos forwardeados | `tb_branch_execute`, `suma` y `branch_load_use`; comparación tomada/no tomada en el CPU real. |
+| Branch hacia atrás y contador recién actualizado | Diez iteraciones de `suma`, x1=55 y mem[0]=55; nueve redirecciones. |
+| JAL / retorno JALR | `jump_link`: ra=8, retorno a 8; enlaces 32/48 separados del destino. |
+| JALR con base recién producida / cargada | Base MEM=65→destino 64; base WB=101 más 8→destino 108. |
+| Load→BEQ/BNE por rs1/rs2 | Cuatro parejas en `branch_load_use`, una burbuja cada una, tomadas y no tomadas. |
+| Camino incorrecto con writes, stores, JAL o HALT | `tb_flush` y programas de control: no deja efectos ni enlaces. HALT persistente se repetirá en A-M07. |
+| Pausa con toma o riesgo pendiente | Mismas secuencias, commits, memoria y avances; snapshots estables. |
+
+A-26 conserva el RTL de A-25. El fin es un marcador con avance acotado; la aceptación de HALT real sigue pendiente de A-M07. Los flags debug completos y el sistema UART conservan sus hitos posteriores.

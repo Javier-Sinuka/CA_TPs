@@ -141,3 +141,46 @@ assert to_hex(words[:-1] + [0x13] * (256 - len(words[:-1]))) == base.with_suffix
 print('PASS raw_distance encoding')
 PY
 ```
+
+## Programas de control de A-M06
+
+Los programas de A-26 terminan por el commit de x31=`0x5a5`. Sus `.hex` contienen 256 palabras, con NOP después del marcador; no incorporan HALT. El ensamblador de B agrega un HALT automático, que se retira al preparar los hex RTL. A-29 repetirá la aceptación con detención real.
+
+| Programa | Propósito | Resultado independiente | Avances / stalls / redirecciones |
+|---|---|---|---|
+| [`suma.s`](suma.s) | Acumulación de 1 a 10, dependencia inmediata del contador y branch hacia atrás. | x1=55, x2=x3=11, mem[0]=55. | 57 / 0 / 9. |
+| [`jump_link.s`](jump_link.s) | `jal ra,function`, retorno `jalr x0,ra,0`, branches consecutivos y JALR con base recién producida e impar. | ra=x11=8, x5=32, x6=65, x7=48, x8=49, x10=7, mem[0]=49. | 30 / 0 / 6. |
+| [`branch_load_use.s`](branch_load_use.s) | BEQ/BNE tomados/no tomados, dependencias por rs1/rs2, load→JALR y enlaces descartados. | x1=x4=x8=73, x2=x3=x9=21, x5=x6=101, x7=104, x10=1, x11=2, x12=3. Memoria: 0→73, 4→21, 12→101, 16→3. | 43 / 5 / 4. |
+
+En los tres programas, x31=`0x5a5`; todos los registros no listados quedan en cero y x0 siempre vale cero. Las direcciones de memoria son byte y las únicas palabras dirty son las indicadas. Los `.expected.json` conservan los 32 registros, palabras dirty, conteos y la secuencia dinámica de instrucciones esperada. Esas tablas se definieron aparte del RTL; el ISS de B confirmó sus estados y cantidades de instrucciones.
+
+En `jump_link`, la secuencia de PC es `0,4,80,84,8,12,16,28,40,44,64,68,72,96`. JAL de PC=4 deja ra=8; la función agrega 4 a x10 y retorna a PC=8. BEQ de PC=12 no toma y BNE de PC=16 toma. JAL de PC=28 escribe 32 en x5. La base 65 producida en PC=40 lleva JALR de PC=44 a PC=64 y escribe enlace 48. Los JAL de PC=20/32/48/104 del conjunto de programas están en caminos descartados y sus destinos de registro deben seguir en cero.
+
+En `branch_load_use`, las parejas load→consumidor están en PC `20→24`, `40→44`, `60→64`, `76→80` y `96→100`. Las dos primeras ramas toman y las dos siguientes no toman. JALR consume el dato cargado 101 y suma 8: borra el bit 0 de 109, salta a 108 y escribe enlace 104. El test exige una única burbuja por pareja y forwarding WB hacia la fuente correspondiente.
+
+### Formato de expectativas para el testbench
+
+Cada `.expected.hex` tiene 1.152 palabras de 32 bits y representa exactamente el JSON correspondiente:
+
+| Índices | Contenido |
+|---|---|
+| 0…6 | Avances, instrucciones retiradas, writes de registros, stores, stalls, redirecciones y PC del marcador. |
+| 7…38 | x0…x31 finales. |
+| 39…294 | 256 palabras lógicas finales de dmem. |
+| 295…550 | 256 marcas dirty finales, 0 o 1. |
+| Desde 551 | Eventos dinámicos de 14 palabras; resto del archivo en cero. |
+
+Cada evento contiene: PC; efectos (bit 0=write registro, bit 1=store); rd; valor WB; dirección y dato de store; indicador de control; destino; tomado; consumidor load-use; máscara de operandos a comprobar (bit 0=rs1, bit 1=rs2); rs1 y rs2 esperados; selectores `{forward_a,forward_b}`. `ffffffff` en selectores significa que ese evento no exige un selector concreto. El campo `event_fields` del JSON conserva el mismo orden. Se incluyen todas las instrucciones ejecutadas, también branches y stores sin escritura WB, pero no las descartadas ni las burbujas.
+
+Desde `Practico/TPs`:
+
+```bash
+python3 TP3_FINAL/tools/check_control_programs.py --companion ../TPs-companion
+python3 TP3_FINAL/tools/run.py tb tb_control_flow --companion ../TPs-companion
+```
+
+El primer comando comprueba reproducción del ensamblador, 13 encodings de control literales, consistencia JSON/hex y estado contra el ISS. Compila el ISS y sus pruebas desde B, con resultados temporales en el build de A; no modifica su worktree. Agrega HALT solamente a la entrada temporal del ISS para detenerlo después del marcador. No usa el ISS para certificar cantidad de stalls o redirecciones.
+
+El TB ejecuta los tres programas de forma continua y con pausas, compara su secuencia en EX/MEM/WB y cada commit/store, y contrasta todos los registros tras cada clock. Los archivos de programa y expectativas están registrados en `sim_1` de Vivado; las fuentes `.s` y los JSON están en `utils_1`. Admite `+ROOT=/ruta/a/TPs/` con barra final o los seis hex locales al directorio de simulación. Genera `build/a26_trace.csv` y `build/a26_control_flow.vcd`.
+
+La aceptación funcional de las cuatro ramas del programa histórico `load_use.s`, anunciada para A-26, queda cubierta por `branch_load_use.s` y la regresión adaptada en A-25. El programa histórico ahora requiere 131 avances por las dos redirecciones tomadas, con diez stalls, 36 commits y cinco stores. Los resultados de 127 avances de la sección A-M05 corresponden al CPU anterior a la redirección.

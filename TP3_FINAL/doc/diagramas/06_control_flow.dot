@@ -1,0 +1,32 @@
+digraph control_flow {
+    graph [rankdir=TB, bgcolor="white", pad="0.3", nodesep="0.45", ranksep="0.48", fontname="DejaVu Sans", fontsize=20, labelloc=t, label="A-M06 · Saltos resueltos en EX y descarte del camino joven"];
+    node [shape=box, style="rounded,filled", fillcolor="#edf3ff", color="#5473a5", fontname="DejaVu Sans", fontsize=12, margin="0.16,0.12"];
+    edge [fontname="DejaVu Sans", fontsize=10, color="#52647c"];
+    pc [label="PC IF\nr_pc_if\nreset → pausa → take → stall → +4"];
+    imem [label="imem externa de B\níndice PC[9:2]\nPC byte completo en CPU", fillcolor="#e5f6ea", color="#51875d"];
+    ifid [label="IF/ID\nPC · instrucción · valid\nflush = take"];
+    idex [label="ID/EX\nPC · operandos capturados\ncontroles · valid\nflush = take O load-use"];
+    ex [label="EX: operandos reenviados\nrs1 / rs2 desde ID/EX, MEM o WB\nALU · store_data · enlace PC+4"];
+    exmem [label="EX/MEM\nresultado / enlace\nstore_data · controles · valid\nel salto se conserva"];
+    memwb [label="MEM/WB\nresultado · load_data\ncontroles · valid\nWB escribe con avance efectivo"];
+    compare [label="BEQ / BNE\nigualdad de 32 bits\ncasez de funct3", fillcolor="#fff0c7", color="#ae8633"];
+    target [label="Destino byte\nbranch / JAL: PC EX + inmediato\nJALR: (rs1 reenviado + imm) & FFFFFFFE", fillcolor="#fff0c7", color="#ae8633"];
+    take [label="w_take_ex\nvalid EX Y\n(jump O branch tomado)", fillcolor="#fff0c7", color="#ae8633"];
+    note [label="Con w_adv = 0, se conserva todo el estado.\nCon take habilitado: redirigir PC y anular valid/control de IF/ID e ID/EX.\nEX/MEM y MEM/WB avanzan; las instrucciones anteriores completan sus efectos.", fillcolor="#f5f5f5", color="#999999"];
+    {rank=same; pc; imem; ifid; idex;}
+    {rank=same; ex; exmem; memwb;}
+    {rank=same; compare; target; take;}
+    pc -> imem -> ifid -> idex -> ex -> exmem -> memwb;
+    idex -> target [label="PC EX · inmediato", color="#997122"];
+    ex -> target [label="base JALR", color="#997122"];
+    ex -> compare [label="operandos corregidos", color="#997122"];
+    compare -> take [label="condición"];
+    idex -> take [label="valid · branch · jump"];
+    target -> pc [label="w_target_ex", color="#b45137", penwidth=2, constraint=false];
+    take -> pc [label="selección prioritaria", color="#b45137", style=dashed, constraint=false];
+    take -> ifid [label="invalidar", color="#b45137", style=dashed, constraint=false];
+    take -> idex [label="invalidar", color="#b45137", style=dashed, constraint=false];
+    exmem -> ex [label="forwarding MEM", color="#1f7a4c", constraint=false];
+    memwb -> ex [label="forwarding WB", color="#1f7a4c", constraint=false];
+    take -> note [style=invis];
+}

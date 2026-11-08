@@ -2,3 +2,4 @@
 build/
 tools/*
 !tools/synth_ooc.tcl
+!tools/check_control_programs.py

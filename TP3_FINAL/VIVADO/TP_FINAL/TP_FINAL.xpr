@@ -231,7 +231,42 @@
     </FileSet>
     <FileSet Name="sim_1" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_1" RelGenDir="$PGENDIR/sim_1">
       <Filter Type="Srcs"/>
+      <File Path="$PPRDIR/tb/tb_control_flow.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/tb/tb_flush.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/suma.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/suma.expected.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/jump_link.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/jump_link.expected.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/branch_load_use.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/branch_load_use.expected.hex">
         <FileInfo>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
@@ -400,6 +435,12 @@
       </Config>
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
+      <File Path="$PPRDIR/../../programs/suma.s"/>
+      <File Path="$PPRDIR/../../programs/suma.expected.json"/>
+      <File Path="$PPRDIR/../../programs/jump_link.s"/>
+      <File Path="$PPRDIR/../../programs/jump_link.expected.json"/>
+      <File Path="$PPRDIR/../../programs/branch_load_use.s"/>
+      <File Path="$PPRDIR/../../programs/branch_load_use.expected.json"/>
       <File Path="$PPRDIR/../../programs/load_use.s"/>
       <File Path="$PPRDIR/../../programs/raw_distance.s"/>
       <Config>
