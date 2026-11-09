@@ -1,5 +1,7 @@
 # 02 — Estado y memorias
 
+> Nota de reorganización: este documento conserva evidencia y comandos históricos. Los helpers `check_*` de A se retiraron y ya no se usa `--companion`; las rutas y comandos vigentes están en [organización del proyecto](organizacion.md).
+
 Esta guía describe el milestone **A-M02 (issues A-07 a A-11)**. Añade almacenamiento y puertos de lectura para el futuro CPU RV32I: el banco de registros, la memoria de datos y el acuerdo de conexión con la memoria de instrucciones de B. Cada bloque se comprobó de forma aislada; todavía no existe un CPU de A que los instancie juntos.
 
 ![Diagrama de bloques de estado y memorias](../diagramas/02_estado_y_memorias.svg)
@@ -106,7 +108,7 @@ Desde `Practico/TPs`, la regresión local se ejecuta con `python3 TP3_FINAL/tool
 
 ## 6. Alcance de la verificación
 
-Los TB comprueban lectura y escritura, reset y pausa, bypass y acceso debug concurrente. La síntesis aislada muestra qué estructuras infiere Vivado y sus recursos para la parte Basys3. No mide el timing del sistema completo ni sustituye la prueba del CPU real. Las conexiones finales de `regfile` y `dmem` con WB/MEM, y la recepción de `i_imem_data` por IF/ID, pertenecen a las siguientes issues. Los contratos entre A y B se mantienen en [interfaz_cpu.md](interfaz_cpu.md) y las decisiones locales en [decisiones.md](decisiones.md).
+Los TB comprueban lectura y escritura, reset y pausa, bypass y acceso debug concurrente. La síntesis aislada muestra qué estructuras infiere Vivado y sus recursos para la parte Basys3. No mide el timing del sistema completo ni sustituye la prueba del CPU real. Las conexiones finales de `regfile` y `dmem` con WB/MEM, y la recepción de `i_imem_data` por IF/ID, pertenecen a las siguientes issues. Los contratos entre A y B se mantienen en [interfaz_cpu.md](cpu_interfaz.md) y las decisiones locales en [decisiones.md](cpu_decisiones.md).
 
 ## 7. Integración posterior
 

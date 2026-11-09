@@ -12,10 +12,10 @@ ese proyecto para síntesis de la placa.
 
 | Módulo | Fuente y TB | Entradas → salidas | Tipo, valores por defecto y dependencia |
 |---|---|---|---|
-| `alu` | `rtl/alu.v`, `tb/tb_alu.sv` | `i_operand_a[31:0]`, `i_operand_b[31:0]`, `i_op[3:0]` → `o_result[31:0]` | Combinacional; código no definido devuelve 0. Incluye `riscv_defs.vh`. |
-| `alu_control` | `rtl/alu_control.v`; **sin TB propio** | `i_opcode[6:0]`, `i_funct3[2:0]`, `i_funct7[6:0]` → `o_alu_op[3:0]`, `o_valid` | Combinacional; default ADD e inválido. Lo instancia `control`; incluye `riscv_defs.vh`. |
-| `imm_gen` | `rtl/imm_gen.v`, `tb/tb_imm_gen.sv` | `i_instr[31:0]` → `o_imm[31:0]` | Combinacional; opcode no reconocido devuelve 0. Incluye `riscv_defs.vh`. |
-| `control` | `rtl/control.v`, `tb/tb_control.sv` | `i_instr[31:0]` → `o_alu_op[3:0]` y 13 señales de 1 bit: `o_alu_src_b`, `o_reg_write`, `o_mem_read`, `o_mem_write`, `o_mem_to_reg`, `o_branch`, `o_jump`, `o_jalr`, `o_lui`, `o_halt`, `o_uses_rs1`, `o_uses_rs2`, `o_valid_instr` | Combinacional; default ADD y todas las banderas a 0. Requiere `alu_control.v` y el include. |
+| `alu` | `rtl/cpu/execute/alu.v`, `tb/cpu/unit/tb_alu.sv` | `i_operand_a[31:0]`, `i_operand_b[31:0]`, `i_op[3:0]` → `o_result[31:0]` | Combinacional; código no definido devuelve 0. Incluye `riscv_defs.vh`. |
+| `alu_control` | `rtl/cpu/decode/alu_control.v`; **sin TB propio** | `i_opcode[6:0]`, `i_funct3[2:0]`, `i_funct7[6:0]` → `o_alu_op[3:0]`, `o_valid` | Combinacional; default ADD e inválido. Lo instancia `control`; incluye `riscv_defs.vh`. |
+| `imm_gen` | `rtl/cpu/decode/imm_gen.v`, `tb/cpu/unit/tb_imm_gen.sv` | `i_instr[31:0]` → `o_imm[31:0]` | Combinacional; opcode no reconocido devuelve 0. Incluye `riscv_defs.vh`. |
+| `control` | `rtl/cpu/decode/control.v`, `tb/cpu/unit/tb_control.sv` | `i_instr[31:0]` → `o_alu_op[3:0]` y 13 señales de 1 bit: `o_alu_src_b`, `o_reg_write`, `o_mem_read`, `o_mem_write`, `o_mem_to_reg`, `o_branch`, `o_jump`, `o_jalr`, `o_lui`, `o_halt`, `o_uses_rs1`, `o_uses_rs2`, `o_valid_instr` | Combinacional; default ADD y todas las banderas a 0. Requiere `alu_control.v` y el include. |
 
 Ninguno tiene clock, reset, enable ni parámetros. Los cuatro usan `always @(*)`
 y asignan un valor inicial a cada salida. `alu` interpreta `SRA` y `SLT`

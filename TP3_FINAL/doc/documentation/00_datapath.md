@@ -1,5 +1,7 @@
 # Datapath del procesador RISC-V segmentado
 
+> Nota de reorganización: este documento conserva evidencia y comandos históricos. Los helpers `check_*` de A se retiraron y ya no se usa `--companion`; las rutas y comandos vigentes están en [organización del proyecto](organizacion.md).
+
 Este documento explica el [diagrama del datapath](../diagramas/datapath.svg) del trabajo final. Describe **qué hace cada bloque, qué información conserva cada registro intermedio y por qué existen los caminos de retorno y las señales de control**. Es una descripción de arquitectura previa al código RTL: donde la consigna y el diagrama todavía no fijan una política concreta, se indica expresamente.
 
 ![Diagrama del datapath RV32I](../diagramas/datapath.svg)
@@ -466,9 +468,9 @@ El [informe 07 — HALT y congelamiento](07_halt_y_congelamiento.md) describe la
 
 ## Mapa debug completo — A-30
 
-El [mapa debug del CPU real](dump.md) documenta los 16 selectores implementados, los campos `info` presentes en cada etapa y los ocho flags del selector 15. A-30 completa halted, load-use, take y stop_fetch en bits 4…7, conserva ceros en 31:8 y verifica operandos capturados, payload de burbujas y PC WB para HALT. La [evidencia A-30](../validation/A-30.md) registra simulación, sensibilidad y síntesis. El [informe 08](08_cpu_listo_para_debug.md) y el [gate A-M08](../validation/A-M08.md) registran el cierre local y la regresión final A-33.
+El [mapa debug del CPU real](cpu_dump.md) documenta los 16 selectores implementados, los campos `info` presentes en cada etapa y los ocho flags del selector 15. A-30 completa halted, load-use, take y stop_fetch en bits 4…7, conserva ceros en 31:8 y verifica operandos capturados, payload de burbujas y PC WB para HALT. La [evidencia A-30](../validation/A-30.md) registra simulación, sensibilidad y síntesis. El [informe 08](08_cpu_listo_para_debug.md) y el [gate A-M08](../validation/A-M08.md) registran el cierre local y la regresión final A-33.
 
-La [interfaz pública verificada en A-31](interfaz_cpu.md#interfaz-pública-verificada-en-a-31) agrega un arnés común CPU/stub con barridos de 32 registros, 16 latches y las 256 palabras de memoria, reset, dirty, stores parciales e imem externa. La [evidencia A-31](../validation/A-31.md) registra la sustitución sin cambios de puertos ni copias de B.
+La [interfaz pública verificada en A-31](cpu_interfaz.md#interfaz-pública-verificada-en-a-31) agrega un arnés común CPU/stub con barridos de 32 registros, 16 latches y las 256 palabras de memoria, reset, dirty, stores parciales e imem externa. La [evidencia A-31](../validation/A-31.md) registra la sustitución sin cambios de puertos ni copias de B.
 
 La [integración con Debug Unit y UART de A-32](integracion_debug.md) utiliza `system.v` y la BFM originales de B para LOAD, STEP, RUN, DUMP, RESET, ABORT, timeout y recuperación. Los dumps se comparan con el CPU pausado y el codec/ISS de B. A-33 completó el cierre local de A-M08 y la matriz final de 32 instrucciones más HALT.
 

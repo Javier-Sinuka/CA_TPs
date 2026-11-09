@@ -1,6 +1,6 @@
 # 04 — Forwarding y riesgos RAW
 
-Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/README.md).
+Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/cpu/README.md).
 
 Este informe describe **A-M04, issues A-18 a A-20**. El CPU de cinco etapas ya captura operandos en ID/EX y escribe resultados en WB. El milestone añade una unidad combinacional que reconoce dependencias RAW y elige, para cada operando de EX, el resultado más reciente que ya está disponible. El [gate de validación](../validation/A-M04.md) conserva los comandos y resultados medidos.
 
@@ -59,7 +59,7 @@ La distancia 3 depende del bypass local del banco de registros implementado en A
 
 ## 4. Programa y oráculos de A-20
 
-[`raw_distance.s`](../../programs/raw_distance.s) agrupa los escenarios con NOP de separación entre grupos. [`raw_distance.hex`](../../programs/raw_distance.hex) conserva 76 instrucciones y completa imem hasta 256 palabras con NOP; el HALT agregado por el ensamblador de B se retiró. El CPU todavía termina por avance acotado. El [README del programa](../../programs/README.md#programa-raw_distance-de-a-m04) documenta el comando de recodificación. Los resultados finales son constantes manuales dentro de `tb_raw.sv`, independientes del resultado observado en RTL.
+[`raw_distance.s`](../../programs/cpu/raw_distance.s) agrupa los escenarios con NOP de separación entre grupos. [`raw_distance.hex`](../../programs/cpu/raw_distance.hex) conserva 76 instrucciones y completa imem hasta 256 palabras con NOP; el HALT agregado por el ensamblador de B se retiró. El CPU todavía termina por avance acotado. El [README del programa](../../programs/cpu/README.md#programa-raw_distance-de-a-m04) documenta el comando de recodificación. Los resultados finales son constantes manuales dentro de `tb_raw.sv`, independientes del resultado observado en RTL.
 
 | PC consumidor | Caso | Selectores A/B | Resultado esperado |
 |---:|---|---|---:|

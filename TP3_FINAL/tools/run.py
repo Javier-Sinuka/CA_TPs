@@ -1,228 +1,262 @@
-"""Phase 1 elaboration and registered testbenches."""
+"""Runner único de TP3 (convenciones.md §3).
+
+Uso, desde la raíz del repo:
+    py TP3_FINAL/tools/run.py tb <nombre> [+plusarg ...]
+    py TP3_FINAL/tools/run.py tbs
+    py TP3_FINAL/tools/run.py mutate
+    py TP3_FINAL/tools/run.py synth_ooc <top>
+    py TP3_FINAL/tools/run.py vectors
+    py TP3_FINAL/tools/run.py pytest
+    py TP3_FINAL/tools/run.py iss
+    py TP3_FINAL/tools/run.py test
+    py TP3_FINAL/tools/run.py regress [--levels iss,fake,rtl,board] [--board COMx] [--program <nombre>] [--iss-mutant sra]
+    py TP3_FINAL/tools/run.py bit <top> [--mhz 50|100] [--clk wiz|mmcm] [--define NAME]
+    py TP3_FINAL/tools/run.py program <archivo.bit>
+iverilog y vvp corren con cwd = raíz del repo: los TB abren archivos con rutas relativas a esa raíz.
+"""
+from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
 import subprocess
 import sys
-import tempfile
-from datetime import datetime, timezone
 from pathlib import Path
 
-sys.dont_write_bytecode = True
-from tbs import EXTERNAL_SYNTH, EXTERNAL_TBS, PHASE1_TOPS, RTL, SYNTH, SYNTH_COMPANION_HEADERS, TBS
+TOOLS = Path(__file__).resolve().parent
+REPO = TOOLS.parents[1]
+BUILD = REPO / "TP3_FINAL" / "build"
+sys.path.insert(0, str(TOOLS))
+from tbs import BITS, CLK_GEN, MUTATIONS, SYNTH, TBS  # noqa: E402
+
+VIVADO = os.environ.get("VIVADO", "C:/Xilinx/Vivado/2024.1/bin/vivado.bat")
+BAD_SYNTH = re.compile(r"inferring latch|multi-driven|implicit", re.IGNORECASE)
 
 
-TP3_FINAL = Path(__file__).resolve().parents[1]
-REPO = TP3_FINAL.parent
-
-
-def elaborate_phase1() -> int:
-    include_dir = TP3_FINAL / RTL
-    with tempfile.TemporaryDirectory(prefix="a01-elaborate-") as build_dir:
-        for top, sources in PHASE1_TOPS.items():
-            command = [
-                "iverilog", "-g2012", "-Wall", "-Wno-timescale", "-I", str(include_dir),
-                "-s", top, "-o", str(Path(build_dir) / f"{top}.vvp"),
-                *(str(TP3_FINAL / source) for source in sources),
-            ]
-            print(f"[{top}] {' '.join(command)}", flush=True)
-            try:
-                result = subprocess.run(command, check=False)
-            except FileNotFoundError:
-                print("iverilog is not installed or is not on PATH", file=sys.stderr)
-                return 127
-            if result.returncode:
-                return result.returncode
-    print("Elaboration passed for: " + ", ".join(PHASE1_TOPS))
-    return 0
-
-
-def run_tb(name: str, companion: Path | None = None) -> int:
-    spec = TBS[name] if name in TBS else EXTERNAL_TBS[name]
+def run_tb(name: str, plusargs: list[str] | None = None) -> bool:
+    spec = TBS[name]
     top = spec["top"]
-    build = TP3_FINAL / "build"
-    build.mkdir(exist_ok=True)
-    output = build / f"{name}.vvp"
-    log = build / f"{name}.log"
-    if (spec.get("companion_files") or spec.get("companion_headers")) and companion is None:
-        print(f"{name} requires --companion PATH", file=sys.stderr)
-        return 1
-    sources = [REPO / source for source in spec["files"]]
-    headers = []
-    if companion is not None:
-        sources.extend(companion / source for source in spec.get("companion_files", ()))
-        headers.extend(companion / source for source in spec.get("companion_headers", ()))
-    missing = [source for source in (*sources, *headers) if not source.is_file()]
-    if missing:
-        print("Missing sources: " + ", ".join(str(source) for source in missing), file=sys.stderr)
-        return 1
-    incdirs = {str(source.parent) for source in (*sources, *headers)}
-    command = ["iverilog", "-g2012", "-Wall", "-Wno-timescale"]
-    for incdir in sorted(incdirs):
-        command.extend(("-I", incdir))
-    for key, value in sorted(spec.get("defines", {}).items()):
-        command.append(f"-D{key}={value}")
-    command.extend(("-s", top, "-o", str(output)))
-    command.extend(str(source) for source in sources)
-    print(' '.join(command), flush=True)
-    try:
-        result = subprocess.run(command, cwd=REPO, check=False)
-        if result.returncode:
-            return 1
-        command = ["vvp", "-n", str(output)]
-        print(' '.join(command), flush=True)
-        result = subprocess.run(command, cwd=REPO, text=True,
-                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                                check=False)
-    except FileNotFoundError as error:
-        print(f"Tool unavailable: {error.filename}", file=sys.stderr)
-        return 1
-    log.write_text(result.stdout)
-    print(result.stdout, end="")
-    lines = result.stdout.splitlines()
-    passed = result.returncode == 0 and any(
-        line.startswith(f"PASS {top}:") for line in lines
-    ) and not any(line.startswith("FAIL") for line in lines)
-    if not passed:
-        print(f"{name}: failed runner contract (see {log})", file=sys.stderr)
-        return 1
-    return 0
-
-
-def synth_ooc(top: str, companion: Path | None = None) -> int:
-    if (top in EXTERNAL_SYNTH or top in SYNTH_COMPANION_HEADERS) and companion is None:
-        print(f"{top} requires --companion PATH", file=sys.stderr)
-        return 1
-    root = companion.resolve() if top in EXTERNAL_SYNTH else REPO
-    sources = [root / source for source in SYNTH[top]]
-    sources.extend(companion.resolve() / source for source in SYNTH_COMPANION_HEADERS.get(top, ()))
-    missing = [source for source in sources if not source.is_file()]
-    if missing:
-        print("Missing sources: " + ", ".join(str(source) for source in missing), file=sys.stderr)
-        return 1
-    output = TP3_FINAL / "build" / "synth_ooc" / top
-    output.mkdir(parents=True, exist_ok=True)
-    log = output / "vivado.log"
-    vivado = os.environ.get("VIVADO", "vivado")
-    command = [vivado, "-mode", "batch", "-nojournal", "-log", str(log),
-               "-source", str(TP3_FINAL / "tools" / "synth_ooc.tcl"),
-               "-tclargs", top, str(output), *(str(source) for source in sources)]
-    print(" ".join(command), flush=True)
-    try:
-        result = subprocess.run(command, cwd=output, check=False)
-    except FileNotFoundError:
-        print(f"Vivado unavailable: {vivado}", file=sys.stderr)
-        return 127
-    content = log.read_text(errors="replace") if log.exists() else ""
-    errors = [line for line in content.splitlines() if re.search(
-        r"inferring latch|multiple drivers|multi[- ]driven|implicit net",
-        line, re.IGNORECASE)]
-    util = output / "util.rpt"
-    if util.is_file():
-        match = re.search(r"^\|\s*Register as Latch\s*\|\s*(\d+)",
-                          util.read_text(errors="replace"), re.MULTILINE)
-        if match is None or int(match.group(1)) != 0:
-            errors.append("Unexpected or missing latch count in utilization report")
-    for line in errors:
-        print(line)
-    passed = result.returncode == 0 and not errors and util.is_file()
-    print(f"{'PASS' if passed else 'FAIL'} synth_ooc {top}: {log}")
-    return 0 if passed else 1
-
-
-def regress(companion: Path) -> int:
-    companion = companion.resolve()
-    build = TP3_FINAL / "build"
-    build.mkdir(exist_ok=True)
-    python = sys.executable
-    common = ["--companion", str(companion)]
-    commands = (
-        ("ports", [python, str(TP3_FINAL / "tools/check_cpu_contract.py"), *common], ()),
-        ("programs", [python, str(TP3_FINAL / "tools/check_halt_programs.py"), *common], ()),
-        ("control", [python, str(TP3_FINAL / "tools/check_control_programs.py"), *common], ()),
-        ("vectors", [python, str(companion / "TP3_FINAL/tools/gen_vectors.py"), "--check"], ()),
-        ("rtl", [python, str(Path(__file__).resolve()), "test", *common], ()),
-        ("uart", [python, str(TP3_FINAL / "tools/check_system_dumps.py"), *common], ("rtl",)),
-        ("coverage", [python, str(TP3_FINAL / "tools/check_final_coverage.py"), *common,
-                      "--regression-log", str(build / "a33_rtl.log")],
-         ("ports", "programs", "control", "vectors", "rtl", "uart")),
-    )
-    results = {}
-    environment = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
-    for name, command, dependencies in commands:
-        log = build / f"a33_{name}.log"
-        if any(results[dependency]["status"] != "passed" for dependency in dependencies):
-            results[name] = {"status": "skipped", "command": command,
-                             "reason": "required stage failed", "log": str(log)}
-            log.write_text("SKIP: required stage failed\n")
-            print(f"SKIP regress {name}: required stage failed", flush=True)
-            continue
-        print(f"RUN regress {name}: {log}", flush=True)
-        try:
-            with log.open("w") as output:
-                result = subprocess.run(command, cwd=REPO, env=environment, stdout=output,
-                                        stderr=subprocess.STDOUT, check=False)
-            code = result.returncode
-        except OSError as error:
-            log.write_text(str(error) + "\n")
-            code = 127
-        results[name] = {"status": "passed" if code == 0 else "failed", "returncode": code,
-                         "command": command, "log": str(log)}
-        print(f"{'PASS' if code == 0 else 'FAIL'} regress {name}: exit={code}", flush=True)
-        if code:
-            print("\n".join(log.read_text(errors="replace").splitlines()[-12:]), flush=True)
-    passed = all(result["status"] == "passed" for result in results.values())
-    summary = {"timestamp_utc": datetime.now(timezone.utc).isoformat(), "cwd": str(REPO),
-               "companion": str(companion), "status": "passed" if passed else "failed",
-               "stages": results}
-    (build / "a33_regress.json").write_text(json.dumps(summary, indent=2) + "\n")
-    print(f"{'PASS' if passed else 'FAIL'} regress: {len(results)} stages; synthesis is a separate synth_ooc target")
-    return 0 if passed else 1
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("target", choices=("elaborate_phase1", "tb", "tbs", "test", "regress", "synth_ooc"))
-    parser.add_argument("name", nargs="?", choices=sorted(TBS.keys() | EXTERNAL_TBS.keys() | SYNTH.keys()))
-    parser.add_argument("--companion", type=Path)
-    args = parser.parse_args()
-    if args.target == "regress":
-        if args.name is not None or args.companion is None:
-            parser.error("regress requires --companion PATH and no testbench name")
-        return regress(args.companion)
-    if args.target == "elaborate_phase1":
-        if args.name is not None or args.companion is not None:
-            parser.error("elaborate_phase1 does not accept a testbench name")
-        return elaborate_phase1()
-    if args.target == "tb":
-        if args.name is None:
-            parser.error("tb requires a testbench name")
-        if args.name not in TBS and args.name not in EXTERNAL_TBS:
-            parser.error(f"unknown testbench: {args.name}")
-        return run_tb(args.name, args.companion)
-    if args.target == "synth_ooc":
-        if args.name not in SYNTH:
-            parser.error("synth_ooc requires a registered top")
-        return synth_ooc(args.name, args.companion)
-    if args.target == "test":
-        if args.name is not None or args.companion is None:
-            parser.error("test requires --companion PATH and no testbench name")
-        names = (*TBS, *EXTERNAL_TBS)
+    files = [REPO / f for f in spec["files"]]
+    incdirs = sorted({f.parent.as_posix() for f in files}
+                     | {(REPO / d).as_posix() for d in spec.get("incdirs", [])})
+    BUILD.mkdir(parents=True, exist_ok=True)
+    vvp = BUILD / f"{name}.vvp"
+    log = BUILD / f"{name}.log"
+    cmd = ["iverilog", "-g2012", "-Wall", "-Wno-timescale"]
+    cmd += [f"-I{d}" for d in incdirs]
+    cmd += [f"-D{k}={v}" for k, v in spec.get("defines", {}).items()]
+    cmd += [f"-P{top}.{k}={v}" for k, v in spec.get("params", {}).items()]
+    cmd += ["-s", top, "-o", vvp.as_posix()] + [f.as_posix() for f in files]
+    comp = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO)
+    if comp.returncode != 0:
+        log.write_text(comp.stdout + comp.stderr)
+        print(f"FAIL {name}: no compila (ver {log.relative_to(REPO).as_posix()})")
+        return False
+    sim = subprocess.run(["vvp", "-n", vvp.as_posix(), *(plusargs or [])],
+                         capture_output=True, text=True, cwd=REPO)
+    out = comp.stdout + comp.stderr + sim.stdout + sim.stderr
+    log.write_text(out)
+    lines = out.splitlines()
+    has_fail = any(l.startswith("FAIL") for l in lines)
+    if spec.get("legacy"):
+        ok = sim.returncode == 0 and not has_fail and not any("TIMEOUT" in l for l in lines)
     else:
-        if args.name is not None or args.companion is not None:
-            parser.error("tbs does not accept a testbench name")
-        names = TBS
-    failed = []
-    for top in names:
-        if run_tb(top, args.companion):
-            failed.append(top)
-    if failed:
-        print(f"FAIL {args.target}: " + ", ".join(failed), file=sys.stderr)
-        return 1
-    print(f"PASS {args.target}: {len(names)} testbenches")
-    return 0
+        ok = (sim.returncode == 0 and not has_fail
+              and any(l.startswith(f"PASS {top}:") for l in lines))
+    print(f"{'PASS' if ok else 'FAIL'} {name} (log: {log.relative_to(REPO).as_posix()})")
+    return ok
+
+
+def run_tbs() -> bool:
+    results = [run_tb(n) for n in TBS]
+    print(f"tbs: {sum(results)}/{len(results)} PASS")
+    return all(results)
+
+
+def run_mutate() -> bool:
+    ok_all = True
+    for m in MUTATIONS:
+        src = REPO / m["file"]
+        text = src.read_text(encoding="utf-8")
+        n = text.count(m["old"])
+        if n != 1:
+            print(f"FAIL mutate {m['name']}: el texto original aparece {n} veces")
+            ok_all = False
+            continue
+        mfile = BUILD / "mut" / m["name"] / src.name
+        mfile.parent.mkdir(parents=True, exist_ok=True)
+        mfile.write_text(text.replace(m["old"], m["new"]), encoding="utf-8")
+        spec = dict(TBS[m["tb"]])
+        spec["files"] = [mfile.relative_to(REPO).as_posix() if f == m["file"] else f
+                         for f in spec["files"]]
+        name = f"mut_{m['name']}"
+        TBS[name] = spec
+        detected = not run_tb(name)
+        print(f"{'PASS' if detected else 'FAIL'} mutate {m['name']}: "
+              f"{'detectada' if detected else 'NO detectada'}")
+        ok_all = ok_all and detected
+    return ok_all
+
+
+def run_vectors() -> bool:
+    rc = subprocess.run([sys.executable, (TOOLS / "gen_vectors.py").as_posix(), "--check"],
+                        cwd=REPO).returncode
+    return rc == 0
+
+
+def run_pytest() -> bool:
+    rc = subprocess.run([sys.executable, "-m", "pytest", "-q"], cwd=REPO / "TP3_FINAL" / "sw").returncode
+    return rc == 0
+
+
+GPP = ["g++", "-std=c++17", "-O2", "-Wall", "-Wextra", "-Werror"]
+
+
+def run_iss() -> str:
+    """Devuelve "OK", "FAIL" o "SKIP" (todavía no hay test_iss.cpp: B-21)."""
+    iss = REPO / "TP3_FINAL" / "sw" / "iss"
+    if not (iss / "test_iss.cpp").exists():
+        print("SKIP iss: sw/iss/test_iss.cpp no existe (B-21)")
+        return "SKIP"
+    BUILD.mkdir(parents=True, exist_ok=True)
+    for exe, sources in (("iss.exe", ["iss.cpp", "iss_main.cpp"]),
+                         ("test_iss.exe", ["iss.cpp", "test_iss.cpp"])):
+        cmd = GPP + ["-o", (BUILD / exe).as_posix()] + [(iss / s).as_posix() for s in sources]
+        if subprocess.run(cmd, cwd=REPO).returncode != 0:
+            print(f"FAIL iss: no compila {exe}")
+            return "FAIL"
+    ok = subprocess.run([(BUILD / "test_iss.exe").as_posix()], cwd=REPO).returncode == 0
+    print(f"{'PASS' if ok else 'FAIL'} iss")
+    return "OK" if ok else "FAIL"
+
+
+def run_test() -> bool:
+    """Orden de convenciones.md §3: iss, vectors --check, tbs, pytest, mutate; sin cortar en la primera falla."""
+    steps = [
+        ("iss", run_iss),
+        ("vectors", run_vectors),
+        ("tbs", run_tbs),
+        ("pytest", run_pytest),
+        ("mutate", run_mutate),
+    ]
+    results = []
+    for name, fn in steps:
+        r = fn()
+        results.append((name, r if isinstance(r, str) else ("OK" if r else "FAIL")))
+    print("resumen:")
+    for name, r in results:
+        print(f"  {name:<9}{r}")
+    return all(r != "FAIL" for _, r in results)
+
+
+def run_vivado(tcl: str, log: Path, args: list[str]) -> int:
+    log.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [VIVADO, "-mode", "batch", "-nojournal", "-log", log.as_posix(),
+           "-source", (TOOLS / tcl).as_posix(), "-tclargs", *args]
+    return subprocess.run(cmd).returncode
+
+
+def bad_synth_lines(log: Path) -> list[str]:
+    text = log.read_text(errors="replace") if log.exists() else ""
+    return [l for l in text.splitlines() if BAD_SYNTH.search(l)]
+
+
+def run_synth(top: str) -> bool:
+    out = BUILD / "synth_ooc" / top
+    log = out / "vivado.log"
+    files = [(REPO / f).as_posix() for f in SYNTH[top]]
+    rc = run_vivado("synth_ooc.tcl", log, [top, out.as_posix(), *files])
+    bad = bad_synth_lines(log)
+    for l in bad:
+        print(f"  {l}")
+    ok = rc == 0 and not bad
+    print(f"{'PASS' if ok else 'FAIL'} synth_ooc {top} (log: {log.relative_to(REPO).as_posix()})")
+    return ok
+
+
+def run_bit(top: str, mhz: int, clk: str, defines: list[str] | None = None) -> bool:
+    spec = BITS[top]
+    out = BUILD / "bit" / f"{top}_{mhz}mhz_{clk}"
+    log = out / "vivado.log"
+    files = [(REPO / f).as_posix() for f in spec["files"]]
+    if clk == "mmcm":
+        files.append((REPO / CLK_GEN).as_posix())
+    defs = ",".join(defines) if defines else "-"
+    rc = run_vivado("build_bit.tcl", log,
+                    [top, str(mhz), out.as_posix(), clk, (REPO / spec["xdc"]).as_posix(), defs, *files])
+    bad = bad_synth_lines(log)
+    for l in bad:
+        print(f"  {l}")
+    summary = out / "summary.txt"
+    wns_ok = False
+    if summary.exists():
+        text = summary.read_text().strip()
+        print(text)
+        m = re.search(r"WNS=(-?[0-9.]+)", text)
+        wns_ok = m is not None and float(m.group(1)) >= 0.0
+    ok = rc == 0 and not bad and wns_ok
+    bit = (out / f"{top}.bit").relative_to(REPO).as_posix()
+    print(f"{'PASS' if ok else 'FAIL'} bit {top} {mhz} MHz ({clk}) -> {bit}")
+    return ok
+
+
+def run_program(bit: str) -> bool:
+    log = BUILD / "program" / "vivado.log"
+    rc = run_vivado("program.tcl", log, [Path(bit).resolve().as_posix()])
+    print(f"{'PASS' if rc == 0 else 'FAIL'} program {bit}")
+    return rc == 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    p = argparse.ArgumentParser(prog="run.py")
+    sub = p.add_subparsers(dest="cmd", required=True)
+    ptb = sub.add_parser("tb")
+    ptb.add_argument("name", choices=sorted(TBS))
+    ptb.add_argument("plusargs", nargs="*", help="se pasan a vvp, por ejemplo +SEED=3")
+    sub.add_parser("tbs")
+    sub.add_parser("mutate")
+    sub.add_parser("vectors")
+    sub.add_parser("pytest")
+    sub.add_parser("iss")
+    sub.add_parser("test")
+    pr = sub.add_parser("regress")
+    pr.add_argument("--levels", default="iss,fake,rtl", help="lista separada por comas: iss,fake,rtl,board")
+    pr.add_argument("--board", metavar="COMx", help="puerto de la placa; agrega el nivel board")
+    pr.add_argument("--program", help="un solo programa (nombre sin .s)")
+    pr.add_argument("--iss-mutant", choices=["sra"], help="corre el nivel iss con un ISS con bug inyectado")
+    sub.add_parser("synth_ooc").add_argument("top", choices=sorted(SYNTH))
+    pb = sub.add_parser("bit")
+    pb.add_argument("top", choices=sorted(BITS))
+    pb.add_argument("--mhz", type=int, default=50)
+    pb.add_argument("--clk", choices=["wiz", "mmcm"], default="wiz")
+    pb.add_argument("--define", action="append", default=[], metavar="NAME",
+                    help="repetible; va a synth_design -verilog_define (B-17 usa --define CPU_STUB)")
+    sub.add_parser("program").add_argument("bitfile")
+    a = p.parse_args(argv)
+    if a.cmd == "tb":
+        ok = run_tb(a.name, a.plusargs)
+    elif a.cmd == "tbs":
+        ok = run_tbs()
+    elif a.cmd == "mutate":
+        ok = run_mutate()
+    elif a.cmd == "vectors":
+        ok = run_vectors()
+    elif a.cmd == "pytest":
+        ok = run_pytest()
+    elif a.cmd == "iss":
+        ok = run_iss() != "FAIL"
+    elif a.cmd == "test":
+        ok = run_test()
+    elif a.cmd == "regress":
+        import regress
+        return regress.main(a)
+    elif a.cmd == "bit":
+        ok = run_bit(a.top, a.mhz, a.clk, a.define)
+    elif a.cmd == "program":
+        ok = run_program(a.bitfile)
+    else:
+        ok = run_synth(a.top)
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

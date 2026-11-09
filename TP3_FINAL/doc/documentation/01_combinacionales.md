@@ -20,11 +20,11 @@ Las fuentes están en [`VIVADO/TP_FINAL/rtl`](../../VIVADO/TP_FINAL/rtl/) y los 
 
 | Archivo | Qué entrega |
 |---|---|
-| [`riscv_defs.vh`](../../VIVADO/TP_FINAL/rtl/riscv_defs.vh) | Nombres compartidos para opcodes, variantes de `funct7`, operaciones internas de ALU y HALT. |
-| [`alu.v`](../../VIVADO/TP_FINAL/rtl/alu.v) | Resultado de una operación de 32 bits sobre dos operandos. |
-| [`alu_control.v`](../../VIVADO/TP_FINAL/rtl/alu_control.v) | Operación interna de ALU y validez de instrucciones R o ALU-inmediatas. |
-| [`imm_gen.v`](../../VIVADO/TP_FINAL/rtl/imm_gen.v) | Inmediato de 32 bits reconstruido desde una instrucción. |
-| [`control.v`](../../VIVADO/TP_FINAL/rtl/control.v) | Señales que describen qué hace una instrucción y qué recursos necesita. |
+| [`riscv_defs.vh`](../../VIVADO/TP_FINAL/rtl/common/riscv_defs.vh) | Nombres compartidos para opcodes, variantes de `funct7`, operaciones internas de ALU y HALT. |
+| [`alu.v`](../../VIVADO/TP_FINAL/rtl/cpu/execute/alu.v) | Resultado de una operación de 32 bits sobre dos operandos. |
+| [`alu_control.v`](../../VIVADO/TP_FINAL/rtl/cpu/decode/alu_control.v) | Operación interna de ALU y validez de instrucciones R o ALU-inmediatas. |
+| [`imm_gen.v`](../../VIVADO/TP_FINAL/rtl/cpu/decode/imm_gen.v) | Inmediato de 32 bits reconstruido desde una instrucción. |
+| [`control.v`](../../VIVADO/TP_FINAL/rtl/cpu/decode/control.v) | Señales que describen qué hace una instrucción y qué recursos necesita. |
 
 La ALU se adaptó a partir de [TP1_ALU](../../../TP1_ALU/src/ALU.v). Ese trabajo era parametrizable y se probó con 8 bits; aportó ADD, SUB, AND, OR, XOR, SRL y SRA. La versión nueva usa 32 bits y añade SLL, SLT y SLTU. Los archivos de TP1 no se modificaron. TP2_UART se reutilizará en una etapa posterior; sus módulos no participan en estos cálculos.
 
@@ -212,10 +212,10 @@ Los cuatro testbenches se compilan desde fuentes y exigen código de salida 0, u
 
 | Testbench | Comprobaciones | Cobertura principal |
 |---|---:|---|
-| [`tb_alu.sv`](../../VIVADO/TP_FINAL/tb/tb_alu.sv) | 10.396 | Diez operaciones, extremos y desplazamientos; operación inválida. |
-| [`tb_alu_control.sv`](../../VIVADO/TP_FINAL/tb/tb_alu_control.sv) | 133.149 | 131.072 combinaciones binarias, casos dirigidos y entradas X/Z. |
-| [`tb_imm_gen.sv`](../../VIVADO/TP_FINAL/tb/tb_imm_gen.sv) | 70 | Cinco formatos, límites, signos y opcode sin inmediato. |
-| [`tb_control.sv`](../../VIVADO/TP_FINAL/tb/tb_control.sv) | 102 | 32 instrucciones más HALT, controles y codificaciones inválidas. |
+| [`tb_alu.sv`](../../VIVADO/TP_FINAL/tb/cpu/unit/tb_alu.sv) | 10.396 | Diez operaciones, extremos y desplazamientos; operación inválida. |
+| [`tb_alu_control.sv`](../../VIVADO/TP_FINAL/tb/cpu/unit/tb_alu_control.sv) | 133.149 | 131.072 combinaciones binarias, casos dirigidos y entradas X/Z. |
+| [`tb_imm_gen.sv`](../../VIVADO/TP_FINAL/tb/cpu/unit/tb_imm_gen.sv) | 70 | Cinco formatos, límites, signos y opcode sin inmediato. |
+| [`tb_control.sv`](../../VIVADO/TP_FINAL/tb/cpu/unit/tb_control.sv) | 102 | 32 instrucciones más HALT, controles y codificaciones inválidas. |
 | **Total** | **143.717** | Regresión de los cuatro bloques. |
 
 Desde la raíz `Practico/TPs`:

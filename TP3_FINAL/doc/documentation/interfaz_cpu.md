@@ -1,104 +1,175 @@
-# Integración CPU–memoria de instrucciones
+# Interfaz `cpu` ↔ Debug Unit, memorias y sistema
 
-Este documento fija la conexión que usará la etapa IF del CPU y registra la verificación A-08. La interfaz pública procede de B-08 y la implementación actual de `imem` de B-09 se consulta en el worktree `Practico/TPs-companion`. A-08 no incorpora esos archivos a la rama de A.
+**Estado: v1 propuesta, pendiente de aprobación de A (B-08).** Fija los puertos y la semántica que comparten `cpu.v` (A) y `cpu_stub.v` (B), y cómo se arma el sistema. Los puntos marcados **[A]** son obligaciones del RTL de A que esta interfaz necesita.
 
-```mermaid
-flowchart LR
-    CPU[CPU, etapa IF] -->|o_imem_addr: PC completo en bytes| IDX[Seleccionar bits 9:2]
-    IDX -->|índice de palabra, 8 bits| IMEM[imem externa, 256 × 32]
-    IMEM -->|o_rdata → i_imem_data| CPU
-    DEBUG[Debug Unit] -->|i_we, i_waddr, i_wdata| IMEM
-    DEBUG -->|reset y enable| CPU
+## 1. Puertos: `$RTL/debug/cpu_ports.vh`
+
+`cpu.v` y `cpu_stub.v` declaran sus puertos **solo** incluyendo este archivo, así cualquier diferencia no compila:
+
+```verilog
+module cpu (
+`include "cpu_ports.vh"
+);
 ```
 
-## Propiedad de las señales
+Contenido exacto de `cpu_ports.vh` (sin guardas de include; no lleva `module` ni paréntesis):
 
-| Señal o estado | Responsable | Regla |
-|---|---|---|
-| PC de IF | CPU de A | Registro de 32 bits en bytes; `o_imem_addr` y `o_dbg_pc` exponen el PC completo. El reset CPU lo lleva a cero. |
-| `i_imem_data` | `imem` de B por medio de `system.v` | Lectura combinacional de `o_imem_addr[9:2]`; IF captura esa palabra cuando el CPU avanza. |
-| Array de 256 palabras | `rtl/debug/imem.v` de B | Una sola instancia externa al CPU (`u_imem` en `system.v`), inicializada en HALT para simulación. |
-| Escritura de programa | Debug Unit de B | `i_we`, `i_waddr[7:0]` e `i_wdata[31:0]` llegan a `u_imem`; el CPU no tiene puerto de escritura de instrucciones. |
-| Reset durante `LOAD` | Debug Unit y `system.v` de B | `w_cpu_reset = i_reset | w_dbg_cpu_rst`; `LOAD` mantiene el reset del CPU mientras carga y completa el programa. `imem` no tiene entrada de reset. |
-
-El índice toma solo los bits `[9:2]`. Por eso los PC byte 0, 4 y 1020 leen las palabras 0, 1 y 255; 1024 y 1028 vuelven a 0 y 1, y la dirección 2 también selecciona 0. El CPU conserva los 32 bits del PC para saltos, `PC+4` y debug. No se divide dos veces ni se reemplaza el PC por el índice.
-
-La escritura aislada con CPU pausado modifica solamente la palabra de `imem` elegida. En el comando `LOAD`, además de escribir `imem`, la Debug Unit mantiene el CPU en reset; son situaciones distintas. En ambos casos el contenido de `imem` sobrevive al reset CPU. La inicialización de las 256 palabras con HALT está verificada en simulación; su comportamiento físico en FPGA se comprobará en AB-06.
-
-## Implementación y pruebas disponibles
-
-El `cpu_ports.vh` de B-08 define `o_imem_addr[31:0]` e `i_imem_data[31:0]`. El `system.v` de B conecta `u_cpu.o_imem_addr` a `u_imem.i_raddr(w_imem_addr[9:2])`, y `u_imem.o_rdata` a `u_cpu.i_imem_data`. El mismo `system.v` conecta la escritura de la Debug Unit a `u_imem`. El stub de B-09 usa los puertos públicos y genera PC en bytes, pero **no ejecuta instrucciones** ni consume semánticamente `i_imem_data`.
-
-El testbench de A-08, `tb_imem_bridge.sv`, comprueba el cableado de dirección y la independencia entre reset CPU e `imem` usando `cpu_stub.v` e `imem.v` originales desde el worktree de B. El runner de A acepta `--companion PATH` para `tb_imem` y `tb_imem_bridge`; `tbs` sigue ejecutando solo las pruebas locales de A, de modo que una copia sin el worktree de B sigue siendo verificable.
-
-Desde `Practico/TPs`:
-
-```bash
-python3 TP3_FINAL/tools/run.py tb tb_imem --companion ../TPs-companion
-python3 TP3_FINAL/tools/run.py tb tb_imem_bridge --companion ../TPs-companion
+```verilog
+    input  wire        i_clock,
+    input  wire        i_reset,          // síncrono, activo en alto; prioridad sobre i_en
+    input  wire        i_en,             // clock enable desde la Debug Unit
+    output wire        o_halted,         // HALT válido en WB (combinacional)
+    output wire [31:0] o_imem_addr,      // = pc_if (dirección en bytes)
+    input  wire [31:0] i_imem_data,      // imem[o_imem_addr[9:2]], combinacional
+    input  wire [4:0]  i_dbg_reg_addr,
+    output wire [31:0] o_dbg_reg_data,   // x[i_dbg_reg_addr]; x0 = 0
+    input  wire [3:0]  i_dbg_latch_sel,
+    output wire [31:0] o_dbg_latch_word, // dump.md §3
+    input  wire [7:0]  i_dbg_mem_addr,   // índice de palabra de dmem
+    output wire [31:0] o_dbg_mem_data,   // 0 si la palabra no está sucia
+    output wire        o_dbg_mem_dirty,
+    output wire [31:0] o_dbg_pc          // = pc_if
 ```
 
-La captura real de `i_imem_data` en IF/ID se implementó en A-13. La verificación A-31 que sigue comprueba la sustitución del stub por el CPU actual con el mismo cableado público.
+## 2. Semántica temporal
 
-## Interfaz pública verificada en A-31
+| Puerto | Regla |
+| --- | --- |
+| `i_en` | `adv = i_en && !o_halted`. Todo flip-flop del CPU con efecto (PC, latches, escritura del banco, escritura de dmem, dirty) solo cambia en un flanco con `adv = 1` **[A]** |
+| `i_reset` | Síncrono. Un ciclo alcanza. Gana sobre `i_en`. Ver §3 |
+| `o_halted` | Combinacional: `valid_wb && halt_wb`. Baja solo con `i_reset` |
+| `dbg_*` | Lectura **combinacional**: el dato es válido en el mismo ciclo en que se pone la dirección. La Debug Unit solo lee con `i_en = 0`. Leer no tiene efectos |
+| `o_imem_addr` | `pc_if`. La imem vive afuera del CPU (en `system`) |
 
-El [auditor de interfaz](../../tools/check_cpu_contract.py) comprueba los 14 puertos contra `cpu_ports.vh` y contra la declaración documentada por B en `interfaz_cpu.md`. Verifica que `cpu.v` y `cpu_stub.v` incluyan ese encabezado como su única declaración de puertos, sin adaptadores. También compara las dos listas de conexiones de `u_cpu` en `system.v` de B.
+## 3. Qué hace el reset del CPU **[A]**
 
-| Puerto | Dirección desde CPU | Bits |
-|---|---|---:|
-| `i_clock`, `i_reset`, `i_en` | Entrada | 1 cada uno |
-| `o_halted` | Salida | 1 |
-| `o_imem_addr` | Salida | 32 |
-| `i_imem_data` | Entrada | 32 |
-| `i_dbg_reg_addr` | Entrada | 5 |
-| `o_dbg_reg_data` | Salida | 32 |
-| `i_dbg_latch_sel` | Entrada | 4 |
-| `o_dbg_latch_word` | Salida | 32 |
-| `i_dbg_mem_addr` | Entrada | 8 |
-| `o_dbg_mem_data` | Salida | 32 |
-| `o_dbg_mem_dirty` | Salida | 1 |
-| `o_dbg_pc` | Salida | 32 |
+| Elemento | Con `i_reset` |
+| --- | --- |
+| PC | 0 |
+| Latches | Burbuja (`valid = 0`, control en 0) |
+| x1 … x31 | 0 (el banco tiene reset; da ejecuciones deterministas iguales al ISS) |
+| Bits dirty de dmem | 0 |
+| Contenido de dmem | No se toca, **pero** una palabra no sucia se lee como 0 (§4): visto desde afuera, dmem queda en 0 |
+| `fetch_stopped`, `halted` | 0 |
+| imem | No se toca (está afuera) |
 
-El [arnés `tb_cpu_contract.sv`](../../VIVADO/TP_FINAL/tb/tb_cpu_contract.sv) selecciona CPU real o stub mediante `CPU_STUB`, con una única lista de conexiones y una instancia `u_cpu` en ambos casos. Instancia la `imem` original de B como `u_imem`. Solo consulta puertos públicos del CPU; la inspección del array externo de imem sirve para comprobar la preservación de las 256 palabras del programa.
+## 4. Memoria de datos **[A]**
 
-```mermaid
-flowchart LR
-    TB[Arnés: reset y enable] --> SEL[CPU real o cpu_stub: u_cpu]
-    DBG[Selectores debug] --> SEL
-    SEL --> OUT[PC, halted, registros, latches, datos y dirty]
-    SEL -->|o_imem_addr completo| IDX[Bits 9:2]
-    IDX --> IMEM[imem de B: u_imem]
-    IMEM -->|i_imem_data| SEL
-    LOAD[Escritura de programa del arnés] --> IMEM
-    OUT --> CHECK[Oráculos propios de cada implementación]
+- 256 palabras de 32 bits (`DMEM_WORDS = 256`, 1 KB), lectura asíncrona, escritura en flanco con `adv && valid_mem && mem_write_mem`.
+- Índice de palabra = `addr[9:2]`. Los bits `addr[31:10]` se ignoran (la dirección da la vuelta).
+- **Accesos desalineados: se ignoran los bits bajos.** `lw`/`sw` ignoran `addr[1:0]`; `lh`/`lhu`/`sh` ignoran `addr[0]`. El ISS hace exactamente lo mismo (B-21). No hay excepción ni aviso en hardware.
+- Un bit `dirty` por palabra. Se pone en 1 en el flanco de cualquier store a esa palabra (`sb`, `sh` o `sw`).
+- **Una palabra con `dirty = 0` se lee como 0** (para loads del CPU y para `o_dbg_mem_data`). Un store a una palabra limpia combina sus bytes sobre `0x00000000`, no sobre el contenido viejo. Implementación sugerida (escritura de palabra completa, compatible con RAM distribuida):
+
+```verilog
+wire [31:0] w_old  = r_dirty[w_idx] ? r_mem[w_idx] : 32'd0;
+wire [31:0] w_new  = merge(w_old, store_data_mem, byte_enable);   // 4 carriles
+always @(posedge i_clock) if (w_we) r_mem[w_idx] <= w_new;
 ```
 
-Los targets `tb_cpu_contract` y `tb_cpu_contract_stub` tienen listas de fuentes explícitas. El segundo define `CPU_STUB=1` y no compila el CPU real. El runner ahora acepta el diccionario `defines` de cada entrada y pasa sus valores a Icarus con `-D`. Los artefactos y logs permanecen en `TP3_FINAL/build` de A; no se copian carpetas de B.
+Por qué: reprogramar deja dmem "en 0" sin un ciclo de borrado, el dump muestra solo lo que escribió el programa nuevo y el resultado coincide con el ISS, que arranca con dmem en 0.
 
-### Casos con CPU real
+## 5. Memoria de instrucciones: `$RTL/debug/imem.v` (B)
 
-Se recorre el estado público completo durante pausa: 32 registros, 16 latches y 256 pares dirty/dato, más PC, dirección de instrucciones y halted. Se repite el barrido sin flancos y después de clocks con enable cero. Las lecturas deben responder a cada selector sin modificar el snapshot.
-
-El primer programa escribe las 256 palabras de dmem: el índice n contiene n+1, salvo el último, que se sobrescribe con cero y conserva dirty=1. Luego asigna x1…x31 valores distintos, `17×índice+1`, para detectar truncamientos del selector de registros. La escritura de una palabra no ejecutada de imem con CPU detenido tampoco modifica su snapshot público.
-
-Reset con enable cero limpia registros, validez y dirty, dejando intacto el programa. El segundo programa hace SB y SH sobre memoria lógicamente limpia que conserva datos físicos de la ejecución anterior: verifica que la mezcla parta de cero. Comprueba palabras 0, 4, 127, 128 y 255, SW desalineado, wrap en dirección 1040, store de cero con dirty y un load de palabra limpia. Los índices restantes siguen limpios y se leen como cero.
-
-El tercer programa salta a PC byte 1032, que selecciona la palabra 2 de imem. HALT queda en PC WB=1036 y PC IF=1040. Así se distingue la dirección completa del índice de palabra de ocho bits.
-
-### Casos con stub
-
-El mismo barrido usa sus fórmulas sintéticas: xi=`ciclos×256+i`, latches con base `1A000000` y dirty solo en 4, 16 y 63 cuando hay avances. El stub se detiene en su ciclo 20. Sus valores tras reset no se utilizan como expectativas del CPU real. También se comprueban reset durante pausa, freeze y preservación de imem, aunque el stub ignore las instrucciones.
-
-Desde `Practico/TPs`:
-
-```bash
-python3 TP3_FINAL/tools/check_cpu_contract.py --companion ../TPs-companion
-python3 TP3_FINAL/tools/run.py tb tb_cpu_contract --companion ../TPs-companion
-python3 TP3_FINAL/tools/run.py tb tb_cpu_contract_stub --companion ../TPs-companion
+```verilog
+module imem (
+    input  wire        i_clock,
+    input  wire [7:0]  i_raddr,     // = cpu o_imem_addr[9:2]
+    output wire [31:0] o_rdata,     // combinacional
+    input  wire        i_we,        // desde la Debug Unit
+    input  wire [7:0]  i_waddr,
+    input  wire [31:0] i_wdata
+);
 ```
 
-En Vivado, el arnés y `cpu_stub.v` externo están registrados en `sim_1`. Seleccionar `tb_cpu_contract` como top de simulación; sin `CPU_STUB` se usa CPU real, y agregando `CPU_STUB=1` a las definiciones del fileset se usa stub. Para volver al CPU real hay que retirar esa definición. No se modifica la parte FPGA preexistente del proyecto.
+256 palabras, sin reset. Contenido inicial: todas en HALT (`0x00000073`), con un `initial` + `for` (excepción permitida de `convenciones.md` §4; Vivado lo vuelca a la inicialización de la LUTRAM). Así una placa recién programada que recibe `R` sin `L` para enseguida.
 
-La [evidencia A-31](../validation/A-31.md) registra simulación en Icarus/XSim y elaboración del `system.v` original de B en ambas variantes. No se cambiaron puertos ni contratos de B. La [integración funcional A-32](integracion_debug.md) agrega la carga y ejecución por UART, los dumps de pasos/pausas y la comparación con el codec e ISS de B; la elaboración de A-31 por sí sola no certifica esa comunicación.
+## 6. Puertos de `debug_unit.v` (B)
 
-El [cierre local A-M08](08_cpu_listo_para_debug.md) vuelve a verificar este contrato dentro de la regresión final A-33, con los mismos puertos y fuentes originales de B.
+```verilog
+module debug_unit #(
+    parameter BYTE_TIMEOUT = 5_000_000,     // ciclos; protocolo.md §5
+    parameter RUN_TIMEOUT  = 150_000_000
+)(
+    input  wire        i_clock,
+    input  wire        i_reset,
+    // uart_if (decisiones.md D-14: TX valid/ready)
+    input  wire        i_rx_valid,
+    input  wire [7:0]  i_rx_data,
+    output wire        o_tx_start,
+    output wire [7:0]  o_tx_data,
+    input  wire        i_tx_busy,
+    // cpu
+    output wire        o_cpu_rst,
+    output wire        o_cpu_en,            // sale directo de un registro
+    input  wire        i_cpu_halted,
+    output wire [4:0]  o_dbg_reg_addr,
+    input  wire [31:0] i_dbg_reg_data,
+    output wire [3:0]  o_dbg_latch_sel,
+    input  wire [31:0] i_dbg_latch_word,
+    output wire [7:0]  o_dbg_mem_addr,
+    input  wire [31:0] i_dbg_mem_data,
+    input  wire        i_dbg_mem_dirty,
+    input  wire [31:0] i_dbg_pc,
+    // imem
+    output wire        o_imem_we,
+    output wire [7:0]  o_imem_waddr,
+    output wire [31:0] o_imem_wdata,
+    // diagnóstico
+    output wire [3:0]  o_state,             // estado de la FSM principal, para LEDs
+    output wire        o_overrun            // pulso: byte descartado con el pendiente ocupado
+);
+```
+
+## 7. Sistema: `$RTL/debug/system.v` (B)
+
+Todo lo que no es reloj ni pines. Lo simulan los TB (nunca el top con Clock Wizard).
+
+```
+            ┌──────────────────────────── system ─────────────────────────────┐
+i_rx ──────▶│ uart_if ──rx──▶ debug_unit ──cpu_rst/en, dbg_*──▶ cpu │ cpu_stub │
+o_tx ◀──────│         ◀─tx──             ──imem_we/waddr/wdata──▶ imem ◀─addr─┘
+i_reset ───▶│ (ya sincronizado)                                               │
+            └─────────────────────────────────────────────────────────────────┘
+```
+
+```verilog
+module system #(
+    parameter CLOCK_FREQ   = 50_000_000,
+    parameter BAUD_RATE    = 115_200,
+    parameter BYTE_TIMEOUT = CLOCK_FREQ / 10,
+    parameter RUN_TIMEOUT  = 150_000_000,
+    parameter HALT_AT      = 20              // solo lo usa cpu_stub
+)(
+    input  wire       i_clock,
+    input  wire       i_reset,
+    input  wire       i_rx,
+    output wire       o_tx,
+    output wire [7:0] o_leds
+);
+```
+
+- Reset del CPU: `w_cpu_reset = i_reset | w_dbg_cpu_rst`.
+- Elección del CPU: con `` `ifdef CPU_STUB `` instancia `cpu_stub #(.HALT_AT(HALT_AT)) u_cpu`, si no `cpu u_cpu`. Mismo nombre de instancia `u_cpu` en los dos casos (los TB lo referencian).
+- Nombres de instancia fijos: `u_uart`, `u_debug`, `u_cpu`, `u_imem`.
+- LEDs: `[0]` conmuta con cada `o_rx_valid`; `[1]` `o_rx_frame_err` pegajoso; `[2]` `o_overrun` pegajoso; `[3]` `cpu halted`; `[7:4]` `o_state`. Los pegajosos se borran solo con `i_reset`.
+
+Los tops de placa (`$RTL/top/`) solo agregan Clock Wizard, sincronizador de reset (D-10) y pines; `top_debug.v` suma `led[15] = locked`.
+
+## 8. `cpu_stub.v` (B)
+
+Mismos puertos (`cpu_ports.vh`), parámetro `HALT_AT` (0 = nunca para). Comportamiento exacto, con `r_cycles` de 32 bits:
+
+| Señal | Valor |
+| --- | --- |
+| `r_cycles` | 0 con `i_reset`; `+1` en cada flanco con `adv` |
+| `o_halted` | `(HALT_AT != 0) && (r_cycles == HALT_AT)` |
+| `o_dbg_pc`, `o_imem_addr` | `r_cycles << 2` |
+| `o_dbg_reg_data` | 0 si `addr == 0`; si no `{r_cycles[23:0], 3'b000, addr}` |
+| `o_dbg_latch_word` | `{8'h1A, 4'h0, sel, r_cycles[15:0]}` |
+| `o_dbg_mem_dirty` | 1 si `r_cycles >= 1` y el índice es 4, 16 o 63; si no 0 |
+| `o_dbg_mem_data` | si está sucia: `{8'hD0, 16'h0000, índice}`; si no 0 |
+
+`i_imem_data` se ignora. `sw/host/stub_model.py` reproduce esta tabla en Python: `stub_dump(cycles, halt_at, timeout=False, aborted=False) -> Dump`.
+
+La aplicación e implementación del datapath se conserva en [cpu_interfaz.md](cpu_interfaz.md). La [organización actual](organizacion.md) describe las rutas posteriores a la incorporación de ambas pistas.

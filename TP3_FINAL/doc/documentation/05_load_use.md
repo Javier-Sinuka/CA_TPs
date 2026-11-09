@@ -1,6 +1,8 @@
 # 05 — Riesgos load-use, stall y burbuja
 
-Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/README.md).
+> Nota de reorganización: este documento conserva evidencia y comandos históricos. Los helpers `check_*` de A se retiraron y ya no se usa `--companion`; las rutas y comandos vigentes están en [organización del proyecto](organizacion.md).
+
+Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/cpu/README.md).
 
 Este informe describe **A-M05, issues A-21 a A-23**. El milestone integra la detección de dependencias inmediatas de cargas y coordina el avance del pipeline para que el consumidor reciba el dato correcto. A-M04 ya había implementado forwarding; ahora una carga seguida por un consumidor real agrega exactamente una burbuja. El [gate A-M05](../validation/A-M05.md) conserva los resultados y el alcance del cierre.
 
@@ -74,7 +76,7 @@ El debug público mantiene el mapa parcial previo: los valid están disponibles,
 
 ## 6. Regresión por consumidor: A-23
 
-[`load_use.s`](../../programs/load_use.s) separa 13 grupos. Cada grupo escribe primero un centinela negativo distinto en x1, luego carga un dato y ejecuta inmediatamente el consumidor. Los cinco NOP restantes separan grupos. Así un dato capturado antiguo no coincide accidentalmente con el valor correcto del load. La preparación almacena 73 en dirección byte 0 y 96 en byte 4, con x9=21 para distinguir base, dato y otra fuente.
+[`load_use.s`](../../programs/cpu/load_use.s) separa 13 grupos. Cada grupo escribe primero un centinela negativo distinto en x1, luego carga un dato y ejecuta inmediatamente el consumidor. Los cinco NOP restantes separan grupos. Así un dato capturado antiguo no coincide accidentalmente con el valor correcto del load. La preparación almacena 73 en dirección byte 0 y 96 en byte 4, con x9=21 para distinguir base, dato y otra fuente.
 
 | Consumidor, PC byte | Camino verificado | Resultado / observación |
 |---|---|---|
@@ -93,7 +95,7 @@ En todos los casos dependientes, el test exige que el load esté en WB al entrar
 
 Hay diez dependencias reales y tres controles sin riesgo. El programa completo termina por marcador tras **127 avances**, con **36 commits y cinco stores**. Las únicas palabras sucias finales son índices 0, 1, 16, 25 y 26, con datos 73, 96, 73, 21 y 96. Se comparan los 32 registros después de cada clock y las 256 palabras/dirty al finalizar.
 
-La ejecución continua utiliza 128 clocks incluyendo reset. La pausada agrega tres clocks antes y uno después de cada stall: utiliza 168 clocks, conserva los mismos 127 avances y registra 30 clocks pausados con riesgo. Ambas terminan con el mismo estado y la misma secuencia de commits. El TB aporta 36.688 comprobaciones; el [README del programa](../../programs/README.md#programa-load_use-de-a-m05) contiene el mapa completo y la reproducción del hex.
+La ejecución continua utiliza 128 clocks incluyendo reset. La pausada agrega tres clocks antes y uno después de cada stall: utiliza 168 clocks, conserva los mismos 127 avances y registra 30 clocks pausados con riesgo. Ambas terminan con el mismo estado y la misma secuencia de commits. El TB aporta 36.688 comprobaciones; el [README del programa](../../programs/cpu/README.md#programa-load_use-de-a-m05) contiene el mapa completo y la reproducción del hex.
 
 ## 7. Alcance de branches y entrega posterior
 

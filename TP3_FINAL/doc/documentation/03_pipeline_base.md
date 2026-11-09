@@ -1,6 +1,8 @@
 # 03 — Pipeline base de cinco etapas
 
-Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/README.md).
+> Nota de reorganización: este documento conserva evidencia y comandos históricos. Los helpers `check_*` de A se retiraron y ya no se usa `--companion`; las rutas y comandos vigentes están en [organización del proyecto](organizacion.md).
+
+Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/cpu/README.md).
 
 Esta guía describe el milestone **A-M03 (issues A-12 a A-17)** y su cierre local. El CPU conecta IF, ID, EX, MEM y WB: recibe instrucciones de una imem externa, calcula resultados, escribe memoria y devuelve resultados al banco de registros. El programa de cierre ejecuta las 10 operaciones R, las 9 I-ALU, LUI y cargas/stores sin riesgos, con resultados calculados por separado. La evidencia reproducible está en [A-M03](../validation/A-M03.md) y [A-17](../validation/A-17.md).
 
@@ -141,7 +143,7 @@ Info ocupa rd `[4:0]`, rs1 `[9:5]`, rs2 `[14:10]`, funct3 `[17:15]`, alu_op `[21
 
 ## 8. Programa de cierre y seguimiento temporal (A-17)
 
-El [programa y sus expectativas](../../programs/README.md) contienen 36 instrucciones significativas, tres NOP después de cada una y relleno hasta las 256 palabras de imem. Se usan x1=−16, x2=3 y LUI x3=`12345000`, con resultados positivos, negativos, signo/cero en loads y comparación signed/unsigned. Hay cuatro stores, siete loads, una suma de resultados cargados, un intento de escribir x0 y un marcador x31=`000005a5`.
+El [programa y sus expectativas](../../programs/cpu/README.md) contienen 36 instrucciones significativas, tres NOP después de cada una y relleno hasta las 256 palabras de imem. Se usan x1=−16, x2=3 y LUI x3=`12345000`, con resultados positivos, negativos, signo/cero en loads y comparación signed/unsigned. Hay cuatro stores, siete loads, una suma de resultados cargados, un intento de escribir x0 y un marcador x31=`000005a5`.
 
 Los valores de referencia son constantes calculadas por separado. Por ejemplo, SRA de −16 por 3 produce −2, mientras SRL produce `1ffffffe`; el byte `f0` leído con LB produce `fffffff0`, con LBU produce `000000f0`. Los stores parciales forman `fff0f000` en la palabra 1. La palabra 255 recibe cero y queda sucia. El TB compara los 32 registros, las 256 palabras lógicas y los 256 dirty, además de cada escritura WB con su evento esperado por PC.
 
@@ -193,4 +195,4 @@ VIVADO=/tools/Xilinx/2025.1/Vivado/bin/vivado python3 TP3_FINAL/tools/run.py syn
 
 El proyecto original es Vivado 2025.2 y la instalación disponible es 2025.1; se comprobaron sus archivos y se reconstruyeron temporalmente los filesets para compilar/elaborar con XSim 2025.1. No se degradó el `.xpr`. Su parte preexistente distinta de Basys3 se conserva; el flujo OOC usa explícitamente la parte acordada. La evidencia diferencia ambas comprobaciones.
 
-A-M03 queda cerrado en simulación y síntesis local. A-M04 agregará forwarding; después se resolverán load-use, control de flujo y HALT. La aceptación con HALT real se repetirá en A-29. La integración con Debug Unit/UART, bitstream y prueba conjunta con B mantienen su alcance posterior. Los contratos públicos de [interfaz](interfaz_cpu.md) y dump no cambian, y no se atribuye una aprobación nueva al compañero.
+A-M03 queda cerrado en simulación y síntesis local. A-M04 agregará forwarding; después se resolverán load-use, control de flujo y HALT. La aceptación con HALT real se repetirá en A-29. La integración con Debug Unit/UART, bitstream y prueba conjunta con B mantienen su alcance posterior. Los contratos públicos de [interfaz](cpu_interfaz.md) y dump no cambian, y no se atribuye una aprobación nueva al compañero.

@@ -1,95 +1,195 @@
-# Mapa debug del CPU real
+# Formato del dump v1 y formato canónico de resultados
 
-Implementación A-30, 2026-11-09. Este documento relaciona los puertos y registros reales de A con el [contrato de dump v1 de B](../../../../TPs-companion/TP3_FINAL/doc/documentation/dump.md), consultado en el commit `f9dc09297f5bdcec6fb09048c003dbb6cd2188c0`. Conserva su layout; no sustituye la especificación de serialización ni acredita una aprobación conjunta nueva. La [evidencia A-30](../validation/A-30.md) registra las verificaciones locales.
+**Estado: v1 propuesta, pendiente de aprobación de A (B-07).** El layout de las palabras de latch (§3) define puertos del RTL de A: A lo aprueba o lo cambia **antes** de escribir sus latches.
 
-## Lectura del estado
+## 1. Mapa de bytes
 
-Los puertos debug son combinacionales y no escriben estado. `o_dbg_reg_data` muestra x0…x31 mediante `i_dbg_reg_addr`; x0 siempre devuelve cero. Las lecturas debug del regfile muestran el almacenamiento, sin el bypass WB→ID de los operandos de ejecución. `o_dbg_pc` muestra `r_pc_if`, dirección completa en bytes.
-
-```mermaid
-flowchart LR
-    IFID[IF/ID: PC e instrucción] --> MUX[Mux combinacional de 16 palabras]
-    IDEX[ID/EX: PC, operandos capturados, inmediato e info] --> MUX
-    EXMEM[EX/MEM: PC, resultado, store e info] --> MUX
-    MEMWB[MEM/WB: PC, resultado, load e info] --> MUX
-    FLAGS[Validez, halted, stall, salto y stop_fetch] --> MUX
-    SEL[i_dbg_latch_sel] --> MUX
-    MUX --> OUT[o_dbg_latch_word]
-    RF[Regfile: x0 a x31] --> REG[o_dbg_reg_data]
-    DM[dmem: palabra y dirty] --> MEM[o_dbg_mem_data y o_dbg_mem_dirty]
+```
+A5 | W0 W1 ... W51 | M pares (dirección, dato) | checksum
 ```
 
-El mux está en `rtl/cpu.v`, con `casez`, default cero y rechazo previo de selectores con X/Z. No agrega registros ni depende de `valid` para ocultar datos. Los cuatro módulos de pipeline generan `info` con conexiones combinacionales a sus registros; A-30 conserva ese empaquetado ya existente.
+| Posición | Contenido | Fuente en la Debug Unit |
+| --- | --- | --- |
+| byte 0 | Cabecera `0xA5` | constante |
+| W0 | Estado (§2) | registros de la Debug Unit + `i_cpu_halted` |
+| W1 | Ciclos: cantidad de flancos con `cpu_en = 1` y `halted = 0` desde el último reset del CPU | contador de 32 bits de la Debug Unit |
+| W2 | `dbg_pc` (PC de IF) | `o_dbg_pc` |
+| W3 … W34 | x0 … x31 | `dbg_reg_addr = idx − 3` |
+| W35 … W50 | Palabras de latch 0 … 15 (§3) | `dbg_latch_sel = idx − 35` |
+| W51 | `M` = cantidad de palabras sucias de dmem (0 … 256) | primera pasada sobre `dbg_mem_dirty` |
+| 2·M palabras | Para cada palabra sucia, en orden ascendente: dirección **en bytes** (`índice·4`) y dato | segunda pasada |
+| último byte | Checksum (§4) | acumulador |
 
-## Selectores de latches
+Cada palabra se envía en 4 bytes little-endian. Largo total: **`210 + 8·M` bytes** (1 + 52·4 + 8·M + 1). Con `M = 0`: 210 bytes, ≈ 18 ms a 115200.
 
-| Selector | Señal real | Procedencia |
-|---|---|---|
-| 0 | `w_pc_id` | IF/ID |
-| 1 | `w_instr_id` | IF/ID |
-| 2 | `w_pc_ex` | ID/EX |
-| 3 | `w_rs1_data_ex` | Operando capturado en ID/EX |
-| 4 | `w_rs2_data_ex` | Operando capturado en ID/EX |
-| 5 | `w_imm_ex` | ID/EX |
-| 6 | `w_info_ex` | `u_decode.u_id_ex.o_info` |
-| 7 | `w_pc_mem` | EX/MEM |
-| 8 | `w_result_mem` | EX/MEM |
-| 9 | `w_store_data_mem` | EX/MEM, dato después de forwarding |
-| 10 | `w_info_mem` | `u_execute.u_ex_mem.o_info` |
-| 11 | `w_pc_wb` | MEM/WB; PC canónico de HALT |
-| 12 | `w_result_wb` | MEM/WB |
-| 13 | `w_load_data_wb` | MEM/WB |
-| 14 | `w_info_wb` | `u_memory.u_mem_wb.o_info` |
-| 15 | `w_dbg_flags` | Condiciones actuales del CPU |
+## 2. Palabra de estado (W0)
 
-Los selectores 3 y 4 no muestran `w_rs1_fwd_ex` ni `w_rs2_fwd_ex`. En el programa de prueba, `add x2,x1,x1` captura operandos cero y recibe 9 por ambos caminos de forwarding; el dump conserva los ceros capturados. El selector 9 sí muestra el dato reenviado que se capturó para el store.
+| Bits | Campo | Significado |
+| --- | --- | --- |
+| 0 | `halted` | Valor de `i_cpu_halted` al armar el dump |
+| 1 | `timeout` | La última `R` paró por `RUN_TIMEOUT` |
+| 2 | `aborted` | La última `R` paró por `A` |
+| 7:3 | — | 0 |
+| 15:8 | `version` | `0x01` (versión del formato) |
+| 31:16 | — | 0 |
 
-## Palabras info
+`timeout` y `aborted` se ponen en 0 con `X`, `L`, `S` y al empezar `R`. Nunca están los dos en 1.
 
-| Bits | Campo | EX | MEM | WB |
-|---|---|---|---|---|
-| 4:0 | rd | Sí | Sí | Sí |
-| 9:5 | rs1 | Sí | 0 | 0 |
-| 14:10 | rs2 | Sí | 0 | 0 |
-| 17:15 | funct3 | Sí | Sí | 0 |
-| 21:18 | alu_op | Sí | 0 | 0 |
-| 22 | alu_src_b | Sí | 0 | 0 |
-| 23 | mem_read | Sí | Sí | 0 |
-| 24 | mem_write | Sí | Sí | 0 |
-| 25 | mem_to_reg | Sí | Sí | Sí |
-| 26 | reg_write | Sí | Sí | Sí |
-| 27 | branch | Sí | 0 | 0 |
-| 28 | jump | Sí | 0 | 0 |
-| 29 | jalr | Sí | 0 | 0 |
-| 30 | lui | Sí | 0 | 0 |
-| 31 | halt | Sí | Sí | Sí |
+## 3. Palabras de latch (`dbg_latch_sel` 0 … 15)
 
-Las máscaras de campos permitidos son EX=`FFFFFFFF`, MEM=`8783801F` y WB=`8600001F`. Los códigos de ALU proceden de `riscv_defs.vh`. El patrón sintético rd=5, reg_write=1 y halt=1 produce `84000005` en las tres etapas; solo sirve para verificar posiciones, sin representar una instrucción ejecutable.
+| sel | Latch | Contenido |
+| --- | --- | --- |
+| 0 | IF/ID | `pc_id` |
+| 1 | IF/ID | `instr_id` |
+| 2 | ID/EX | `pc_ex` |
+| 3 | ID/EX | `rs1_data_ex` |
+| 4 | ID/EX | `rs2_data_ex` |
+| 5 | ID/EX | `imm_ex` |
+| 6 | ID/EX | info (§3.1) |
+| 7 | EX/MEM | `pc_mem` |
+| 8 | EX/MEM | `result_mem` |
+| 9 | EX/MEM | `store_data_mem` |
+| 10 | EX/MEM | info (§3.1) |
+| 11 | MEM/WB | `pc_wb` |
+| 12 | MEM/WB | `result_wb` |
+| 13 | MEM/WB | `load_data_wb` |
+| 14 | MEM/WB | info (§3.1) |
+| 15 | — | palabra de validez y riesgos (§3.2) |
 
-Una burbuja anula validez y controles, pero puede conservar PC, operandos y campos de identificación según la política de A-12. Debug expone esos registros sin normalizarlos a cero por estar inválidos. Los campos que una etapa no transporta siempre salen cero.
+### 3.1 Palabra info (mismo layout en sel 6, 10 y 14)
 
-## Flags del selector 15
+Un solo layout para los tres latches, así el software tiene un único decodificador. Un campo que ese latch no transporta se lee 0.
 
-| Bit | Señal real |
-|---|---|
-| 0 | `w_valid_id` |
-| 1 | `w_valid_ex` |
-| 2 | `w_valid_mem` |
-| 3 | `w_valid_wb` |
-| 4 | `o_halted` |
-| 5 | `w_load_use_stall` |
-| 6 | `w_take_ex` |
-| 7 | `w_stop_fetch` |
-| 31:8 | Cero |
+| Bits | Campo | ID/EX | EX/MEM | MEM/WB |
+| --- | --- | --- | --- | --- |
+| 4:0 | `rd` | ✓ | ✓ | ✓ |
+| 9:5 | `rs1` | ✓ | 0 | 0 |
+| 14:10 | `rs2` | ✓ | 0 | 0 |
+| 17:15 | `funct3` | ✓ | ✓ | 0 |
+| 21:18 | `alu_op` (códigos `ALU_*` de `riscv_defs.vh`) | ✓ | 0 | 0 |
+| 22 | `alu_src_b` | ✓ | 0 | 0 |
+| 23 | `mem_read` | ✓ | ✓ | 0 |
+| 24 | `mem_write` | ✓ | ✓ | 0 |
+| 25 | `mem_to_reg` | ✓ | ✓ | ✓ |
+| 26 | `reg_write` | ✓ | ✓ | ✓ |
+| 27 | `branch` | ✓ | 0 | 0 |
+| 28 | `jump` | ✓ | 0 | 0 |
+| 29 | `jalr` | ✓ | 0 | 0 |
+| 30 | `lui` | ✓ | 0 | 0 |
+| 31 | `halt` | ✓ | ✓ | ✓ |
 
-Los bits 5 y 6 reflejan condiciones combinacionales del ciclo, incluso durante pausa. No registran eventos anteriores. `w_stop_fetch` vale `!w_take_ex && (r_fetch_stopped || w_halt_accept_id)`. La aceptación de HALT requiere reset inactivo, enable, CPU activo, HALT válido en ID y ausencia de salto o riesgo load-use.
+Los nombres son los puertos de `control.v` de A (`o_alu_op`, `o_alu_src_b`, ...).
 
-Por eso, con HALT en ID antes de su aceptación, pasar `i_en` de 1 a 0 puede apagar el bit 7 sin cambiar ningún flop. Después de aceptar HALT, `r_fetch_stopped` conserva la detención. El estado final real tiene solo HALT válido en WB y flags `00000098`. Un arnés que mantenga `stop_fetch=0` con HALT válido en WB produce `00000018`.
+### 3.2 Palabra de validez y riesgos (sel 15)
 
-## Memoria y serialización
+| Bit | Campo |
+| --- | --- |
+| 0 | `valid_id` (IF/ID) |
+| 1 | `valid_ex` (ID/EX) |
+| 2 | `valid_mem` (EX/MEM) |
+| 3 | `valid_wb` (MEM/WB) |
+| 4 | `halted` |
+| 5 | `load_use_stall` (combinacional, del ciclo actual) |
+| 6 | `take_ex` (salto tomado en EX en el ciclo actual) |
+| 7 | `stop_fetch` |
+| 31:8 | 0 |
 
-`i_dbg_mem_addr` es un índice de palabra de 8 bits. `o_dbg_mem_dirty` informa el bit dirty y `o_dbg_mem_data` devuelve cero para una palabra limpia. El acceso no modifica memoria ni dirty.
+Los bits 5 a 7 permiten dibujar el diagrama espacio-tiempo (B-26) con stalls y flushes marcados.
 
-La Debug Unit de B serializa registros en W3…W34 y las 16 palabras de latch en W35…W50, con W51 para la cantidad de palabras dirty. El formato sigue siendo little-endian, de `210+8M` bytes. El PC canónico de una parada HALT proviene del selector 11, aunque `o_dbg_pc` ya apunte después de HALT. En la prueba A-30, esos PC son 72 y 76 respectivamente.
+## 4. Checksum
 
-La [verificación A-31](interfaz_cpu.md#interfaz-pública-verificada-en-a-31) comprueba los puertos y el barrido completo del estado público con CPU real y stub. La [integración A-32](integracion_debug.md) compara 34 dumps recibidos por UART con el CPU pausado, el codec y el ISS de B. El [informe 08](08_cpu_listo_para_debug.md) y el [gate A-M08](../validation/A-M08.md) reúnen el cierre local y la regresión final de A-33.
+`checksum = (suma de todos los bytes desde el primero de W0 hasta el último del último par) mod 256`. No incluye la cabecera ni a sí mismo. Un dump cuyo checksum no verifica se rechaza con `DumpError`.
+
+## 5. API de `sw/host/dump.py`
+
+```python
+@dataclass(frozen=True)
+class LatchInfo:            # §3.1
+    rd: int; rs1: int; rs2: int; funct3: int; alu_op: int
+    alu_src_b: bool; mem_read: bool; mem_write: bool; mem_to_reg: bool
+    reg_write: bool; branch: bool; jump: bool; jalr: bool; lui: bool; halt: bool
+    @staticmethod
+    def unpack(word: int) -> "LatchInfo": ...
+    def pack(self) -> int: ...
+
+@dataclass(frozen=True)
+class Dump:
+    halted: bool; timeout: bool; aborted: bool; version: int
+    cycles: int; pc: int
+    x: tuple[int, ...]            # 32 valores
+    latches: tuple[int, ...]      # 16 palabras crudas
+    mem: tuple[tuple[int, int], ...]   # (dirección en bytes, dato), ascendente
+    # vistas decodificadas (propiedades): info_ex, info_mem, info_wb -> LatchInfo; valid_id..valid_wb, load_use_stall, take_ex, stop_fetch -> bool
+
+def encode(d: Dump) -> bytes: ...           # incluye 0xA5 y checksum
+def decode(b: bytes) -> Dump: ...           # DumpError si cabecera, largo o checksum fallan
+def expected_length(m: int) -> int: ...     # 210 + 8*m
+class DumpError(Exception): ...
+```
+
+## 6. Formato canónico de resultados (`*.json`)
+
+Lo producen el ISS (B-21), la simulación RTL y la placa (B-27), y se comparan entre sí. Todas las cifras en hex de 8 dígitos con prefijo `0x`, minúsculas.
+
+```json
+{
+  "stop": "halt",
+  "pc": "0x0000001c",
+  "x": ["0x00000000", "0x00000037", "...32 valores en total..."],
+  "mem": [["0x00000000", "0x00000037"]]
+}
+```
+
+| Campo | Definición |
+| --- | --- |
+| `stop` | `"halt"` o `"limit"` (ISS: límite de instrucciones; RTL/placa: `timeout`) |
+| `pc` | Dirección de la instrucción HALT que paró. En RTL/placa sale de la palabra de latch 11 (`pc_wb`, porque con `halted` el HALT está en WB). Con `stop = "limit"` vale `null` |
+| `x` | x0 … x31 |
+| `mem` | Palabras de dmem escritas al menos una vez por el programa, `[dirección en bytes, dato]`, ascendente. En RTL/placa: los pares del dump |
+
+Con `stop = "limit"` solo se compara `stop` (las cuentas de ciclos e instrucciones no son comparables). `sw/host/canonical.py` tiene `from_dump(d: Dump) -> dict`, `load(path) -> dict`, `diff(a, b) -> list[str]` (una línea por diferencia: `x5: iss=0x00000003 rtl=0x00000004`).
+
+## 7. Ejemplos
+
+Dumps del `cpu_stub` con 0 y 1 ciclos, generados con `host.dump.encode` (los mismos que debe producir `stub_dump` en B-09).
+
+`stub_dump(0, 20)` (210 bytes):
+
+```
+a5 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00
+00 01 00 00 00 02 00 00 00 03 00 00 00 04 00 00
+00 05 00 00 00 06 00 00 00 07 00 00 00 08 00 00
+00 09 00 00 00 0a 00 00 00 0b 00 00 00 0c 00 00
+00 0d 00 00 00 0e 00 00 00 0f 00 00 00 10 00 00
+00 11 00 00 00 12 00 00 00 13 00 00 00 14 00 00
+00 15 00 00 00 16 00 00 00 17 00 00 00 18 00 00
+00 19 00 00 00 1a 00 00 00 1b 00 00 00 1c 00 00
+00 1d 00 00 00 1e 00 00 00 1f 00 00 00 00 00 00
+1a 00 00 01 1a 00 00 02 1a 00 00 03 1a 00 00 04
+1a 00 00 05 1a 00 00 06 1a 00 00 07 1a 00 00 08
+1a 00 00 09 1a 00 00 0a 1a 00 00 0b 1a 00 00 0c
+1a 00 00 0d 1a 00 00 0e 1a 00 00 0f 1a 00 00 00
+00 09
+```
+
+`stub_dump(1, 20)` (234 bytes):
+
+```
+a5 00 01 00 00 01 00 00 00 04 00 00 00 00 00 00
+00 01 01 00 00 02 01 00 00 03 01 00 00 04 01 00
+00 05 01 00 00 06 01 00 00 07 01 00 00 08 01 00
+00 09 01 00 00 0a 01 00 00 0b 01 00 00 0c 01 00
+00 0d 01 00 00 0e 01 00 00 0f 01 00 00 10 01 00
+00 11 01 00 00 12 01 00 00 13 01 00 00 14 01 00
+00 15 01 00 00 16 01 00 00 17 01 00 00 18 01 00
+00 19 01 00 00 1a 01 00 00 1b 01 00 00 1c 01 00
+00 1d 01 00 00 1e 01 00 00 1f 01 00 00 01 00 00
+1a 01 00 01 1a 01 00 02 1a 01 00 03 1a 01 00 04
+1a 01 00 05 1a 01 00 06 1a 01 00 07 1a 01 00 08
+1a 01 00 09 1a 01 00 0a 1a 01 00 0b 1a 01 00 0c
+1a 01 00 0d 1a 01 00 0e 1a 01 00 0f 1a 03 00 00
+00 10 00 00 00 04 00 00 d0 40 00 00 00 10 00 00
+d0 fc 00 00 00 3f 00 00 d0 4f
+```
+
+La aplicación e implementación del datapath se conserva en [cpu_dump.md](cpu_dump.md). La [organización actual](organizacion.md) describe las rutas posteriores a la incorporación de ambas pistas.

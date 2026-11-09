@@ -1,5 +1,7 @@
 # 07 — HALT, vaciado del pipeline y ejecución controlada
 
+> Nota de reorganización: este documento conserva evidencia y comandos históricos. Los helpers `check_*` de A se retiraron y ya no se usa `--companion`; las rutas y comandos vigentes están en [organización del proyecto](organizacion.md).
+
 Este informe describe **A-M07, issues A-27, A-28 y A-29**. El CPU reconoce HALT exacto, deja de incorporar instrucciones nuevas, permite que terminen las anteriores y se congela cuando HALT llega válido a WB. Una pausa externa conserva el mismo estado; un STEP habilita un ciclo del pipeline. Reset domina esas dos condiciones y permite ejecutar otra vez el programa sin recargar imem.
 
 El milestone está cerrado localmente en simulación. El [gate A-M07](../validation/A-M07.md) reúne la evidencia y distingue los resultados actuales de la síntesis OOC ya ejecutada en A-27. La integración con Debug Unit, los flags completos del dump y la aceptación conjunta mantienen el alcance de A-M08.
@@ -83,11 +85,11 @@ La prueba de reset de A-28 parte también de un ciclo con write de x4 en WB, sto
 
 Si una instrucción anterior toma un salto en EX mientras HALT está en ID, la redirección gana. La condición `!w_take_ex` impide aceptar ese HALT y el flush de A-M06 descarta las dos instrucciones jóvenes. Tampoco se conserva un fetch-stopped espurio que impida ejecutar el destino.
 
-El programa [`flush_halt.s`](../../programs/flush_halt.s) lo prueba de extremo a extremo. Un ADDI deja x1=1 y un BNE tomado de PC=4 salta a PC=16. HALT en PC=8 y el store de PC=12 se descartan. El destino escribe x2=9 y memoria byte 0=9; únicamente HALT en PC=24 detiene. El write de x10 y el store posteriores al HALT alcanzable tampoco se ejecutan.
+El programa [`flush_halt.s`](../../programs/cpu/flush_halt.s) lo prueba de extremo a extremo. Un ADDI deja x1=1 y un BNE tomado de PC=4 salta a PC=16. HALT en PC=8 y el store de PC=12 se descartan. El destino escribe x2=9 y memoria byte 0=9; únicamente HALT en PC=24 detiene. El write de x10 y el store posteriores al HALT alcanzable tampoco se ejecutan.
 
 ## 8. Regresión con finalización real
 
-Los seis `.s` históricos ahora incluyen HALT explícito; sus hex conservan las instrucciones anteriores y rellenan las posiciones restantes con HALT. Los marcadores x31 siguen verificándose, pero los bancos ya no se detienen por su commit. La [guía de programas](../../programs/README.md) describe formatos y resultados.
+Los seis `.s` históricos ahora incluyen HALT explícito; sus hex conservan las instrucciones anteriores y rellenan las posiciones restantes con HALT. Los marcadores x31 siguen verificándose, pero los bancos ya no se detienen por su commit. La [guía de programas](../../programs/cpu/README.md) describe formatos y resultados.
 
 | Programa | PC HALT | Avances | Writes / stores | Stalls / tomas |
 |---|---:|---:|---|---|
@@ -105,7 +107,7 @@ En los programas de control y load-use, HALT se agregó inmediatamente después 
 
 ## 9. Programa sin HALT y límites de responsabilidad
 
-[`no_halt.s`](../../programs/no_halt.s) repite `jal x0,0`. El CPU sigue funcionando durante los 100 avances observados y nunca inventa `o_halted`. Una pausa externa lo conserva. El ISS independiente llega a su límite de 1000 instrucciones; no se comparan esos límites como si midieran lo mismo.
+[`no_halt.s`](../../programs/cpu/no_halt.s) repite `jal x0,0`. El CPU sigue funcionando durante los 100 avances observados y nunca inventa `o_halted`. Una pausa externa lo conserva. El ISS independiente llega a su límite de 1000 instrucciones; no se comparan esos límites como si midieran lo mismo.
 
 Si se ejecuta el banco con `+EXPECT_HALT_NO_HALT`, exigir HALT deliberadamente a ese programa produce `$fatal`, salida no nula y diagnóstico de PC/valid. Un timeout del banco significa que una expectativa no se cumplió; no puede imprimirse PASS ni presentarse como HALT. El timeout y abort del sistema serán decisiones de la Debug Unit de B, aceptadas durante la integración correspondiente.
 

@@ -1,8 +1,10 @@
 # Integración del CPU real con Debug Unit y UART
 
+> Nota de reorganización: este documento conserva evidencia y comandos históricos. Los helpers `check_*` de A se retiraron y ya no se usa `--companion`; las rutas y comandos vigentes están en [organización del proyecto](organizacion.md).
+
 Implementación A-32, 2026-11-09. El CPU de A se integra con el `system.v` original de B, consultado desde `Practico/TPs-companion`, commit `f9dc09297f5bdcec6fb09048c003dbb6cd2188c0`. La selección del CPU real ya existía: basta compilar sin `CPU_STUB` y aportar las fuentes del CPU. No se copiaron módulos ni se cambiaron los comandos, puertos o formato de dump.
 
-La [evidencia A-32](../validation/A-32.md) registra las pruebas. Los contratos de [protocolo](../../../../TPs-companion/TP3_FINAL/doc/documentation/protocolo.md), [dump](../../../../TPs-companion/TP3_FINAL/doc/documentation/dump.md) e [interfaz](../../../../TPs-companion/TP3_FINAL/doc/documentation/interfaz_cpu.md) de B conservan su contenido y estado documental; esta integración no atribuye una aprobación conjunta nueva.
+La [evidencia A-32](../validation/A-32.md) registra las pruebas. Los contratos de [protocolo](protocolo.md), [dump](dump.md) e [interfaz](interfaz_cpu.md) de B conservan su contenido y estado documental; esta integración no atribuye una aprobación conjunta nueva.
 
 ## Estructura y propiedad de los módulos
 
@@ -55,7 +57,7 @@ S significa un ciclo de pipeline, no una instrucción retirada. D lee sin habili
 
 ## Banco de integración
 
-[`tb_system_cpu_smoke.sv`](../../VIVADO/TP_FINAL/tb/tb_system_cpu_smoke.sv) maneja el sistema por la línea serie. Reutiliza las tareas de transmisión y recepción de la BFM de B. La inspección jerárquica se usa únicamente para observar el CPU y verificar la imagen de imem; no se fuerzan señales ni se escriben registros internos.
+[`tb_system_cpu_smoke.sv`](../../VIVADO/TP_FINAL/tb/system/tb_system_cpu_smoke.sv) maneja el sistema por la línea serie. Reutiliza las tareas de transmisión y recepción de la BFM de B. La inspección jerárquica se usa únicamente para observar el CPU y verificar la imagen de imem; no se fuerzan señales ni se escriben registros internos.
 
 El banco recibe 34 dumps reales. Para cada uno comprueba cabecera, longitud `210+8M`, checksum, versión y causa; compara los 32 registros y 16 latches serializados con un snapshot del CPU pausado, y todos los pares de memoria con sus palabras dirty, en orden ascendente y con direcciones byte. Verifica que las 563 palabras observables permanezcan estables durante la respuesta y que no se envíen bytes extra después del checksum.
 
@@ -80,7 +82,7 @@ Los programas y estados independientes provienen de `TP3_FINAL/programs` y de la
 
 ## Comparación con software de B
 
-[`check_system_dumps.py`](../../tools/check_system_dumps.py) lee los bytes recibidos y utiliza directamente `host.dump.decode`, `encode` y `host.canonical` de B. Valida los 34 frames, round-trip exacto, rechazo de checksum alterado, equivalencia S/D y condiciones de reset/abort/timeout.
+[`check_system_dumps.py` (helper retirado)](organizacion.md#herramientas-y-bancos-que-se-conservan) lee los bytes recibidos y utiliza directamente `host.dump.decode`, `encode` y `host.canonical` de B. Valida los 34 frames, round-trip exacto, rechazo de checksum alterado, equivalencia S/D y condiciones de reset/abort/timeout.
 
 El helper compila el ISS original de B en build de A y compara PC de HALT, los 32 registros y memoria/dirty de `branch_load_use`, `suma` y `flush_halt`. También contrasta el golden independiente de A-29 y sus avances de pipeline. El ISS de `no_halt` debe alcanzar su límite de instrucciones, pero esa igualdad de causa no sustituye la comprobación del estado parcial: el banco y el helper exigen registros cero, memoria sin stores y halted=0 para ese programa.
 

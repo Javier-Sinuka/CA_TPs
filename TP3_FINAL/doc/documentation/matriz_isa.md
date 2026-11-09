@@ -1,5 +1,7 @@
 # Matriz ISA — decodificación y cobertura final del CPU
 
+> Nota de reorganización: este documento conserva evidencia y comandos históricos. Los helpers `check_*` de A se retiraron y ya no se usa `--companion`; las rutas y comandos vigentes están en [organización del proyecto](organizacion.md).
+
 Estado final: [A-33](../validation/A-33.md) verifica las **32 instrucciones del subconjunto** en RUN y STEP más HALT en WB. Las secciones iniciales conservan el contexto histórico de cada milestone; el cierre vigente está [al final](#cierre-final-a-33--cobertura-dinámica-del-cpu).
 
 La matriz de A-05 describe las **32 instrucciones del subconjunto** más HALT.

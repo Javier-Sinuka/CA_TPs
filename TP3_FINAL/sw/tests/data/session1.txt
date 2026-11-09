@@ -1,0 +1,15 @@
+# sesión guionada sobre la placa simulada
+load ../programs/suma.s
+regs
+step 3
+regs
+pipe
+run
+regs
+mem
+step
+reset
+regs
+mem
+raw 7a
+foo

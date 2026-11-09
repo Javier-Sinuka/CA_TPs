@@ -1,5 +1,7 @@
 # 08 — CPU listo para debug y regresión final
 
+> Nota de reorganización: este documento conserva evidencia y comandos históricos. Los helpers `check_*` de A se retiraron y ya no se usa `--companion`; las rutas y comandos vigentes están en [organización del proyecto](organizacion.md).
+
 Este informe reúne **A-M08, issues A-30, A-31, A-32 y A-33**, y cierra localmente la parte de Persona A hasta el CPU preparado para depuración. El datapath expone sus registros y memoria, puede sustituir al stub con los mismos 14 puertos y ejecuta programas mediante la Debug Unit y la UART originales de B en simulación.
 
 La regresión final pasó el 2026-11-09: **31 targets, 10.725.344 comparaciones, 32/32 instrucciones observadas en RUN y STEP, siete programas detenidos por HALT y un caso deliberado sin HALT**. Las comparaciones repetidas de snapshots explican gran parte del total; no equivalen a esa cantidad de escenarios distintos. El [gate A-M08](../validation/A-M08.md) y la [evidencia A-33](../validation/A-33.md) contienen comandos, seeds, logs y límites de aceptación.
@@ -8,8 +10,8 @@ La regresión final pasó el 2026-11-09: **31 targets, 10.725.344 comparaciones,
 
 | Issue | Resultado implementado o verificado | Evidencia |
 |---|---|---|
-| A-30 | Mapa debug completo: 32 registros, 16 palabras de latch e info por etapa; flags de valid, halted, stall, take y stop_fetch. | [A-30](../validation/A-30.md), [mapa detallado](dump.md), `tb_cpu_debug`. |
-| A-31 | Un mismo arnés usa CPU real o stub, con imem externa y barrido completo del estado público; auditoría de los 14 puertos y del cableado real de system. | [A-31](../validation/A-31.md), [interfaz](interfaz_cpu.md), `tb_cpu_contract` y variante stub. |
+| A-30 | Mapa debug completo: 32 registros, 16 palabras de latch e info por etapa; flags de valid, halted, stall, take y stop_fetch. | [A-30](../validation/A-30.md), [mapa detallado](cpu_dump.md), `tb_cpu_debug`. |
+| A-31 | Un mismo arnés usa CPU real o stub, con imem externa y barrido completo del estado público; auditoría de los 14 puertos y del cableado real de system. | [A-31](../validation/A-31.md), [interfaz](cpu_interfaz.md), `tb_cpu_contract` y variante stub. |
 | A-32 | Integración de CPU real con system, Debug Unit, UART y BFM originales de B; 34 dumps y recuperación por reset/recarga. | [A-32](../validation/A-32.md), [integración](integracion_debug.md), `tb_system_cpu_smoke`. |
 | A-33 | Runner de cierre por etapas, cobertura dinámica, manifiesto reproducible, contraste final con XSim, síntesis OOC actual y documentación del milestone. | [A-33](../validation/A-33.md), [matriz ISA](matriz_isa.md#cierre-final-a-33--cobertura-dinámica-del-cpu). |
 
@@ -41,7 +43,7 @@ Las lecturas son combinacionales y no alteran el CPU. El selector de registros t
 
 Los operandos de ID/EX son los capturados antes del forwarding de EX. En cambio, `store_data` de EX/MEM ya contiene el dato seleccionado para el store. Una etapa inválida puede conservar payload anterior; valid y controles determinan sus efectos. El mux no borra ese payload para ocultarlo al depurador.
 
-Las palabras info conservan el layout común del [dump](dump.md#palabras-info). EX permite la máscara `FFFFFFFF`, MEM `8783801F` y WB `8600001F`: campos ausentes de una etapa salen cero. El selector 15 usa bits 0…3 para valid ID/EX/MEM/WB, bit 4 para halted, 5 para load-use, 6 para take y 7 para stop_fetch; bits 31:8 salen cero. Stall y take son condiciones combinacionales visibles incluso en pausa. Stop_fetch incluye la aceptación habilitada de HALT y el registro de fetch detenido; por eso su valor puede cambiar con enable antes de aceptar HALT, sin cambiar ningún flop.
+Las palabras info conservan el layout común del [dump](cpu_dump.md#palabras-info). EX permite la máscara `FFFFFFFF`, MEM `8783801F` y WB `8600001F`: campos ausentes de una etapa salen cero. El selector 15 usa bits 0…3 para valid ID/EX/MEM/WB, bit 4 para halted, 5 para load-use, 6 para take y 7 para stop_fetch; bits 31:8 salen cero. Stall y take son condiciones combinacionales visibles incluso en pausa. Stop_fetch incluye la aceptación habilitada de HALT y el registro de fetch detenido; por eso su valor puede cambiar con enable antes de aceptar HALT, sin cambiar ningún flop.
 
 En la parada real queda solo WB válido con HALT y los flags valen `00000098`. El PC canónico de HALT procede del selector 11; `o_dbg_pc` sigue mostrando el PC IF, que puede apuntar después de esa instrucción.
 

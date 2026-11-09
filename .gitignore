@@ -1,9 +1,2 @@
 planning/
-TP3_FINAL/tools/*
-!TP3_FINAL/tools/synth_ooc.tcl
-!TP3_FINAL/tools/check_control_programs.py
-!TP3_FINAL/tools/check_halt_programs.py
-!TP3_FINAL/tools/check_cpu_contract.py
-!TP3_FINAL/tools/check_system_dumps.py
-!TP3_FINAL/tools/check_final_coverage.py
-!TP3_FINAL/tools/check_final_xsim.py
+.vscode/

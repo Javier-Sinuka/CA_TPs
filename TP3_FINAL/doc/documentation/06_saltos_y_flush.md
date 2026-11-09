@@ -1,6 +1,8 @@
 # 06 — Saltos, enlaces y flush
 
-Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/README.md).
+> Nota de reorganización: este documento conserva evidencia y comandos históricos. Los helpers `check_*` de A se retiraron y ya no se usa `--companion`; las rutas y comandos vigentes están en [organización del proyecto](organizacion.md).
+
+Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/cpu/README.md).
 
 Este informe describe **A-M06, issues A-24, A-25 y A-26**. El CPU resuelve BEQ, BNE, JAL y JALR en EX, redirige el PC e invalida las dos instrucciones jóvenes cuando corresponde. La decisión usa los operandos corregidos por forwarding y conserva el enlace PC+4 para WB. Los programas de cierre prueban bucles, llamada/retorno y dependencias load→branch/JALR en ejecución continua y pausada. El [gate A-M06](../validation/A-M06.md) registra el cierre y sus límites.
 
@@ -75,7 +77,7 @@ La pausa externa conserva PC, registros del pipeline y estado arquitectónico. N
 
 ## 6. Programa de suma y branch hacia atrás
 
-[`suma.s`](../../programs/suma.s) conserva la lógica de la hoja de ruta: x1 inicia en cero, x2 en uno y x3 en once. Se suma el contador, se incrementa y se vuelve al cuerpo mientras sea distinto de once. Las diez iteraciones producen 1+…+10=55, es decir `0x37`. El store final deja ese valor en dirección byte cero.
+[`suma.s`](../../programs/cpu/suma.s) conserva la lógica de la hoja de ruta: x1 inicia en cero, x2 en uno y x3 en once. Se suma el contador, se incrementa y se vuelve al cuerpo mientras sea distinto de once. Las diez iteraciones producen 1+…+10=55, es decir `0x37`. El store final deja ese valor en dirección byte cero.
 
 La secuencia dinámica es `0,4,8`, seguida por diez repeticiones de `12,16,20`, y finalmente `24,28`. El BNE de PC=20 apunta a PC=12 con inmediato −8, toma nueve veces y no toma la última. Se comprueban los valores intermedios de cada acumulación y cada actualización del contador, no solo el resultado final. El marcador de PC=28 escribe x31=`0x5a5`.
 
@@ -83,7 +85,7 @@ Son 35 instrucciones retiradas, 24 escrituras de registro, un store, cero stalls
 
 ## 7. Llamada, retorno y enlaces descartados
 
-[`jump_link.s`](../../programs/jump_link.s) llama con JAL de PC=4 a una función en PC=80. JAL deja ra=8. La función cambia x10 de 3 a 7 y retorna mediante `jalr x0,ra,0`, sin modificar ra. La continuación copia ra en x11, verificando que el enlace se conservó.
+[`jump_link.s`](../../programs/cpu/jump_link.s) llama con JAL de PC=4 a una función en PC=80. JAL deja ra=8. La función cambia x10 de 3 a 7 y retorna mediante `jalr x0,ra,0`, sin modificar ra. La continuación copia ra en x11, verificando que el enlace se conservó.
 
 La secuencia completa de PC es:
 
@@ -97,7 +99,7 @@ Los consumidores del enlace situados en el destino reciben el dato mediante WB�
 
 ## 8. Load→branch y load→JALR
 
-[`branch_load_use.s`](../../programs/branch_load_use.s) prepara memoria con 73 y 21. Antes de cada carga destinada a un branch escribe un centinela negativo en el registro consumidor. De esa forma, usar el dato capturado antiguo no puede pasar accidentalmente como el dato correcto.
+[`branch_load_use.s`](../../programs/cpu/branch_load_use.s) prepara memoria con 73 y 21. Antes de cada carga destinada a un branch escribe un centinela negativo en el registro consumidor. De esa forma, usar el dato capturado antiguo no puede pasar accidentalmente como el dato correcto.
 
 | PC load → consumidor | Condición / destino | Camino del dato |
 |---|---|---|
@@ -115,7 +117,7 @@ Esta prueba completa la aceptación funcional load→branch que A-23 solo había
 
 ## 9. Cómo se construyó la evidencia
 
-`tb_control_flow` usa tablas independientes de eventos, no un decoder que reproduzca el RTL. El JSON de cada programa contiene la secuencia dinámica esperada, los datos de cada commit/store, controles tomados/no tomados, operandos significativos, conteos y todo el estado final. Su representación `.expected.hex` permite cargar esas constantes en el simulador. El [README de programas](../../programs/README.md#programas-de-control-de-a-m06) documenta el formato.
+`tb_control_flow` usa tablas independientes de eventos, no un decoder que reproduzca el RTL. El JSON de cada programa contiene la secuencia dinámica esperada, los datos de cada commit/store, controles tomados/no tomados, operandos significativos, conteos y todo el estado final. Su representación `.expected.hex` permite cargar esas constantes en el simulador. El [README de programas](../../programs/cpu/README.md#programas-de-control-de-a-m06) documenta el formato.
 
 Se comprueba la llegada de instrucciones en EX y MEM, y cada retiro de WB, incluyendo instrucciones sin escritura. El test valida todos los registros después de cada clock y recorre la memoria y dirty al terminar. Las pausas comparan snapshots de PC, 16 selectores del pipeline, 32 registros y 256 palabras/dirty. Antes de declarar éxito se exige el marcador, los conteos y el número exacto de avances. Un watchdog o un límite vencido es un fallo.
 

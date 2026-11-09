@@ -1,23 +1,17 @@
-set top [lindex $argv 0]
-set output [lindex $argv 1]
-set sources [lrange $argv 2 end]
-set part xc7a35tcpg236-1
-
-file mkdir $output
+# Uso: vivado -mode batch -source synth_ooc.tcl -tclargs <top> <outdir> <archivo.v> ...
+set top   [lindex $argv 0]
+set out   [lindex $argv 1]
+set files [lrange $argv 2 end]
+set part  xc7a35tcpg236-1
+file mkdir $out
 create_project -in_memory -part $part
-set include_dirs {}
-foreach source $sources {
-    lappend include_dirs [file dirname $source]
+set incdirs [list \
+    [file normalize [file join [file dirname [info script]] ../VIVADO/TP_FINAL/rtl/common]] \
+    [file normalize [file join [file dirname [info script]] ../VIVADO/TP_FINAL/rtl/debug]]]
+foreach f $files {
+    read_verilog $f
+    lappend incdirs [file dirname $f]
 }
-set_property include_dirs [lsort -unique $include_dirs] [current_fileset]
-foreach source $sources {
-    if {[file extension $source] ne ".vh"} {
-        read_verilog $source
-    }
-}
-synth_design -top $top -part $part -mode out_of_context -include_dirs [lsort -unique $include_dirs]
-if {[llength [get_ports -quiet i_clock]] > 0} {
-    create_clock -name i_clock -period 10.000 [get_ports i_clock]
-}
-report_utilization -file [file join $output util.rpt]
-report_methodology -file [file join $output methodology.rpt]
+synth_design -top $top -part $part -mode out_of_context -include_dirs [lsort -unique $incdirs]
+report_utilization -file $out/util.rpt
+report_methodology -file $out/methodology.rpt
