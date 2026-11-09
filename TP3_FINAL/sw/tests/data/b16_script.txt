@@ -1,0 +1,10 @@
+version
+load tests/data/b16_progA.hex
+step 5
+run
+dump
+reset
+load tests/data/b16_progB.hex
+run
+raw 7a
+dump

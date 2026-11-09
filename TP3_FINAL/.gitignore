@@ -1,2 +1,5 @@
 # This file keeps the TP3_FINAL root visible in Git.
 
+build/
+tools/*.jar
+__pycache__/
