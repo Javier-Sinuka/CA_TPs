@@ -67,6 +67,27 @@ TBS = {
 }
 
 EXTERNAL_TBS = {
+    "tb_cpu_contract": {
+        "top": "tb_cpu_contract",
+        "files": (
+            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/hazard_unit.v",
+            f"TP3_FINAL/{RTL}/forwarding_unit.v", f"TP3_FINAL/{RTL}/if_id.v",
+            *DECODE_FILES, *EXECUTE_FILES, *MEMORY_FILES,
+            f"TP3_FINAL/{TB}/tb_cpu_contract.sv",
+        ),
+        "companion_files": (f"TP3_FINAL/{RTL}/debug/imem.v",),
+        "companion_headers": (f"TP3_FINAL/{RTL}/debug/cpu_ports.vh",),
+    },
+    "tb_cpu_contract_stub": {
+        "top": "tb_cpu_contract",
+        "files": (f"TP3_FINAL/{TB}/tb_cpu_contract.sv",),
+        "companion_files": (
+            f"TP3_FINAL/{RTL}/debug/cpu_stub.v",
+            f"TP3_FINAL/{RTL}/debug/imem.v",
+        ),
+        "companion_headers": (f"TP3_FINAL/{RTL}/debug/cpu_ports.vh",),
+        "defines": {"CPU_STUB": 1},
+    },
     "tb_cpu_debug": {
         "top": "tb_cpu_debug",
         "files": (

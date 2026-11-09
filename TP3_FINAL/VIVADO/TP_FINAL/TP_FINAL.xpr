@@ -231,6 +231,16 @@
     </FileSet>
     <FileSet Name="sim_1" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_1" RelGenDir="$PGENDIR/sim_1">
       <Filter Type="Srcs"/>
+      <File Path="$PPRDIR/tb/tb_cpu_contract.sv">
+        <FileInfo SFType="SVerilog">
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/rtl/debug/cpu_stub.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/tb/tb_cpu_debug.sv">
         <FileInfo SFType="SVerilog">
           <Attr Name="UsedIn" Val="simulation"/>
@@ -470,6 +480,9 @@
       </Config>
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
+      <File Path="$PPRDIR/../../tools/check_cpu_contract.py"/>
+      <File Path="$PPRDIR/../../doc/validation/A-31.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/interfaz_cpu.md"/>
       <File Path="$PPRDIR/../../doc/documentation/dump.md"/>
       <File Path="$PPRDIR/../../doc/validation/A-30.md"/>
       <File Path="$PPRDIR/../../programs/halt_suite.expected.json"/>

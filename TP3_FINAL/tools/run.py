@@ -60,6 +60,8 @@ def run_tb(name: str, companion: Path | None = None) -> int:
     command = ["iverilog", "-g2012", "-Wall", "-Wno-timescale"]
     for incdir in sorted(incdirs):
         command.extend(("-I", incdir))
+    for key, value in sorted(spec.get("defines", {}).items()):
+        command.append(f"-D{key}={value}")
     command.extend(("-s", top, "-o", str(output)))
     command.extend(str(source) for source in sources)
     print(' '.join(command), flush=True)
