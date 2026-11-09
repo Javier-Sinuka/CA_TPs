@@ -77,3 +77,7 @@ Sus JSON conservan las secuencias dinámicas independientes de A-26, ahora con `
 El estado se fijó con las constantes históricas y los programas simples nuevos; el ISS se utiliza como una segunda comprobación arquitectónica. No se usa el resultado del RTL para regenerar expectativas. El helper solo verifica, sin reescribir los golden.
 
 El [informe A-M07](../doc/documentation/07_halt_y_congelamiento.md) explica la estructura de HALT, el vaciado, el enable común, los pasos, el reset y sus límites. Los resultados de las issues anteriores se conservan como evidencia histórica de su versión del diseño.
+
+## Cierre final A-33
+
+`python3 TP3_FINAL/tools/run.py regress --companion ../TPs-companion` reúne programas/ISS, control, vectores, puertos, los 31 targets RTL, UART/host y cobertura dinámica. Exige las 32 instrucciones observadas en WB en RUN y STEP, siete HALT y el caso sin HALT. No regenera goldens. La [matriz final](../doc/documentation/matriz_isa.md#cierre-final-a-33--cobertura-dinámica-del-cpu), el [informe 08](../doc/documentation/08_cpu_listo_para_debug.md) y la [evidencia](../doc/validation/A-33.md) documentan comandos y resultados.

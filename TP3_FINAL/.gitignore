@@ -6,3 +6,5 @@ tools/*
 !tools/check_halt_programs.py
 !tools/check_cpu_contract.py
 !tools/check_system_dumps.py
+!tools/check_final_coverage.py
+!tools/check_final_xsim.py

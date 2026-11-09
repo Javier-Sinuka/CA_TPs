@@ -1,6 +1,8 @@
-# A-05 — matriz ISA y señales de control de Fase 1
+# Matriz ISA — decodificación y cobertura final del CPU
 
-La matriz describe las **32 instrucciones del subconjunto** más HALT.
+Estado final: [A-33](../validation/A-33.md) verifica las **32 instrucciones del subconjunto** en RUN y STEP más HALT en WB. Las secciones iniciales conservan el contexto histórico de cada milestone; el cierre vigente está [al final](#cierre-final-a-33--cobertura-dinámica-del-cpu).
+
+La matriz de A-05 describe las **32 instrucciones del subconjunto** más HALT.
 La validez de codificación (`o_valid_instr`) es distinta del bit de
 ocupación `valid` que tendrán los registros del pipeline. `control.v`
 decodifica una palabra aislada; el futuro datapath debe condicionar
@@ -150,3 +152,75 @@ A-26 conserva el RTL de A-25. El fin es un marcador con avance acotado; la acept
 ## Cobertura de finalización en A-M07
 
 Los programas de aritmética/memoria, RAW, load-use y control ahora terminan por HALT real, con WB válido y etapas anteriores inválidas. Conservan entre ellos las 32 instrucciones del subconjunto y prueban HALT como instrucción adicional. El banco `tb_cpu_step_halt` repite siete programas positivos en RUN/STEP, comprueba estado por avance y descarta HALT del camino incorrecto. `no_halt` demuestra que el CPU no inventa una parada por timeout. [Informe 07](07_halt_y_congelamiento.md) · [Evidencia A-29](../validation/A-29.md).
+
+## Cierre final A-33 — cobertura dinámica del CPU
+
+El 2026-11-09 se ejecutó `run.py regress --companion ../TPs-companion`: 31 targets y 10.725.344 comparaciones. `check_final_coverage.py` exige el inventario completo y obtiene la cobertura del **PC observado en WB al retirar**, no de la mera presencia de instrucciones en los archivos. Las 32 instrucciones se observaron en ambos modos del banco común; HALT se verifica por separado al quedar válido en WB, con ID/EX/MEM inválidos. NOP `00000013` pertenece a ADDI.
+
+Los PC siguientes son bytes y muestran un sitio realmente observado por instrucción. `tb_cpu_step_halt` ejecuta todos estos programas en RUN y STEP, contrasta estados por avance, 32 registros, memoria/dirty y oráculos independientes. Las pruebas específicas de las etapas y del control permanecen en la regresión.
+
+| Instrucción | Programa | PC byte observado | TB adicional de integración |
+|---|---|---:|---|
+| `add` | `arith_no_hazard` | 48 | `tb_cpu_no_hazard` |
+| `sub` | `arith_no_hazard` | 64 | `tb_cpu_no_hazard` |
+| `sll` | `arith_no_hazard` | 80 | `tb_cpu_no_hazard` |
+| `slt` | `arith_no_hazard` | 176 | `tb_cpu_no_hazard` |
+| `sltu` | `arith_no_hazard` | 192 | `tb_cpu_no_hazard` |
+| `xor` | `arith_no_hazard` | 160 | `tb_cpu_no_hazard` |
+| `srl` | `arith_no_hazard` | 96 | `tb_cpu_no_hazard` |
+| `sra` | `arith_no_hazard` | 112 | `tb_cpu_no_hazard` |
+| `or` | `arith_no_hazard` | 144 | `tb_cpu_no_hazard` |
+| `and` | `arith_no_hazard` | 128 | `tb_cpu_no_hazard` |
+| `addi` | `arith_no_hazard` | 0 | `tb_cpu_no_hazard` |
+| `slti` | `arith_no_hazard` | 320 | `tb_cpu_no_hazard` |
+| `sltiu` | `arith_no_hazard` | 336 | `tb_cpu_no_hazard` |
+| `xori` | `arith_no_hazard` | 304 | `tb_cpu_no_hazard` |
+| `ori` | `arith_no_hazard` | 288 | `tb_cpu_no_hazard` |
+| `andi` | `arith_no_hazard` | 272 | `tb_cpu_no_hazard` |
+| `slli` | `arith_no_hazard` | 224 | `tb_cpu_no_hazard` |
+| `srli` | `arith_no_hazard` | 240 | `tb_cpu_no_hazard` |
+| `srai` | `arith_no_hazard` | 256 | `tb_cpu_no_hazard` |
+| `lb` | `arith_no_hazard` | 432 | `tb_cpu_no_hazard` |
+| `lh` | `arith_no_hazard` | 464 | `tb_cpu_no_hazard` |
+| `lw` | `arith_no_hazard` | 416 | `tb_cpu_no_hazard` |
+| `lbu` | `arith_no_hazard` | 448 | `tb_cpu_no_hazard` |
+| `lhu` | `arith_no_hazard` | 480 | `tb_cpu_no_hazard` |
+| `sb` | `arith_no_hazard` | 368 | `tb_cpu_no_hazard` |
+| `sh` | `arith_no_hazard` | 384 | `tb_cpu_no_hazard` |
+| `sw` | `arith_no_hazard` | 352 | `tb_cpu_no_hazard` |
+| `beq` | `branch_load_use` | 24 | `tb_control_flow / tb_branch_execute` |
+| `bne` | `suma` | 20 | `tb_control_flow` |
+| `jal` | `jump_link` | 4 | `tb_control_flow / tb_forwarding_paths` |
+| `jalr` | `jump_link` | 44 | `tb_control_flow / tb_forwarding_paths` |
+| `lui` | `arith_no_hazard` | 32 | `tb_cpu_no_hazard` |
+| HALT `00000073` | Los siete positivos; ejemplo `flush_halt` | 24 | `tb_halt_drain`, `tb_cpu_freeze` |
+
+El JSON y el CSV de cobertura en build conservan **todos** los PC y retiros; esta tabla selecciona un ejemplo de cada encoding. Los conteos de retiradas por programa/modo coinciden con los goldens independientes y el ISS, excluyendo HALT. [Informe de M08](08_cpu_listo_para_debug.md) · [Gate A-M08](../validation/A-M08.md).
+
+### Requisitos microarquitectónicos y de sistema
+
+| Requisito | Programa / caso | TB o check / evidencia |
+|---|---|---|
+| Prioridad RAW y distancias 1/2/3, x0 | `raw_distance` y productores simultáneos | `tb_raw`, `tb_forwarding_paths`, `tb_forwarding_unit`; [A-M04](../validation/A-M04.md). |
+| Load-use por dato/base/store/branch/JALR, falsos riesgos | `load_use`, `branch_load_use` y 13 consumidores | `tb_load_use`, `tb_load_use_consumers`, `tb_hazard_unit`; [A-M05](../validation/A-M05.md). |
+| Saltos tomados/no tomados, enlaces y bit 0 de JALR | `suma`, `jump_link`, `branch_load_use` | `tb_branch_execute`, `tb_control_flow`; [A-M06](../validation/A-M06.md). |
+| Flush elimina writes, stores y HALT jóvenes | `flush_halt` y caminos incorrectos de control | `tb_flush`, `tb_halt_drain`, `tb_cpu_step_halt`; [A-M07](../validation/A-M07.md). |
+| HALT exacto, vaciado y efectos anteriores completos | Siete programas HALT, stop-fetch y WB válido | `tb_halt_drain`, `tb_cpu_step_halt`; [A-29](../validation/A-29.md). |
+| Freeze de todos los almacenamientos, STEP y reset dominante | Pausa en cada etapa, stores/riesgos/saltos pendientes | `tb_cpu_freeze`, `tb_cpu_step_halt`; [A-28](../validation/A-28.md). |
+| Tamaños, signo, alineación/wrap y zero lógico de memoria | Cinco loads, tres stores y casos de dmem | `tb_dmem`, `tb_dmem_dirty`, `tb_mem_wb`; [A-M02](../validation/A-M02.md). |
+| 32 registros + 16 selectores + info/flags reales | Captura frente a forwarding, burbujas y stop-fetch | `tb_cpu_debug`; [A-30](../validation/A-30.md). |
+| Contrato público e imem externa preservada | CPU real/stub, PC alto y 256 palabras dirty | `check_cpu_contract.py`, `tb_cpu_contract`, `tb_cpu_contract_stub`, `tb_imem_bridge`; [A-31](../validation/A-31.md). |
+| UART real, codec, checksum, dump estable e ISS | 34 tramas, tres finales, diez pasos y D repetidos | `tb_system_cpu_smoke`, `check_system_dumps.py`; [A-32](../validation/A-32.md). |
+| Ausencia de HALT, timeout, abort, reset y recarga | `no_halt`, dos RUN y recuperación con `flush_halt` | `tb_system_cpu_smoke`; estado parcial explícito, no solo canónico limit. |
+| Reproducibilidad e inventario sin omisiones | Seeds fijas, hashes, mismos PC/estado UART entre simuladores | `check_final_coverage.py`, `check_final_xsim.py`; [A-33](../validation/A-33.md). |
+
+| Banco | Seed hexadecimal |
+|---|---|
+| `tb_mem_wb` | `16abcdef` |
+| `tb_execute_stage` | `15e05eed` |
+| `tb_decode_stage` | `14dec0de` |
+| `tb_alu` | `5eed1234` |
+| `tb_pipeline_regs` | `12ab5eed` |
+| `tb_fetch` | `13fe7c01` |
+
+Los demás targets son dirigidos. La cobertura funcional se apoya en estos casos, en assertions por avance y en resultados independientes; el número total de comparaciones no mide por sí solo cantidad de escenarios. Este cierre local entrega baseline para AB-05, sin aprobación conjunta nueva ni validación de placa/timing físico.

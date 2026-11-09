@@ -100,3 +100,5 @@ python3 TP3_FINAL/tools/run.py tb tb_cpu_contract_stub --companion ../TPs-compan
 En Vivado, el arnés y `cpu_stub.v` externo están registrados en `sim_1`. Seleccionar `tb_cpu_contract` como top de simulación; sin `CPU_STUB` se usa CPU real, y agregando `CPU_STUB=1` a las definiciones del fileset se usa stub. Para volver al CPU real hay que retirar esa definición. No se modifica la parte FPGA preexistente del proyecto.
 
 La [evidencia A-31](../validation/A-31.md) registra simulación en Icarus/XSim y elaboración del `system.v` original de B en ambas variantes. No se cambiaron puertos ni contratos de B. La [integración funcional A-32](integracion_debug.md) agrega la carga y ejecución por UART, los dumps de pasos/pausas y la comparación con el codec e ISS de B; la elaboración de A-31 por sí sola no certifica esa comunicación.
+
+El [cierre local A-M08](08_cpu_listo_para_debug.md) vuelve a verificar este contrato dentro de la regresión final A-33, con los mismos puertos y fuentes originales de B.

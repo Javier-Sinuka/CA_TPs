@@ -1,11 +1,13 @@
 """Phase 1 elaboration and registered testbenches."""
 
 import argparse
+import json
 import os
 import re
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.dont_write_bytecode = True
@@ -130,12 +132,66 @@ def synth_ooc(top: str, companion: Path | None = None) -> int:
     return 0 if passed else 1
 
 
+def regress(companion: Path) -> int:
+    companion = companion.resolve()
+    build = TP3_FINAL / "build"
+    build.mkdir(exist_ok=True)
+    python = sys.executable
+    common = ["--companion", str(companion)]
+    commands = (
+        ("ports", [python, str(TP3_FINAL / "tools/check_cpu_contract.py"), *common], ()),
+        ("programs", [python, str(TP3_FINAL / "tools/check_halt_programs.py"), *common], ()),
+        ("control", [python, str(TP3_FINAL / "tools/check_control_programs.py"), *common], ()),
+        ("vectors", [python, str(companion / "TP3_FINAL/tools/gen_vectors.py"), "--check"], ()),
+        ("rtl", [python, str(Path(__file__).resolve()), "test", *common], ()),
+        ("uart", [python, str(TP3_FINAL / "tools/check_system_dumps.py"), *common], ("rtl",)),
+        ("coverage", [python, str(TP3_FINAL / "tools/check_final_coverage.py"), *common,
+                      "--regression-log", str(build / "a33_rtl.log")],
+         ("ports", "programs", "control", "vectors", "rtl", "uart")),
+    )
+    results = {}
+    environment = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+    for name, command, dependencies in commands:
+        log = build / f"a33_{name}.log"
+        if any(results[dependency]["status"] != "passed" for dependency in dependencies):
+            results[name] = {"status": "skipped", "command": command,
+                             "reason": "required stage failed", "log": str(log)}
+            log.write_text("SKIP: required stage failed\n")
+            print(f"SKIP regress {name}: required stage failed", flush=True)
+            continue
+        print(f"RUN regress {name}: {log}", flush=True)
+        try:
+            with log.open("w") as output:
+                result = subprocess.run(command, cwd=REPO, env=environment, stdout=output,
+                                        stderr=subprocess.STDOUT, check=False)
+            code = result.returncode
+        except OSError as error:
+            log.write_text(str(error) + "\n")
+            code = 127
+        results[name] = {"status": "passed" if code == 0 else "failed", "returncode": code,
+                         "command": command, "log": str(log)}
+        print(f"{'PASS' if code == 0 else 'FAIL'} regress {name}: exit={code}", flush=True)
+        if code:
+            print("\n".join(log.read_text(errors="replace").splitlines()[-12:]), flush=True)
+    passed = all(result["status"] == "passed" for result in results.values())
+    summary = {"timestamp_utc": datetime.now(timezone.utc).isoformat(), "cwd": str(REPO),
+               "companion": str(companion), "status": "passed" if passed else "failed",
+               "stages": results}
+    (build / "a33_regress.json").write_text(json.dumps(summary, indent=2) + "\n")
+    print(f"{'PASS' if passed else 'FAIL'} regress: {len(results)} stages; synthesis is a separate synth_ooc target")
+    return 0 if passed else 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("target", choices=("elaborate_phase1", "tb", "tbs", "test", "synth_ooc"))
+    parser.add_argument("target", choices=("elaborate_phase1", "tb", "tbs", "test", "regress", "synth_ooc"))
     parser.add_argument("name", nargs="?", choices=sorted(TBS.keys() | EXTERNAL_TBS.keys() | SYNTH.keys()))
     parser.add_argument("--companion", type=Path)
     args = parser.parse_args()
+    if args.target == "regress":
+        if args.name is not None or args.companion is None:
+            parser.error("regress requires --companion PATH and no testbench name")
+        return regress(args.companion)
     if args.target == "elaborate_phase1":
         if args.name is not None or args.companion is not None:
             parser.error("elaborate_phase1 does not accept a testbench name")

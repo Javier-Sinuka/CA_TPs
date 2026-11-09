@@ -101,4 +101,4 @@ El `.xpr` registra el TB, UART/Debug Unit/system de B y la BFM como fuentes de s
 
 ## Alcance del cierre
 
-A-32 verifica integración funcional inicial con CPU real y conserva el banco de B con stub. No cierra la aceptación compartida AB-05 ni valida FPGA, timing implementado o todas las variantes de error del protocolo. A-33 realizará la regresión final del datapath y el cierre de A-M08, momento en que se generará el informe completo del milestone.
+A-32 verifica integración funcional inicial con CPU real y conserva el banco de B con stub. No cierra la aceptación compartida AB-05 ni valida FPGA, timing implementado o todas las variantes de error del protocolo. A-33 completó la regresión final del datapath y el cierre local de A-M08; el [informe 08](08_cpu_listo_para_debug.md) y su [gate](../validation/A-M08.md) reúnen estructura, diagramas, comandos y resultados.

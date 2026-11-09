@@ -267,7 +267,7 @@
         </FileInfo>
       </File>
       <File Path="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/tb/common/uart_bfm.svh">
-        <FileInfo SFType="Verilog Header">
+        <FileInfo>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
@@ -522,6 +522,16 @@
       </Config>
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
+      <File Path="$PPRDIR/../../doc/diagramas/08_regresion.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/08_regresion.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/08_cpu_debug.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/08_cpu_debug.dot"/>
+      <File Path="$PPRDIR/../../doc/validation/A-M08.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-33.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/matriz_isa.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/08_cpu_listo_para_debug.md"/>
+      <File Path="$PPRDIR/../../tools/check_final_xsim.py"/>
+      <File Path="$PPRDIR/../../tools/check_final_coverage.py"/>
       <File Path="$PPRDIR/../../tools/check_system_dumps.py"/>
       <File Path="$PPRDIR/../../doc/documentation/integracion_debug.md"/>
       <File Path="$PPRDIR/../../doc/validation/A-32.md"/>
