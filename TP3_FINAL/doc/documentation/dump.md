@@ -92,4 +92,4 @@ Por eso, con HALT en ID antes de su aceptación, pasar `i_en` de 1 a 0 puede apa
 
 La Debug Unit de B serializa registros en W3…W34 y las 16 palabras de latch en W35…W50, con W51 para la cantidad de palabras dirty. El formato sigue siendo little-endian, de `210+8M` bytes. El PC canónico de una parada HALT proviene del selector 11, aunque `o_dbg_pc` ya apunte después de HALT. En la prueba A-30, esos PC son 72 y 76 respectivamente.
 
-La [verificación A-31](interfaz_cpu.md#interfaz-pública-verificada-en-a-31) comprueba los puertos y el barrido completo del estado público con CPU real y stub. La integración con Debug Unit y UART corresponde a A-32. El informe de cierre de M08 se generará al completar A-33.
+La [verificación A-31](interfaz_cpu.md#interfaz-pública-verificada-en-a-31) comprueba los puertos y el barrido completo del estado público con CPU real y stub. La [integración A-32](integracion_debug.md) compara 34 dumps recibidos por UART con el CPU pausado, el codec y el ISS de B. El informe de cierre de M08 se generará al completar A-33.

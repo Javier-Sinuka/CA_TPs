@@ -18,6 +18,17 @@ MEMORY_FILES = tuple(f"TP3_FINAL/{RTL}/{name}.v" for name in (
     "dmem", "mem_wb", "memory_stage",
 ))
 
+CPU_FILES = (
+    f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/hazard_unit.v",
+    f"TP3_FINAL/{RTL}/forwarding_unit.v", f"TP3_FINAL/{RTL}/if_id.v",
+    *DECODE_FILES, *EXECUTE_FILES, *MEMORY_FILES,
+)
+
+SYSTEM_FILES = tuple(f"TP3_FINAL/{RTL}/{name}.v" for name in (
+    "uart/baud_gen", "uart/uart_rx", "uart/uart_tx", "uart/uart_if",
+    "debug/debug_unit", "debug/imem", "debug/system",
+))
+
 PHASE1_TOPS = {
     "alu": (f"{RTL}/alu.v",),
     "alu_control": (f"{RTL}/alu_control.v",),
@@ -67,6 +78,15 @@ TBS = {
 }
 
 EXTERNAL_TBS = {
+    "tb_system_cpu_smoke": {
+        "top": "tb_system_cpu_smoke",
+        "files": (*CPU_FILES, f"TP3_FINAL/{TB}/tb_system_cpu_smoke.sv"),
+        "companion_files": SYSTEM_FILES,
+        "companion_headers": (
+            f"TP3_FINAL/{RTL}/debug/cpu_ports.vh",
+            f"TP3_FINAL/{TB}/common/uart_bfm.svh",
+        ),
+    },
     "tb_cpu_contract": {
         "top": "tb_cpu_contract",
         "files": (

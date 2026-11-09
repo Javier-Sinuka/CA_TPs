@@ -470,4 +470,6 @@ El [mapa debug del CPU real](dump.md) documenta los 16 selectores implementados,
 
 La [interfaz pública verificada en A-31](interfaz_cpu.md#interfaz-pública-verificada-en-a-31) agrega un arnés común CPU/stub con barridos de 32 registros, 16 latches y las 256 palabras de memoria, reset, dirty, stores parciales e imem externa. La [evidencia A-31](../validation/A-31.md) registra la sustitución sin cambios de puertos ni copias de B.
 
+La [integración con Debug Unit y UART de A-32](integracion_debug.md) utiliza `system.v` y la BFM originales de B para LOAD, STEP, RUN, DUMP, RESET, ABORT, timeout y recuperación. Los dumps se comparan con el CPU pausado y el codec/ISS de B. El cierre de A-M08 sigue correspondiendo a A-33.
+
 A-28 verificó todos los almacenamientos y A-29 migró los programas a HALT real, conservando sus oráculos y comparando RUN/STEP por avance. Los contadores históricos de finalización por marcador deben leerse junto al informe actual. El selector 15 todavía muestra solamente valid; completar flags y Debug Unit corresponde a A-M08.

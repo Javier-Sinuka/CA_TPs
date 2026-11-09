@@ -231,6 +231,46 @@
     </FileSet>
     <FileSet Name="sim_1" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_1" RelGenDir="$PGENDIR/sim_1">
       <Filter Type="Srcs"/>
+      <File Path="$PPRDIR/tb/tb_system_cpu_smoke.sv">
+        <FileInfo SFType="SVerilog">
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/rtl/uart/baud_gen.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/rtl/uart/uart_rx.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/rtl/uart/uart_tx.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/rtl/uart/uart_if.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/rtl/debug/debug_unit.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/rtl/debug/system.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/tb/common/uart_bfm.svh">
+        <FileInfo SFType="Verilog Header">
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/tb/tb_cpu_contract.sv">
         <FileInfo SFType="SVerilog">
           <Attr Name="UsedIn" Val="simulation"/>
@@ -456,6 +496,8 @@
         <Option Name="TopLib" Val="xil_defaultlib"/>
         <Option Name="TopAutoSet" Val="TRUE"/>
         <Option Name="VerilogDir" Val="$PPRDIR/rtl"/>
+        <Option Name="VerilogDir" Val="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/tb/common"/>
+        <Option Name="VerilogDir" Val="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/rtl/uart"/>
         <Option Name="VerilogDir" Val="$PPRDIR/../../../../TPs-companion/TP3_FINAL/VIVADO/TP_FINAL/rtl/debug"/>
         <Option Name="TransportPathDelay" Val="0"/>
         <Option Name="TransportIntDelay" Val="0"/>
@@ -480,6 +522,9 @@
       </Config>
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
+      <File Path="$PPRDIR/../../tools/check_system_dumps.py"/>
+      <File Path="$PPRDIR/../../doc/documentation/integracion_debug.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-32.md"/>
       <File Path="$PPRDIR/../../tools/check_cpu_contract.py"/>
       <File Path="$PPRDIR/../../doc/validation/A-31.md"/>
       <File Path="$PPRDIR/../../doc/documentation/interfaz_cpu.md"/>

@@ -5,3 +5,4 @@ tools/*
 !tools/check_control_programs.py
 !tools/check_halt_programs.py
 !tools/check_cpu_contract.py
+!tools/check_system_dumps.py
