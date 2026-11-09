@@ -232,7 +232,10 @@ module tb_cpu_freeze;
                 12: expected_latch = r_pipe_snapshot[16];
                 13: expected_latch = r_pipe_snapshot[17];
                 14: expected_latch = r_pipe_snapshot[18];
-                15: expected_latch = r_pipe_snapshot[4];
+                15: expected_latch = {
+                    24'd0, dut.w_stop_fetch, dut.w_take_ex, dut.w_load_use_stall, w_halted,
+                    r_pipe_snapshot[4][3:0]
+                };
             endcase
             check_word(w_dbg_latch_word, expected_latch, "combinational debug latch");
         end

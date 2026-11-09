@@ -125,7 +125,10 @@ module tb_cpu_no_hazard;
             end
             r_dbg_latch_sel = 4'd15;
             #1;
-            check_word(w_dbg_latch_word, expected_valid, "public valid flags");
+            check_word(w_dbg_latch_word, {
+                24'd0, (advances >= 146 || (advances == 145 && r_en)),
+                1'b0, 1'b0, (advances == 148), expected_valid
+            }, "public validity and HALT flags");
             $fdisplay(trace_file, "%0d,%0d,%0d,%0d,%08h,%08h,%08h,%08h,%08h,%01h",
                       mode, clocks, advances, r_en, w_dbg_pc, u_cpu.w_pc_id, u_cpu.w_pc_ex,
                       u_cpu.w_pc_mem, u_cpu.w_pc_wb, expected_valid);

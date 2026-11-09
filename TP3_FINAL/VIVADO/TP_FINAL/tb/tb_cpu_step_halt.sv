@@ -95,6 +95,7 @@ module tb_cpu_step_halt;
     task automatic observe_state(input bit save_reference);
         integer n;
         reg [31:0] value;
+        reg [31:0] expected;
         begin
             for (n = 0; n < STATE_WORDS; n = n + 1) begin
                 if (n >= 4 && n < 20) r_dbg_latch_sel = n - 4;
@@ -114,7 +115,17 @@ module tb_cpu_step_halt;
                     end
                 endcase
                 if (save_reference) r_reference[advances][n] = value;
-                else check_word(value, r_reference[advances][n], "same complete state at same enabled cycle");
+                else begin
+                    expected = r_reference[advances][n];
+                    if (n == 19)
+                        expected[7] = !r_reference[advances][19][6] &&
+                            (r_reference[advances][1] != 0 ||
+                             (!r_reset && r_en && !r_reference[advances][2][0] &&
+                              r_reference[advances][19][0] &&
+                              r_reference[advances][5] == 32'h00000073 &&
+                              !r_reference[advances][19][5]));
+                    check_word(value, expected, "same complete state at same enabled cycle");
+                end
             end
         end
     endtask

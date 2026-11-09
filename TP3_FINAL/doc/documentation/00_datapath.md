@@ -464,4 +464,8 @@ El CPU de cinco etapas queda validado localmente con un programa de todas las R/
 
 El [informe 07 — HALT y congelamiento](07_halt_y_congelamiento.md) describe la implementación final de parada y sus diagramas. HALT exacto se acepta en ID con avance y sin redirección anterior; IF/ID se invalida, el PC deja de buscar y HALT atraviesa ID/EX→EX/MEM→MEM/WB mientras terminan las instrucciones anteriores. `o_halted=w_valid_wb && w_halt_wb` desactiva `w_adv=i_en && !o_halted`. Reset síncrono domina incluso pausado o halted, sin borrar imem ni el array físico de dmem.
 
+## Mapa debug completo — A-30
+
+El [mapa debug del CPU real](dump.md) documenta los 16 selectores implementados, los campos `info` presentes en cada etapa y los ocho flags del selector 15. A-30 completa halted, load-use, take y stop_fetch en bits 4…7, conserva ceros en 31:8 y verifica operandos capturados, payload de burbujas y PC WB para HALT. La [evidencia A-30](../validation/A-30.md) registra simulación, sensibilidad y síntesis. El cierre de M08 y su informe quedan para A-33.
+
 A-28 verificó todos los almacenamientos y A-29 migró los programas a HALT real, conservando sus oráculos y comparando RUN/STEP por avance. Los contadores históricos de finalización por marcador deben leerse junto al informe actual. El selector 15 todavía muestra solamente valid; completar flags y Debug Unit corresponde a A-M08.

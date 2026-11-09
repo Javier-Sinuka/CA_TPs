@@ -356,7 +356,10 @@ module tb_fetch;
             check_word(w_dbg_latch_word, expected_decode_info(r_expected_instr_ex, r_expected_valid_ex), "selector 6");
             r_dbg_latch_sel = 4'd15;
             #1;
-            check_word(w_dbg_latch_word, {28'd0, r_expected_valid_wb, r_expected_valid_mem, r_expected_valid_ex, r_expected_valid_id}, "selector 15");
+            check_word(w_dbg_latch_word, {
+                24'd0, u_cpu.w_stop_fetch, u_cpu.w_take_ex, u_cpu.w_load_use_stall, w_halted,
+                r_expected_valid_wb, r_expected_valid_mem, r_expected_valid_ex, r_expected_valid_id
+            }, "selector 15");
         end
     endtask
 

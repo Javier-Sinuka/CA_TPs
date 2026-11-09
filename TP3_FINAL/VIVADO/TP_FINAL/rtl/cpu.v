@@ -84,6 +84,10 @@ module cpu (
     wire [31:0] w_wb_data;
     wire w_regfile_we;
     wire w_dmem_we;
+    wire [31:0] w_dbg_flags = {
+        24'd0, w_stop_fetch, w_take_ex, w_load_use_stall, o_halted,
+        w_valid_wb, w_valid_mem, w_valid_ex, w_valid_id
+    };
 
     function [31:0] select_forward;
         input [1:0] i_select;
@@ -308,7 +312,7 @@ module cpu (
                 4'd12: r_dbg_latch_word = w_result_wb;
                 4'd13: r_dbg_latch_word = w_load_data_wb;
                 4'd14: r_dbg_latch_word = w_info_wb;
-                4'd15: r_dbg_latch_word = {28'd0, w_valid_wb, w_valid_mem, w_valid_ex, w_valid_id};
+                4'd15: r_dbg_latch_word = w_dbg_flags;
                 default: begin end
             endcase
         end
