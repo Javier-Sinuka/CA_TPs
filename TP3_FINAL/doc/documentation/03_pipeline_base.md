@@ -1,5 +1,7 @@
 # 03 — Pipeline base de cinco etapas
 
+Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/README.md).
+
 Esta guía describe el milestone **A-M03 (issues A-12 a A-17)** y su cierre local. El CPU conecta IF, ID, EX, MEM y WB: recibe instrucciones de una imem externa, calcula resultados, escribe memoria y devuelve resultados al banco de registros. El programa de cierre ejecuta las 10 operaciones R, las 9 I-ALU, LUI y cargas/stores sin riesgos, con resultados calculados por separado. La evidencia reproducible está en [A-M03](../validation/A-M03.md) y [A-17](../validation/A-17.md).
 
 ![Diagrama de bloques del pipeline base](../diagramas/03_pipeline_base.svg)

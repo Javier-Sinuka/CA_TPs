@@ -2,7 +2,7 @@
 `default_nettype none
 
 module tb_raw;
-    localparam integer ADVANCES = 77;
+    localparam integer ADVANCES = 80;
     reg r_clock = 1'b0;
     reg r_reset = 1'b1;
     reg r_en = 1'b0;
@@ -68,16 +68,16 @@ module tb_raw;
 
     task automatic check_pipeline;
         begin
-            check_word(w_imem_addr, advances*4, "IF advances without stall");
-            check_word(w_dbg_pc, advances*4, "debug PC advances");
-            check_word({31'd0, dut.w_valid_id}, advances > 0, "ID valid");
-            check_word({31'd0, dut.w_valid_ex}, advances > 1, "EX valid");
-            check_word({31'd0, dut.w_valid_mem}, advances > 2, "MEM valid");
-            check_word({31'd0, dut.w_valid_wb}, advances > 3, "WB valid");
+            check_word(w_imem_addr, (advances < 77 ? advances : 77)*4, "IF advances without stall");
+            check_word(w_dbg_pc, (advances < 77 ? advances : 77)*4, "debug PC advances");
+            check_word({31'd0, dut.w_valid_id}, advances > 0 && advances <= 77, "ID valid");
+            check_word({31'd0, dut.w_valid_ex}, advances > 1 && advances <= 78, "EX valid");
+            check_word({31'd0, dut.w_valid_mem}, advances > 2 && advances <= 79, "MEM valid");
+            check_word({31'd0, dut.w_valid_wb}, advances > 3 && advances <= 80, "WB valid");
             if (advances > 1)
-                check_word(dut.w_pc_ex, (advances-2)*4, "EX PC without bubble");
+                check_word(dut.w_pc_ex, (advances-2 < 76 ? advances-2 : 76)*4, "EX PC without bubble");
             check_word({31'd0, dut.w_dmem_we}, 32'd0, "no store");
-            check_word({31'd0, w_halted}, 32'd0, "bounded execution");
+            check_word({31'd0, w_halted}, advances == ADVANCES, "HALT at expected advance");
             if (dut.w_valid_ex) begin
                 casez (dut.w_pc_ex)
                     32'd4: begin
@@ -216,12 +216,15 @@ module tb_raw;
         @(negedge r_clock);
         r_reset = 1'b0;
         r_en = 1'b1;
-        repeat (ADVANCES) begin
+        while (!w_halted && advances < ADVANCES + 8) begin
             @(posedge r_clock);
             #1;
             advances = advances + 1;
             check_pipeline();
         end
+        check_word(w_halted, 1, "completion requires HALT");
+        check_word({dut.w_valid_wb, dut.w_valid_mem, dut.w_valid_ex, dut.w_valid_id}, 8, "HALT WB and empty younger stages");
+        check_word(dut.w_pc_wb, 304, "HALT instruction PC");
         @(negedge r_clock);
         r_en = 1'b0;
         check_word({20'd0, r_seen}, 32'h0000_0fff, "all RAW cases observed");

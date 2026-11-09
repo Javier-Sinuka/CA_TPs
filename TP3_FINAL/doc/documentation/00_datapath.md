@@ -459,3 +459,9 @@ python3 TP3_FINAL/tools/run.py test --companion ../TPs-companion
 ## 17. Cierre del pipeline base en A-17
 
 El CPU de cinco etapas queda validado localmente con un programa de todas las R/I-ALU, LUI y memoria separado por tres NOP, en ejecución continua y pausada. El [informe completo A-M03](03_pipeline_base.md) explica la estructura con diagramas, campos por registro, etapas, permisos, debug y seguimiento temporal. El [gate A-M03](../validation/A-M03.md) y la [evidencia A-17](../validation/A-17.md) registran resultados y límites. Forwarding, riesgos, redirección y HALT se implementarán en las siguientes issues.
+
+## 18. HALT y ejecución controlada completados en A-M07
+
+El [informe 07 — HALT y congelamiento](07_halt_y_congelamiento.md) describe la implementación final de parada y sus diagramas. HALT exacto se acepta en ID con avance y sin redirección anterior; IF/ID se invalida, el PC deja de buscar y HALT atraviesa ID/EX→EX/MEM→MEM/WB mientras terminan las instrucciones anteriores. `o_halted=w_valid_wb && w_halt_wb` desactiva `w_adv=i_en && !o_halted`. Reset síncrono domina incluso pausado o halted, sin borrar imem ni el array físico de dmem.
+
+A-28 verificó todos los almacenamientos y A-29 migró los programas a HALT real, conservando sus oráculos y comparando RUN/STEP por avance. Los contadores históricos de finalización por marcador deben leerse junto al informe actual. El selector 15 todavía muestra solamente valid; completar flags y Debug Unit corresponde a A-M08.

@@ -74,3 +74,4 @@ addi x31,x0,1445
 nop
 nop
 nop
+halt

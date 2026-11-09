@@ -23,6 +23,7 @@ module tb_load_use_consumers;
     reg [31:0] r_snapshot_pc;
     reg [1:0] r_snapshot_usage;
     reg r_expected_stall, r_observed_stall, r_expected_take;
+    reg r_model_stopped, r_model_accept;
     reg [31:0] r_expected_target, r_instr_id_model;
     reg [37:0] r_event;
     reg r_expected_store;
@@ -169,6 +170,7 @@ module tb_load_use_consumers;
             r_expected_take = r_valid[1] && (r_pc[1] == 200 || r_pc[1] == 232);
             r_expected_target = r_pc[1] + 32'd4;
             if (!r_reset) check_word(dut.w_take_ex, r_expected_take, "scheduled control transfer");
+            r_model_accept = r_valid[0] && r_instr_id_model == 32'h00000073 && !r_expected_take && !r_expected_stall;
             r_observed_stall = dut.w_load_use_stall;
             if (!r_reset) check_word(r_observed_stall, r_expected_stall, "scheduled consumer stall");
             r_event = 38'd0;
@@ -202,6 +204,7 @@ module tb_load_use_consumers;
             if (r_reset) begin
                 advances = 0; stalls = 0; paused_hazards = 0; writes = 0; stores = 0; markers = 0;
                 r_pc_if = 32'd0; r_instr_id_model = 32'd0;
+                r_model_stopped = 0;
                 r_valid = 4'd0; r_dirty = 256'd0; r_seen = 13'd0;
                 for (n = 0; n < 4; n = n + 1) r_pc[n] = 32'd0;
                 for (n = 0; n < 32; n = n + 1) r_regs[n] = 32'd0;
@@ -212,9 +215,15 @@ module tb_load_use_consumers;
                 r_pc[3] = r_pc[2]; r_valid[3] = r_valid[2];
                 r_pc[2] = r_pc[1]; r_valid[2] = r_valid[1];
                 if (r_expected_take) begin
+                    r_model_stopped = 0;
                     r_valid[1:0] = 2'b00;
                     r_pc_if = r_expected_target;
                     check_word(dut.w_info_ex[31:18], 0, "redirect bubble controls neutralized");
+                end else if (r_model_stopped) begin
+                    r_valid[1:0] = 0;
+                end else if (r_model_accept) begin
+                    r_pc[1] = r_pc[0]; r_valid[1] = r_valid[0];
+                    r_valid[0] = 0; r_model_stopped = 1;
                 end else if (r_expected_stall) begin
                     r_valid[1] = 1'b0;
                     check_word(dut.w_info_ex[31:18], 0, "bubble controls neutralized");
@@ -297,7 +306,7 @@ module tb_load_use_consumers;
             r_reset = 1'b1;
             cycle(1'b0);
             r_reset = 1'b0;
-            while (advances < ADVANCES) begin
+            while (!w_halted && advances < ADVANCES + 8) begin
                 if (mode == 1 && r_valid[0] && r_valid[1] && r_hazard_at[r_pc[0][9:2]] &&
                     (r_pc[1] + 32'd4 == r_pc[0])) begin
                     repeat (3) cycle(1'b0);
@@ -305,6 +314,9 @@ module tb_load_use_consumers;
                     cycle(1'b0);
                 end else cycle(1'b1);
             end
+            check_word(w_halted, 1, "completion requires HALT");
+            check_word({dut.w_valid_wb, dut.w_valid_mem, dut.w_valid_ex, dut.w_valid_id}, 8, "HALT WB and empty younger stages");
+            check_word(dut.w_pc_wb, 452, "HALT instruction PC");
             r_en = 1'b0;
             #1;
             check_word(stalls, 10, "ten real dependencies, no false stalls");

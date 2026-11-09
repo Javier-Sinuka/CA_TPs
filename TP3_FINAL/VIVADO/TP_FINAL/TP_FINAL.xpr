@@ -231,6 +231,26 @@
     </FileSet>
     <FileSet Name="sim_1" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_1" RelGenDir="$PGENDIR/sim_1">
       <Filter Type="Srcs"/>
+      <File Path="$PPRDIR/tb/tb_cpu_step_halt.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/halt_suite.expected.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/flush_halt.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/no_halt.hex">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
       <File Path="$PPRDIR/tb/tb_cpu_freeze.sv">
         <FileInfo>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -445,6 +465,11 @@
       </Config>
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
+      <File Path="$PPRDIR/../../programs/halt_suite.expected.json"/>
+      <File Path="$PPRDIR/../../programs/flush_halt.s"/>
+      <File Path="$PPRDIR/../../programs/no_halt.s"/>
+      <File Path="$PPRDIR/../../programs/arith_no_hazard.s"/>
+      <File Path="$PPRDIR/../../programs/arith_no_hazard.expected.json"/>
       <File Path="$PPRDIR/../../programs/suma.s"/>
       <File Path="$PPRDIR/../../programs/suma.expected.json"/>
       <File Path="$PPRDIR/../../programs/jump_link.s"/>

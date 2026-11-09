@@ -1,5 +1,5 @@
 {
-  "logical_advances": 145,
+  "logical_advances": 148,
   "marker_pc": 560,
   "marker_rd": 31,
   "marker_value": "000005a5",
@@ -189,5 +189,6 @@
       "pc": 560,
       "assembly": "addi x31,x0,1445"
     }
-  ]
+  ],
+  "halt_pc": 576
 }

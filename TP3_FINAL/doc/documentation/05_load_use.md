@@ -1,5 +1,7 @@
 # 05 — Riesgos load-use, stall y burbuja
 
+Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/README.md).
+
 Este informe describe **A-M05, issues A-21 a A-23**. El milestone integra la detección de dependencias inmediatas de cargas y coordina el avance del pipeline para que el consumidor reciba el dato correcto. A-M04 ya había implementado forwarding; ahora una carga seguida por un consumidor real agrega exactamente una burbuja. El [gate A-M05](../validation/A-M05.md) conserva los resultados y el alcance del cierre.
 
 ![Bloques y control del avance ante load-use](../diagramas/05_load_use.svg)

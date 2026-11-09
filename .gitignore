@@ -2,3 +2,4 @@ planning/
 TP3_FINAL/tools/*
 !TP3_FINAL/tools/synth_ooc.tcl
 !TP3_FINAL/tools/check_control_programs.py
+!TP3_FINAL/tools/check_halt_programs.py

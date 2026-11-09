@@ -1,186 +1,79 @@
-# Programa de cierre A-M03
+# Programas de regresión del CPU
 
-`arith_no_hazard.s` ejecuta 36 instrucciones significativas, cada una seguida por tres `nop` (`addi x0,x0,0`). Son 144 palabras; `arith_no_hazard.hex` completa las 256 posiciones de imem con NOP. No contiene HALT. Los PC e índices del JSON son direcciones byte, no números de instrucción. El programa escribe una sola vez cada destino x1…x31 y también intenta escribir x0; así las expectativas de cada commit coinciden con los valores finales guardados.
+Estado vigente desde A-29 (2026-11-09): todos los programas de aceptación terminan mediante HALT explícito. `no_halt` es la excepción deliberada para comprobar ejecución sin parada interna. Los marcadores x31 siguen formando parte del scoreboard, pero ya no son el criterio de finalización.
 
-## Resultados calculados aparte
+## Banco común de A-M07
 
-Se fijaron constantes a partir de x1 = −16 (`fffffff0`), x2 = 3 y x3 = `12345000`. No se ejecutó el decoder ni la ALU RTL para producirlas. El ensamblador de B se utilizó solamente para codificar instrucciones, desde su worktree original.
+| Programa | PC de HALT | Avances hasta HALT | Writes / stores | Stalls / tomas |
+|---|---:|---:|---|---|
+| `arith_no_hazard` | 576 | 148 | 31 / 4 | 0 / 0 |
+| `raw_distance` | 304 | 80 | 30 / 0 | 0 / 0 |
+| `load_use` | 452 | 131 | 36 / 5 | 10 / 2 |
+| `suma` | 32 | 57 | 24 / 1 | 0 / 9 |
+| `jump_link` | 100 | 30 | 9 / 1 | 0 / 6 |
+| `branch_load_use` | 136 | 43 | 17 / 4 | 5 / 4 |
+| `flush_halt` | 24 | 10 | 2 / 1 | 0 / 1 |
+| `no_halt` | No tiene | Intervalo observado de 100 avances | 0 / 0 | 0 / 33 |
 
-| Operación | Registro | Resultado hexadecimal |
-|---|---|---|
-| ADD / SUB | x4 / x5 | `fffffff3` / `ffffffed` |
-| SLL / SRL / SRA | x6 / x7 / x8 | `ffffff80` / `1ffffffe` / `fffffffe` |
-| AND / OR / XOR | x9 / x10 / x11 | `00000000` / `fffffff3` / `fffffff3` |
-| SLT / SLTU | x12 / x13 | `00000001` / `00000000` |
-| ADDI | x14 | `ffffffeb` |
-| SLLI / SRLI / SRAI | x15 / x16 / x17 | `ffffff80` / `1ffffffe` / `fffffffe` |
-| ANDI / ORI / XORI | x18 / x19 / x20 | `00000050` / `fffffff5` / `0000000f` |
-| SLTI / SLTIU | x21 / x22 | `00000001` / `00000001` |
-| LW desde palabra 0 | x23 | `12345000` |
-| LB / LBU desde byte 5 | x24 / x25 | `fffffff0` / `000000f0` |
-| LH / LHU desde byte 6 | x26 / x27 | `fffffff0` / `0000fff0` |
-| LW desde palabra 1 / palabra limpia 2 | x28 / x29 | `fff0f000` / `00000000` |
-| ADD x23+x28 | x30 | `12254000` |
-| Marcador ADDI | x31 | `000005a5` |
+Las direcciones son byte. HALT no se cuenta entre las instrucciones retiradas del ISS: los siete positivos ejecutan 144, 76, 113, 35, 14, 26 y 4 instrucciones anteriores a la parada, respectivamente. El ISS secuencial no modela ciclos de pipeline. `no_halt` se observa durante 100 ciclos de CPU; el límite independiente de su ISS es de 1000 instrucciones, sin exigir igualdad entre ambas cantidades.
 
-La suma de x30 descarta el acarreo de 32 bits: `12345000 + fff0f000 = 1_12254000`. SLTU compara `fffffff0` con 3 y da cero; SLTIU compara con el inmediato −1 extendido (`ffffffff`) y da uno. Los desplazamientos lógicos rellenan con ceros y los aritméticos conservan el signo.
-
-Los cuatro stores son `sw x3,0(x0)`, `sb x1,5(x0)`, `sh x1,6(x0)` y `sw x0,1020(x0)`. La palabra 1 pasa de cero lógico a `0000f000` y luego a `fff0f000`; las únicas palabras sucias finales son 0, 1 y 255. La 255 contiene cero pero tiene dirty=1. Todas las otras palabras deben verse como cero y limpias.
-
-## Archivos de expectativas
-
-`arith_no_hazard.expected.json` es la representación legible: 32 registros, palabras sucias, límites y mapa PC→instrucción. `arith_no_hazard.expected.hex` es su representación para `$readmemh`, con 800 entradas de 40 bits, una por línea:
-
-| Índices inclusivos | Contenido |
-|---|---|
-| 0…31 | Registro arquitectónico final, extendido por ceros a 40 bits. |
-| 32…287 | Las 256 palabras lógicas finales de dmem. |
-| 288…543 | Las 256 marcas dirty finales, valor 0 o 1. |
-| 544…799 | Evento de escritura WB por índice de instrucción: bit 37 habilita, bits 36:32 son rd, bits 31:0 el valor esperado; bits 39:38 son cero. |
-
-Los eventos de NOP, stores e intento de escritura x0 son cero. Para una instrucción que escribe, el dato se toma de las constantes anteriores, no de sus operandos observados en el DUT. El scoreboard de tiempo no interpreta la ISA ni recalcula la ALU.
-
-## Fin y reproducción
-
-El marcador está en PC byte 560 (palabra 140). Entra a WB después del avance 144 y escribe x31 en el avance 145. El TB exige ese commit, exactamente 31 escrituras efectivas y cuatro stores, además de todos los datos finales. Después pausa cuatro clocks adicionales. Un límite de clocks o el watchdog es un fallo.
-
-Desde `Practico/TPs`:
+Cada `.hex` tiene 256 palabras. Se conserva todo el código anterior y se agrega HALT al final del `.s`; el relleno posterior también es HALT. `flush_halt` tiene un HALT descartado en PC=8, uno alcanzable en PC=24 y writes posteriores que no deben ejecutarse. `no_halt` usa `jal x0,0` y relleno con ese mismo salto: la preparación retira únicamente el HALT automático del ensamblador de B para este caso negativo.
 
 ```bash
-python3 TP3_FINAL/tools/run.py tb tb_cpu_no_hazard --companion ../TPs-companion
+python3 TP3_FINAL/tools/check_halt_programs.py --companion ../TPs-companion
+python3 TP3_FINAL/tools/run.py tb tb_cpu_step_halt --companion ../TPs-companion
+python3 TP3_FINAL/tools/run.py test --companion ../TPs-companion
 ```
 
-El TB genera `TP3_FINAL/build/a17_pipeline.vcd` y `a17_trace.csv` (ignorados por Git). Repite reset, ejecución continua y ejecución con pausas deterministas. En Vivado las dos entradas `.hex` están en `sim_1` y se copian al directorio de simulación; el TB acepta esos nombres locales. Para otra ubicación se puede pasar `+ROOT=/ruta/a/TPs/` a vvp, o `-testplusarg ROOT=/ruta/a/TPs/` a XSim, incluyendo la barra final. Los archivos de salida quedan en build al usar ROOT o ejecutar desde el repositorio; en el modo de archivos locales quedan junto a la simulación.
+Ejecutar desde `Practico/TPs`. El helper comprueba assembler/hex, JSON/hex y los siete estados arquitectónicos contra el ISS de B, sin copiar ni modificar su worktree. El banco común ejecuta los ocho programas en RUN y en STEP: cada flanco habilitado se separa por dos clocks con enable cero. Compara el estado de cada avance, verifica el vaciado en HALT y prueba freeze posterior. CSV/VCD se generan en `TP3_FINAL/build/`.
 
-Para verificar de nuevo la codificación con el ensamblador de B sin copiarlo ni usar su HALT automático:
+`tb_cpu_step_halt` acepta `+ROOT=/ruta/a/TPs/`, con barra final, o los nueve archivos hex locales al directorio de simulación. Están registrados en `sim_1` de Vivado. El negativo `vvp -n TP3_FINAL/build/tb_cpu_step_halt.vvp +EXPECT_HALT_NO_HALT` debe fallar al exigir deliberadamente HALT al programa que no lo tiene. Su diagnóstico incluye PC y valid; ese error esperado no es una parada exitosa del CPU.
 
-```bash
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=../TPs-companion/TP3_FINAL/sw python3 - <<'PY'
-from pathlib import Path
-from asm.rvasm import assemble, to_hex
-base = Path('TP3_FINAL/programs/arith_no_hazard')
-words = assemble(base.with_suffix('.s').read_text())
-assert words[-1] == 0x73
-words = words[:-1]
-assert len(words) == 144
-assert to_hex(words + [0x13] * (256 - len(words))) == base.with_suffix('.hex').read_text()
-print('PASS arith_no_hazard encoding')
-PY
-```
+## Aritmética sin riesgos
 
-Esto valida el pipeline sin riesgos. Forwarding, load-use, redirección y finalización HALT se comprobarán en sus milestones; A-29 repetirá aceptación con HALT real.
+`arith_no_hazard.s` conserva 36 instrucciones significativas, cada una seguida de tres NOP; HALT ocupa la palabra 144. Cubre 10 R, 9 I-ALU, LUI y las cinco cargas/tres stores. Parte de x1=-16, x2=3 y x3=0x12345000. Entre sus resultados están x4=fffffff3, x5=ffffffed, x6=ffffff80, x7=1ffffffe, x8=fffffffe y x30=12254000. El marcador x31=000005a5 sigue escribiéndose en el avance 145; el CPU termina en 148.
 
-## Programa `load_use` de A-M05
+Los stores son SW de x3 a byte 0, SB de x1 a byte 5, SH de x1 a byte 6 y SW de x0 a byte 1020. Las palabras dirty son 0=12345000, 1=fff0f000 y 255=00000000. Escribir cero igualmente activa dirty.
 
-`load_use.s` contiene 113 instrucciones y `load_use.hex` completa las 256 palabras con NOP. Se retira el HALT automático del ensamblador de B: el fin actual es el commit de x31=`0x5a5`, en PC 448, tras **127 avances**. La validación con HALT real se repetirá en A-29.
-
-La preparación escribe 73 en memoria byte 0 y 96 en byte 4, además de x8=73, x9=21, x10=96 y x12=31. Cada grupo ocupa ocho instrucciones: asigna a x1 un centinela negativo distinto, realiza el load, ejecuta su consumidor y agrega cinco NOP. Así el dato capturado antes del bypass difiere del resultado cargado y cada caso queda separado del siguiente. Los offsets y valores esperados son constantes independientes del RTL.
-
-| Grupo | PC load / consumidor | Consumidor | Stalls esperados | Resultado |
-|---|---|---|---:|---|
-| `alu_both` | 36 / 40 | ADD por rs1 y rs2 | 1 | x2=146. |
-| `store_data` | 68 / 72 | SW por dato | 1 | Memoria byte 64=73. |
-| `store_base` | 100 / 104 | SW por base | 1 | Memoria byte 100=21; base cargada 96. |
-| `false_rs2` | 132 / 136 | ADDI cuyo inmediato aparenta rs2=x1 | 0 | x3=1. |
-| `independent_alu` | 164 / 168 | ADD de x9+x9 | 0 | x4=42. |
-| `branch_rs1_equal` | 196 / 200 | BEQ por rs1 | 1 | Operandos 73/73, condición del arnés verdadera. |
-| `branch_rs2_different` | 228 / 232 | BNE por rs2 | 1 | Operandos 21/73, condición del arnés verdadera. |
-| `alu_rs2` | 260 / 264 | ADD por rs2 | 1 | x5=94. |
-| `alu_rs1` | 292 / 296 | ADDI por rs1 | 1 | x6=75. |
-| `load_x0` | 324 / 328 | Load a x0 seguido por ADDI de x0 | 0 | x0=0 y x7=0. |
-| `branch_rs1_different` | 356 / 360 | BEQ por rs1 | 1 | Operandos 73/21, condición del arnés falsa. |
-| `branch_rs2_equal` | 388 / 392 | BNE por rs2 | 1 | Operandos 73/73, condición del arnés falsa. |
-| `store_both` | 420 / 424 | SW por base y dato | 1 | Memoria byte 104=96. |
-
-Hay diez stalls habilitados, 36 escrituras de registros y cinco stores. El estado final de x1 es 96; las únicas palabras sucias son los índices 0, 1, 16, 25 y 26, con datos 73, 96, 73, 21 y 96. Los cuatro branches usan offset 4. Se observan sus operandos en EX mediante un comparador del testbench, sin exigir redirección ni flush al CPU de este milestone. Esa aceptación funcional pertenece a A-26.
-
-Desde `Practico/TPs`:
-
-```bash
-python3 TP3_FINAL/tools/run.py tb tb_load_use_consumers --companion ../TPs-companion
-```
-
-El TB corre el programa continuo y con pausas antes/después de cada dependencia, compara cada commit con constantes y recorre toda la memoria/dirty final. Produce `build/a23_consumers.vcd` y `build/a23_trace.csv`. En Vivado, el TB y el hex están en `sim_1`, y el ensamblador fuente está en `utils_1`. El TB admite `+ROOT=/ruta/a/TPs/` con barra final o el hex local al directorio de simulación.
-
-Para verificar la codificación sin copiar las herramientas de B:
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=../TPs-companion/TP3_FINAL/sw python3 - <<'PY'
-from pathlib import Path
-from asm.rvasm import assemble, to_hex
-base = Path('TP3_FINAL/programs/load_use')
-words = assemble(base.with_suffix('.s').read_text())
-assert len(words) == 114 and words[-1] == 0x73
-assert to_hex(words[:-1] + [0x13] * (256 - len(words[:-1]))) == base.with_suffix('.hex').read_text()
-print('PASS load_use encoding')
-PY
-```
-
-## Programa `raw_distance` de A-M04
-
-`raw_distance.s` contiene 76 palabras: grupos de distancias RAW 1, 2 y 3 en `rs1` y `rs2`, dos productores distintos, dos escrituras sucesivas al mismo destino, un intento de escritura a `x0`, instrucciones independientes y un marcador final en x31. `raw_distance.hex` tiene 256 palabras; las posiciones 76…255 se completan con NOP. El HALT agregado automáticamente por el ensamblador de B se retira porque el CPU aún no implementa la detención. No hay cargas, stores ni saltos en este programa.
-
-Los valores esperados están escritos como constantes en `tb/tb_raw.sv` y se explican en el [informe A-M04](../doc/documentation/04_forwarding.md). La instrucción final significativa está en PC 288 y escribe x31=`0x000005a5` en el avance 77. El TB verifica PC consecutivos, selectores, operandos, resultados, los 32 registros y las 256 palabras/dirty de dmem.
-
-Desde `Practico/TPs`:
-
-```bash
-python3 TP3_FINAL/tools/run.py tb tb_raw --companion ../TPs-companion
-```
-
-Para comprobar que el hex sigue correspondiendo al ensamblador del worktree de B:
-
-```bash
-PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=../TPs-companion/TP3_FINAL/sw python3 - <<'PY'
-from pathlib import Path
-from asm.rvasm import assemble, to_hex
-base = Path('TP3_FINAL/programs/raw_distance')
-words = assemble(base.with_suffix('.s').read_text())
-assert words[-1] == 0x73 and len(words) == 77
-assert to_hex(words[:-1] + [0x13] * (256 - len(words[:-1]))) == base.with_suffix('.hex').read_text()
-print('PASS raw_distance encoding')
-PY
-```
-
-## Programas de control de A-M06
-
-Los programas de A-26 terminan por el commit de x31=`0x5a5`. Sus `.hex` contienen 256 palabras, con NOP después del marcador; no incorporan HALT. El ensamblador de B agrega un HALT automático, que se retira al preparar los hex RTL. A-29 repetirá la aceptación con detención real.
-
-| Programa | Propósito | Resultado independiente | Avances / stalls / redirecciones |
-|---|---|---|---|
-| [`suma.s`](suma.s) | Acumulación de 1 a 10, dependencia inmediata del contador y branch hacia atrás. | x1=55, x2=x3=11, mem[0]=55. | 57 / 0 / 9. |
-| [`jump_link.s`](jump_link.s) | `jal ra,function`, retorno `jalr x0,ra,0`, branches consecutivos y JALR con base recién producida e impar. | ra=x11=8, x5=32, x6=65, x7=48, x8=49, x10=7, mem[0]=49. | 30 / 0 / 6. |
-| [`branch_load_use.s`](branch_load_use.s) | BEQ/BNE tomados/no tomados, dependencias por rs1/rs2, load→JALR y enlaces descartados. | x1=x4=x8=73, x2=x3=x9=21, x5=x6=101, x7=104, x10=1, x11=2, x12=3. Memoria: 0→73, 4→21, 12→101, 16→3. | 43 / 5 / 4. |
-
-En los tres programas, x31=`0x5a5`; todos los registros no listados quedan en cero y x0 siempre vale cero. Las direcciones de memoria son byte y las únicas palabras dirty son las indicadas. Los `.expected.json` conservan los 32 registros, palabras dirty, conteos y la secuencia dinámica de instrucciones esperada. Esas tablas se definieron aparte del RTL; el ISS de B confirmó sus estados y cantidades de instrucciones.
-
-En `jump_link`, la secuencia de PC es `0,4,80,84,8,12,16,28,40,44,64,68,72,96`. JAL de PC=4 deja ra=8; la función agrega 4 a x10 y retorna a PC=8. BEQ de PC=12 no toma y BNE de PC=16 toma. JAL de PC=28 escribe 32 en x5. La base 65 producida en PC=40 lleva JALR de PC=44 a PC=64 y escribe enlace 48. Los JAL de PC=20/32/48/104 del conjunto de programas están en caminos descartados y sus destinos de registro deben seguir en cero.
-
-En `branch_load_use`, las parejas load→consumidor están en PC `20→24`, `40→44`, `60→64`, `76→80` y `96→100`. Las dos primeras ramas toman y las dos siguientes no toman. JALR consume el dato cargado 101 y suma 8: borra el bit 0 de 109, salta a 108 y escribe enlace 104. El test exige una única burbuja por pareja y forwarding WB hacia la fuente correspondiente.
-
-### Formato de expectativas para el testbench
-
-Cada `.expected.hex` tiene 1.152 palabras de 32 bits y representa exactamente el JSON correspondiente:
+`arith_no_hazard.expected.json` contiene los 32 registros, palabras dirty, lista de instrucciones significativas, PC de HALT y avances vigentes. Su `.expected.hex` conserva las 800 palabras de 40 bits del scoreboard original:
 
 | Índices | Contenido |
 |---|---|
-| 0…6 | Avances, instrucciones retiradas, writes de registros, stores, stalls, redirecciones y PC del marcador. |
-| 7…38 | x0…x31 finales. |
-| 39…294 | 256 palabras lógicas finales de dmem. |
-| 295…550 | 256 marcas dirty finales, 0 o 1. |
-| Desde 551 | Eventos dinámicos de 14 palabras; resto del archivo en cero. |
+| 0…31 | Registros finales. |
+| 32…287 | 256 palabras lógicas finales. |
+| 288…543 | 256 dirty finales. |
+| 544…799 | Eventos WB por índice de instrucción: bit 37 habilita, 36:32=rd, 31:0=dato. |
 
-Cada evento contiene: PC; efectos (bit 0=write registro, bit 1=store); rd; valor WB; dirección y dato de store; indicador de control; destino; tomado; consumidor load-use; máscara de operandos a comprobar (bit 0=rs1, bit 1=rs2); rs1 y rs2 esperados; selectores `{forward_a,forward_b}`. `ffffffff` en selectores significa que ese evento no exige un selector concreto. El campo `event_fields` del JSON conserva el mismo orden. Se incluyen todas las instrucciones ejecutadas, también branches y stores sin escritura WB, pero no las descartadas ni las burbujas.
+Los eventos de NOP, stores, intento de escritura x0 y HALT son cero. El banco dirigido `tb_cpu_no_hazard` mantiene su scoreboard por commit y ahora espera HALT, comprobando PC y valid durante el vaciado.
 
-Desde `Practico/TPs`:
+## RAW y load-use
 
-```bash
-python3 TP3_FINAL/tools/check_control_programs.py --companion ../TPs-companion
-python3 TP3_FINAL/tools/run.py tb tb_control_flow --companion ../TPs-companion
-```
+`raw_distance` conserva distancias 1/2/3 por rs1 y rs2, productores de ambos operandos, prioridad del productor más joven, x0 e instrucciones independientes. Los 30 writes incluyen dos escrituras de x16 y de x29; no son 30 registros distintos. `tb_raw` conserva las comprobaciones dirigidas de selectores y operandos, y ahora termina en HALT. El banco común agrega ejecución paso a paso.
 
-El primer comando comprueba reproducción del ensamblador, 13 encodings de control literales, consistencia JSON/hex y estado contra el ISS. Compila el ISS y sus pruebas desde B, con resultados temporales en el build de A; no modifica su worktree. Agrega HALT solamente a la entrada temporal del ISS para detenerlo después del marcador. No usa el ISS para certificar cantidad de stalls o redirecciones.
+`load_use` conserva sus 13 consumidores. El estado final relevante es x1=96, x2=146, x3=1, x4=42, x5=94, x6=75, x8=73, x9=21, x10=96, x12=31 y x31=1445; el resto es cero. Memoria dirty: byte 0→73, 4→96, 64→73, 100→21 y 104→96. Tiene diez dependencias inmediatas reales y dos ramas tomadas con destino en la siguiente instrucción, que igualmente requieren redirección/flush. `tb_load_use_consumers` conserva el modelo de PC/valid y los 13 casos, incorporando aceptación y vaciado de HALT.
 
-El TB ejecuta los tres programas de forma continua y con pausas, compara su secuencia en EX/MEM/WB y cada commit/store, y contrasta todos los registros tras cada clock. Los archivos de programa y expectativas están registrados en `sim_1` de Vivado; las fuentes `.s` y los JSON están en `utils_1`. Admite `+ROOT=/ruta/a/TPs/` con barra final o los seis hex locales al directorio de simulación. Genera `build/a26_trace.csv` y `build/a26_control_flow.vcd`.
+Los 127 avances documentados en A-M05 precedían a la implementación de saltos; desde A-M06 son 131. Agregar HALT inmediatamente después del marcador no aumenta ese número: HALT llega a WB en el mismo flanco en que el marcador anterior escribe el registro.
 
-La aceptación funcional de las cuatro ramas del programa histórico `load_use.s`, anunciada para A-26, queda cubierta por `branch_load_use.s` y la regresión adaptada en A-25. El programa histórico ahora requiere 131 avances por las dos redirecciones tomadas, con diez stalls, 36 commits y cinco stores. Los resultados de 127 avances de la sección A-M05 corresponden al CPU anterior a la redirección.
+## Control de flujo
+
+`suma` acumula 1…10: x1=55, x2=x3=11 y memoria byte 0=55. `jump_link` prueba llamada/retorno y JALR impar: ra=x11=8, x5=32, x6=65, x7=48, x8=49, x10=7 y memoria byte 0=49. `branch_load_use` prueba las cuatro condiciones BEQ/BNE posteriores a carga y load→JALR: x1=x4=x8=73, x2=x3=x9=21, x5=x6=101, x7=104, x10=1, x11=2 y x12=3; memoria 0→73, 4→21, 12→101, 16→3. Los tres conservan x31=0x5a5.
+
+Sus JSON conservan las secuencias dinámicas independientes de A-26, ahora con `halt_pc`. Los `.expected.hex` conservan 1152 palabras de 32 bits: cabecera 0…6, registros 7…38, memoria 39…294, dirty 295…550 y eventos de 14 palabras desde 551. El evento describe PC, efectos, rd/dato WB, dirección/dato store, control/destino/toma, dependencia load-use, operandos esperados y selectores. HALT se comprueba aparte de los eventos anteriores, sin inventar un commit para la parada.
+
+`check_control_programs.py` ahora contrasta los hex RTL que realmente contienen HALT; ya no genera una entrada de ISS distinta sin avisar. `tb_control_flow` conserva el seguimiento EX/MEM/WB y espera HALT válido con las etapas jóvenes vacías.
+
+## Oráculo común serializado
+
+`halt_suite.expected.json` define los ocho casos y `halt_suite.expected.hex` contiene ocho bloques de 560 palabras de 32 bits:
+
+| Offset dentro del bloque | Contenido |
+|---|---|
+| 0…6 | PC HALT (`ffffffff` para no_halt), avances, writes, stores, stalls, tomas, instrucciones anteriores a HALT o retiradas en el intervalo acotado. |
+| 7…38 | x0…x31. |
+| 39…294 | 256 palabras lógicas de memoria. |
+| 295…550 | 256 dirty. |
+| 551…559 | Reservado, cero. |
+
+El estado se fijó con las constantes históricas y los programas simples nuevos; el ISS se utiliza como una segunda comprobación arquitectónica. No se usa el resultado del RTL para regenerar expectativas. El helper solo verifica, sin reescribir los golden.
+
+El [informe A-M07](../doc/documentation/07_halt_y_congelamiento.md) explica la estructura de HALT, el vaciado, el enable común, los pasos, el reset y sus límites. Los resultados de las issues anteriores se conservan como evidencia histórica de su versión del diseño.

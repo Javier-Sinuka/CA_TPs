@@ -26,6 +26,7 @@ module tb_control_flow;
     integer clocks, advances, stalls, takes, writes, stores, markers;
     integer ex_seen, mem_seen, retired;
     reg r_expected_take, r_expected_stall;
+    reg r_effective_enable, r_stop_model, r_accept_model, r_before_stopped;
     reg [31:0] r_before_pc, r_before_pc_id, r_before_pc_ex, r_before_instr_id, r_expected_target;
     string r_root, r_path, r_name, r_output_path;
 
@@ -113,6 +114,9 @@ module tb_control_flow;
             r_en = enable;
             r_reset = reset;
             #1;
+            r_effective_enable = enable && !w_halted;
+            r_before_stopped = r_stop_model;
+            r_accept_model = dut.w_valid_id && dut.w_pc_id == r_golden[6] + 4 && !dut.w_take_ex && !dut.w_load_use_stall;
             r_before_pc = w_imem_addr;
             r_before_pc_id = dut.w_pc_id;
             r_before_pc_ex = dut.w_pc_ex;
@@ -121,8 +125,8 @@ module tb_control_flow;
                 check_ex();
                 effects = 0;
                 if (dut.w_valid_wb && retired < r_golden[1]) effects = event_word(retired, 1);
-                check_word(dut.w_regfile_we, enable && effects[0], "WB permission");
-                if (dut.w_valid_wb && enable) begin
+                check_word(dut.w_regfile_we, r_effective_enable && effects[0], "WB permission");
+                if (dut.w_valid_wb && r_effective_enable) begin
                     if (retired >= r_golden[1]) $fatal(1, "FAIL tb_control_flow: unexpected retirement after marker");
                     check_word(dut.w_pc_wb, event_word(retired, 0), "independent retirement PC");
                     if (effects[0]) begin
@@ -140,7 +144,7 @@ module tb_control_flow;
                 effects = 0;
                 e = mem_seen - 1;
                 if (dut.w_valid_mem && mem_seen > 0 && mem_seen <= r_golden[1]) effects = event_word(e, 1);
-                check_word(dut.w_dmem_we, enable && effects[1], "MEM permission");
+                check_word(dut.w_dmem_we, r_effective_enable && effects[1], "MEM permission");
                 if (dut.w_dmem_we) begin
                     address = event_word(e, 4);
                     check_word(dut.w_pc_mem, event_word(e, 0), "independent store PC");
@@ -163,14 +167,16 @@ module tb_control_flow;
             if (reset) begin
                 advances = 0; stalls = 0; takes = 0; writes = 0; stores = 0; markers = 0;
                 ex_seen = 0; mem_seen = 0; retired = 0;
+                r_stop_model = 0;
                 r_dirty = 0;
                 for (n = 0; n < 32; n = n + 1) r_regs[n] = 0;
                 for (n = 0; n < 256; n = n + 1) r_memory[n] = 0;
                 check_word(w_imem_addr, 0, "reset PC");
                 check_word({dut.w_valid_wb, dut.w_valid_mem, dut.w_valid_ex, dut.w_valid_id}, 0, "reset valid");
-            end else if (enable) begin
+            end else if (r_effective_enable) begin
                 advances = advances + 1;
                 if (r_expected_take) begin
+                    r_stop_model = 0;
                     takes = takes + 1;
                     check_word(w_imem_addr, r_expected_target, "redirected IF PC");
                     check_word({dut.w_valid_ex, dut.w_valid_id}, 0, "two young stages flushed");
@@ -182,12 +188,16 @@ module tb_control_flow;
                     check_word(dut.w_pc_id, r_before_pc_id, "load-use holds ID PC");
                     check_word(dut.w_instr_id, r_before_instr_id, "load-use holds ID instruction");
                     check_word(dut.w_valid_ex, 0, "one load-use bubble");
+                end else if (r_before_stopped || r_accept_model) begin
+                    r_stop_model = 1;
+                    check_word(w_imem_addr, r_before_pc, "HALT stops IF while draining");
                 end else check_word(w_imem_addr, r_before_pc + 4, "sequential IF PC");
                 if (dut.w_valid_ex) begin
                     if (ex_seen < r_golden[1]) check_word(dut.w_pc_ex, event_word(ex_seen, 0), "arriving EX PC");
                     else begin
-                        check_word(dut.w_rd_ex, 0, "padding has no destination");
-                        check_word(dut.w_mem_write_ex, 0, "padding has no store");
+                        check_word(dut.w_pc_ex, r_golden[6] + 4, "HALT arrives in EX");
+                        check_word(dut.w_halt_ex, 1, "extra instruction is HALT");
+                        check_word(dut.w_mem_write_ex, 0, "HALT has no store");
                     end
                     ex_seen = ex_seen + 1;
                 end
@@ -197,7 +207,7 @@ module tb_control_flow;
                 end
             end
             check_word(w_dbg_pc, w_imem_addr, "public byte PC");
-            check_word(w_halted, 0, "bounded execution before HALT milestone");
+            check_word(w_halted, !reset && advances == r_golden[0], "HALT at exact expected advance");
             for (n = 0; n < 32; n = n + 1) begin
                 r_dbg_reg_addr = n[4:0];
                 #1;
@@ -221,6 +231,11 @@ module tb_control_flow;
             check_word(stalls, r_golden[4], "exact enabled load-use stalls");
             check_word(takes, r_golden[5], "exact enabled redirects");
             check_word(markers, 1, "marker committed once");
+            check_word(w_halted, 1, "completion requires HALT");
+            check_word({dut.w_valid_wb, dut.w_valid_mem, dut.w_valid_ex, dut.w_valid_id}, 8, "HALT WB and empty younger stages");
+            check_word(dut.w_pc_wb, r_golden[6] + 4, "HALT instruction PC");
+            check_word(ex_seen, r_golden[1] + 1, "HALT enters EX once");
+            check_word(mem_seen, r_golden[1] + 1, "HALT enters MEM once");
             for (n = 0; n < 32; n = n + 1) begin
                 r_dbg_reg_addr = n[4:0];
                 #1;
@@ -239,7 +254,7 @@ module tb_control_flow;
 
     initial begin
         #10000000;
-        $fatal(1, "FAIL tb_control_flow: watchdog before all markers");
+        $fatal(1, "FAIL tb_control_flow: watchdog before all HALTs");
     end
 
     initial begin
@@ -283,7 +298,7 @@ module tb_control_flow;
                 clocks = 0;
                 step(1'b0, 1'b1);
                 r_reset = 1'b0;
-                while (markers == 0 && advances < r_golden[0] + 8) begin
+                while (!w_halted && advances < r_golden[0] + 8) begin
                     if (mode == 1 && (dut.w_take_ex || dut.w_load_use_stall || advances % 7 == 0)) begin
                         r_en = 1'b0;
                         #1;

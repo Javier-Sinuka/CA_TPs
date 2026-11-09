@@ -139,3 +139,4 @@ nop
 
 done:
 addi x31, x0, 0x5a5
+halt

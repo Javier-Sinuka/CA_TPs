@@ -48,8 +48,8 @@ def main():
         base = TP3 / "programs" / name
         words = assemble(base.with_suffix(".s").read_text())
         require(words[-1] == 0x73, f"{name}: missing assembler HALT terminator")
-        code = words[:-1]
-        require(to_hex(code + [0x13] * (256 - len(code))) == base.with_suffix(".hex").read_text(),
+        code = words
+        require(to_hex(code + [0x73] * (256 - len(code))) == base.with_suffix(".hex").read_text(),
                 f"{name}: assembly/hex mismatch")
         for pc, word in CONTROL_WORDS[name].items():
             require(code[pc // 4] == word, f"{name}: independent encoding mismatch at PC {pc}")

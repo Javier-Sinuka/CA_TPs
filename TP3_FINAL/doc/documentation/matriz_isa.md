@@ -146,3 +146,7 @@ El [informe A-M06](06_saltos_y_flush.md) y su [gate](../validation/A-M06.md) com
 | Pausa con toma o riesgo pendiente | Mismas secuencias, commits, memoria y avances; snapshots estables. |
 
 A-26 conserva el RTL de A-25. El fin es un marcador con avance acotado; la aceptación de HALT real sigue pendiente de A-M07. Los flags debug completos y el sistema UART conservan sus hitos posteriores.
+
+## Cobertura de finalización en A-M07
+
+Los programas de aritmética/memoria, RAW, load-use y control ahora terminan por HALT real, con WB válido y etapas anteriores inválidas. Conservan entre ellos las 32 instrucciones del subconjunto y prueban HALT como instrucción adicional. El banco `tb_cpu_step_halt` repite siete programas positivos en RUN/STEP, comprueba estado por avance y descarta HALT del camino incorrecto. `no_halt` demuestra que el CPU no inventa una parada por timeout. [Informe 07](07_halt_y_congelamiento.md) · [Evidencia A-29](../validation/A-29.md).

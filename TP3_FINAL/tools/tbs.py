@@ -67,6 +67,16 @@ TBS = {
 }
 
 EXTERNAL_TBS = {
+    "tb_cpu_step_halt": {
+        "top": "tb_cpu_step_halt",
+        "files": (
+            f"TP3_FINAL/{RTL}/cpu.v", f"TP3_FINAL/{RTL}/hazard_unit.v",
+            f"TP3_FINAL/{RTL}/forwarding_unit.v", f"TP3_FINAL/{RTL}/if_id.v",
+            *DECODE_FILES, *EXECUTE_FILES, *MEMORY_FILES,
+            f"TP3_FINAL/{TB}/tb_cpu_step_halt.sv",
+        ),
+        "companion_headers": (f"TP3_FINAL/{RTL}/debug/cpu_ports.vh",),
+    },
     "tb_cpu_freeze": {
         "top": "tb_cpu_freeze",
         "files": (

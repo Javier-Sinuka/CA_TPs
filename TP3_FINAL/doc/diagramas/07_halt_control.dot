@@ -1,0 +1,29 @@
+digraph halt_control {
+    graph [rankdir=TB, bgcolor="white", pad="0.3", nodesep="0.5", ranksep="0.7", label="A-M07 · HALT, vaciado y congelamiento", labelloc=t, fontname="DejaVu Sans", fontsize=20];
+    node [shape=box, style="rounded,filled", fillcolor="#eaf2fa", color="#365b7c", fontname="DejaVu Sans", fontsize=12, margin="0.15,0.12"];
+    edge [fontname="DejaVu Sans", fontsize=10, color="#365b7c"];
+    pc [label="PC de IF\nr_pc_if\nreset → 0\navance / retención / salto"];
+    ifid [label="IF/ID\nPC + instrucción + valid\nse invalida al aceptar HALT"];
+    accept [label="Aceptación en ID\nHALT exacto 0x00000073\nID válido + avance + sin reset\nsin salto anterior ni load-use", fillcolor="#fff1cf", color="#a77a20"];
+    stopped [label="r_fetch_stopped\nse activa al aceptar HALT\nreset o salto habilitado lo limpia", fillcolor="#fff1cf", color="#a77a20"];
+    stop [label="w_stop_fetch\nsin toma en EX y\n(stopped o aceptación)", fillcolor="#fff1cf", color="#a77a20"];
+    idex [label="ID/EX\nHALT entra una sola vez\npróximos avances: burbujas"];
+    exmem [label="EX/MEM\nvalid + halt + PC\nsin writes de HALT"];
+    memwb [label="MEM/WB\nHALT válido queda en WB\nID / EX / MEM vacíos"];
+    halted [label="o_halted\nvalid_wb AND halt_wb", fillcolor="#e2f3e8", color="#397654"];
+    advance [label="w_adv\ni_en AND NOT o_halted\nun flanco habilitado = un ciclo", fillcolor="#e2f3e8", color="#397654"];
+    effects [label="Estado y efectos\nPC + cuatro registros del pipeline\nregfile + stores + dirty\nreset síncrono prioritario", fillcolor="#e2f3e8", color="#397654"];
+    pc -> ifid [label="fetch externo"];
+    ifid -> accept [label="instrucción ID"];
+    accept -> idex [label="captura de HALT"];
+    idex -> exmem -> memwb [label="drenar con w_adv"];
+    memwb -> halted;
+    halted -> advance [label="bloquea avance"];
+    advance -> effects [label="habilitación común"];
+    accept -> stopped [label="en el flanco"];
+    accept -> stop [label="desde aceptación"];
+    stopped -> stop;
+    stop -> pc [label="retener PC", color="#a77a20"];
+    stop -> ifid [label="flush", color="#a77a20"];
+    stopped -> idex [label="flush posterior\nno borra HALT al aceptarlo", color="#a77a20"];
+}

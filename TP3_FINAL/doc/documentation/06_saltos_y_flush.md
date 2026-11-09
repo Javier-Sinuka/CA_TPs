@@ -1,5 +1,7 @@
 # 06 — Saltos, enlaces y flush
 
+Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/README.md).
+
 Este informe describe **A-M06, issues A-24, A-25 y A-26**. El CPU resuelve BEQ, BNE, JAL y JALR en EX, redirige el PC e invalida las dos instrucciones jóvenes cuando corresponde. La decisión usa los operandos corregidos por forwarding y conserva el enlace PC+4 para WB. Los programas de cierre prueban bucles, llamada/retorno y dependencias load→branch/JALR en ejecución continua y pausada. El [gate A-M06](../validation/A-M06.md) registra el cierre y sus límites.
 
 ![Bloques de evaluación y redirección](../diagramas/06_control_flow.svg)

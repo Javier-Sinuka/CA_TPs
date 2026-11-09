@@ -1,5 +1,7 @@
 # 04 — Forwarding y riesgos RAW
 
+Estado posterior: A-29 agregó HALT explícito a los programas y actualizó sus bancos. Los resultados de este informe conservan la evidencia histórica del milestone; el flujo vigente está en [07 — HALT y congelamiento](07_halt_y_congelamiento.md) y en el [README de programas](../../programs/README.md).
+
 Este informe describe **A-M04, issues A-18 a A-20**. El CPU de cinco etapas ya captura operandos en ID/EX y escribe resultados en WB. El milestone añade una unidad combinacional que reconoce dependencias RAW y elige, para cada operando de EX, el resultado más reciente que ya está disponible. El [gate de validación](../validation/A-M04.md) conserva los comandos y resultados medidos.
 
 ![Circuito de forwarding entre las etapas](../diagramas/04_forwarding.svg)

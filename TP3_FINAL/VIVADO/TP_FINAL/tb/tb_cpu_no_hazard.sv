@@ -2,7 +2,7 @@
 `default_nettype none
 
 module tb_cpu_no_hazard;
-    localparam integer ADVANCES = 145;
+    localparam integer ADVANCES = 148;
     localparam integer MARKER_PC = 560;
     reg r_clock = 1'b0;
     reg r_reset = 1'b1;
@@ -98,16 +98,16 @@ module tb_cpu_no_hazard;
         reg [31:0] expected_pc;
         reg [3:0] expected_valid;
         begin
-            check_word(w_imem_addr, advances*4, "IF byte PC");
+            check_word(w_imem_addr, (advances < 145 ? advances : 145)*4, "IF byte PC stops after HALT");
             expected_valid = 4'd0;
             for (stage = 0; stage < 4; stage = stage + 1) begin
-                expected_pc = advances > stage ? (advances-stage-1)*4 : 0;
-                expected_valid[stage] = advances > stage;
+                expected_pc = advances > stage ? ((advances-stage-1 < 144 ? advances-stage-1 : 144)*4) : 0;
+                expected_valid[stage] = advances > stage && advances <= 145 + stage;
                 casez (stage)
                     0: begin
                         check_word(u_cpu.w_pc_id, expected_pc, "ID PC");
                         check_word(u_cpu.w_valid_id, expected_valid[stage], "ID valid");
-                        check_word(u_cpu.w_instr_id, advances > 0 ? r_program[advances-1] : 0, "ID instruction");
+                        check_word(u_cpu.w_instr_id, advances > 0 ? r_program[advances <= 145 ? advances-1 : 144] : 0, "ID instruction");
                     end
                     1: begin
                         check_word(u_cpu.w_pc_ex, expected_pc, "EX PC");
@@ -172,7 +172,7 @@ module tb_cpu_no_hazard;
         begin
             @(negedge r_clock);
             r_en = 1'b0;
-            check_word(advances, ADVANCES, "bounded logical end");
+            check_word(advances, ADVANCES, "exact HALT arrival");
             check_word(markers, 1, "exactly one marker commit");
             check_word(writes, 31, "register write count");
             check_word(stores, 4, "store count");
@@ -194,7 +194,7 @@ module tb_cpu_no_hazard;
 
     initial begin
         #2000000;
-        $fatal(1, "FAIL tb_cpu_no_hazard: watchdog before bounded completion");
+        $fatal(1, "FAIL tb_cpu_no_hazard: watchdog before HALT");
     end
 
     initial begin
@@ -245,7 +245,7 @@ module tb_cpu_no_hazard;
             @(negedge r_clock);
             r_reset = 1'b0;
             if (mode == 1) repeat (3) run_cycle(1'b0);
-            while (advances < ADVANCES) begin
+            while (!w_halted && advances < ADVANCES + 8) begin
                 if (mode == 1 && (advances % 5 == 0 || advances % 7 == 0)) begin
                     run_cycle(1'b0);
                     run_cycle(1'b0);
@@ -253,6 +253,9 @@ module tb_cpu_no_hazard;
                 run_cycle(1'b1);
                 if (clocks > 400) $fatal(1, "FAIL tb_cpu_no_hazard: excessive physical cycles");
             end
+            check_word(w_halted, 1, "completion requires HALT");
+            check_word({u_cpu.w_valid_wb, u_cpu.w_valid_mem, u_cpu.w_valid_ex, u_cpu.w_valid_id}, 8, "HALT WB and empty younger stages");
+            check_word(u_cpu.w_pc_wb, 576, "HALT instruction PC");
             finish_run();
             repeat (4) run_cycle(1'b0);
         end

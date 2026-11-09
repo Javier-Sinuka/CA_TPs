@@ -29,3 +29,4 @@ sw x10, 8(x0)
 addi x25, x0, 99
 done:
 addi x31, x0, 0x5a5
+halt
