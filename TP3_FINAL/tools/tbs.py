@@ -32,7 +32,8 @@ DATAPATH_FILES = [
     f"{RTL}/cpu/memory/memory_stage.v",
 ]
 
-CPU_FILES: list[str] = []
+CPU_FILES = DATAPATH_FILES
+CPU_INCDIRS = [f"{RTL}/common", f"{RTL}/debug"]
 
 # Claves de cada entrada: "top", "files"; opcionales "incdirs" (lista de directorios para -I,
 # por ejemplo f"{TB}/common" para `include "uart_bfm.svh"), "defines", "params", "legacy".
@@ -77,7 +78,7 @@ TBS = {
 if CPU_FILES:
     TBS["tb_system_prog"] = {"top": "tb_system_prog",
                              "files": SYSTEM_FILES + CPU_FILES + [f"{TB}/system/tb_system_prog.sv"],
-                             "incdirs": [f"{TB}/common"], "defines": {}}
+                             "incdirs": [*CPU_INCDIRS, f"{TB}/common"], "defines": {}}
 
 # Síntesis out-of-context: top -> archivos.
 SYNTH = {
@@ -112,8 +113,6 @@ BITS = {
 
 
 
-
-CPU_INCDIRS = [f"{RTL}/common", f"{RTL}/debug"]
 
 TBS.update({
     'tb_hazard_unit': {

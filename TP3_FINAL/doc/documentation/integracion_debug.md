@@ -104,3 +104,7 @@ El `.xpr` registra el TB, UART/Debug Unit/system de B y la BFM como fuentes de s
 ## Alcance del cierre
 
 A-32 verifica integración funcional inicial con CPU real y conserva el banco de B con stub. No cierra la aceptación compartida AB-05 ni valida FPGA, timing implementado o todas las variantes de error del protocolo. A-33 completó la regresión final del datapath y el cierre local de A-M08; el [informe 08](08_cpu_listo_para_debug.md) y su [gate](../validation/A-M08.md) reúnen estructura, diagramas, comandos y resultados.
+
+## Integración posterior al merge
+
+El [informe 09 — CPU, Debug Unit y Basys3](09_integracion_cpu_debug_basys3.md) completa la integración con las fuentes locales de ambas pistas, el catálogo de programas de B, el host sobre capturas y el bitstream de `top_debug`. Sustituye las limitaciones de preparación que se describían para el smoke inicial; la programación física sigue pendiente.

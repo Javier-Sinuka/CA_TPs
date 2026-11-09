@@ -4,6 +4,8 @@ Ventana de depuración del CPU RISC-V: carga un programa, lo ejecuta paso a paso
 
 > **Las capturas de este manual son con `--fake`** (placa simulada sobre el ISS, sin placa ni CPU de A). Con `--fake` el diagrama espacio-tiempo es **una demo**: la placa simulada solo llena los latches 11 (WB), 14 y 15, así que solo se ven las columnas `IF` y `WB` (con `WB` en `pc = 0` mientras el programa corre). El diagrama real, con las cinco etapas, el stall y las anuladas, aparece con el CPU de A (Fases 10 y 11); hasta entonces ese criterio de B-26 queda abierto. Las dos capturas de la sección 5 están hechas con dumps armados a mano (los escenarios de `tests/test_spacetime.py`), no con la placa.
 
+La [guía de integración y Basys3](09_integracion_cpu_debug_basys3.md) contiene el proyecto y bitstream del CPU real ya implementado; la prueba física de la interfaz con esa placa queda pendiente. Las capturas siguientes conservan su carácter de demostración con FakeBoard.
+
 ## 1. Cómo abrir
 
 Desde `TP3_FINAL/sw`:

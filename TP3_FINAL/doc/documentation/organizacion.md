@@ -1,5 +1,7 @@
 # Organización del proyecto después del merge
 
+Esta guía registra la limpieza posterior al merge. La integración ya se completó después de esa limpieza: el estado actual, bitstream y validación están en [09 — Integración y Basys3](09_integracion_cpu_debug_basys3.md).
+
 La limpieza conserva el código de A y B y prepara un único árbol para la siguiente iteración. No modifica la lógica del CPU, los contratos públicos ni la Debug Unit, y no ejecuta la integración funcional CPU–Debug Unit. Los conflictos del merge se resuelven preservando los dos aportes, sin crear un commit.
 
 ## Directorios
@@ -41,9 +43,9 @@ Los 17 archivos RTL de A se trasladan sin alterar su contenido. Los 29 archivos 
 
 Se retiran los seis helpers de cierre por issue/milestone: `check_control_programs.py`, `check_cpu_contract.py`, `check_final_coverage.py`, `check_final_xsim.py`, `check_halt_programs.py` y `check_system_dumps.py`. También desaparece el runner paralelo de A: se conserva la implementación de B de `run.py` y `synth_ooc.tcl`, con sus funciones de host, ISS, vectores, síntesis y placa.
 
-Se conservan los bancos del CPU y sus datos esperados porque la Debug Unit no comprueba por sí misma ALU, riesgos, memoria, flush o vaciado de HALT. `tools/tbs.py` reúne 43 targets con rutas locales, además de los targets de síntesis y placa existentes. `DATAPATH_FILES` evita repetir la lista completa de fuentes en cada banco. Los directorios common y debug se incluyen al compilar bancos del CPU y al sintetizar; no se depende del worktree del compañero.
+Se conservan los bancos del CPU y sus datos esperados porque la Debug Unit no comprueba por sí misma ALU, riesgos, memoria, flush o vaciado de HALT. `tools/tbs.py` reunió 43 targets durante la limpieza y ahora reúne 44 con el CPU real integrado, con rutas locales, además de los targets de síntesis y placa existentes. `DATAPATH_FILES` evita repetir la lista completa de fuentes en cada banco. Los directorios common y debug se incluyen al compilar bancos del CPU y al sintetizar; no se depende del worktree del compañero.
 
-`CPU_FILES` de B continúa vacío: activar ese hook, incorporar el CPU al flujo `tb_system_prog`/bitstream de B y comprobar su funcionamiento conjunto corresponde a la siguiente iteración. El smoke histórico de A queda conservado y registrado para una ejecución explícita posterior; no se ejecutó en esta limpieza. No se cambian los defines ni el cableado del sistema para adelantar la integración.
+Al terminar la limpieza, `CPU_FILES` de B quedó vacío. En la integración posterior se activó `CPU_FILES = DATAPATH_FILES` y se validaron `tb_system_prog` y el bitstream de `top_debug`; ver el [informe 09](09_integracion_cpu_debug_basys3.md). El smoke histórico de A queda conservado y registrado para una ejecución explícita posterior; no se ejecutó en esta limpieza. No se cambian los defines ni el cableado del sistema para adelantar la integración.
 
 Desde la raíz `Practico/TPs`, en Linux:
 
@@ -76,6 +78,6 @@ La síntesis OOC del CPU desde sus nuevas rutas terminó con PASS para `xc7a35tc
 
 No se ejecutaron smoke UART con CPU real, regresión de sistema, bitstream ni programación de placa en esta iteración.
 
-## Próximo trabajo sugerido
+## Trabajo posterior a la limpieza
 
-Conviene hacer la integración en un cambio separado: completar `CPU_FILES`, elegir el banco de sistema de referencia y comparar ambos catálogos de programas con sus propios oráculos. Antes de generar el bitstream también corresponde unificar la versión de Vivado y confirmar la parte `xc7a35tcpg236-1`, ya que el `.xpr` histórico declara otra. Esas tareas quedan expresamente fuera de esta limpieza.
+Conviene hacer la integración en un cambio separado: completar `CPU_FILES`, elegir el banco de sistema de referencia y comparar ambos catálogos de programas con sus propios oráculos. Antes de generar el bitstream también corresponde unificar la versión de Vivado y confirmar la parte `xc7a35tcpg236-1`, ya que el `.xpr` histórico declara otra. Esas tareas quedaron fuera de la limpieza y se completaron después en la [integración 09](09_integracion_cpu_debug_basys3.md), excepto la programación y validación física de la placa, que hará el usuario.

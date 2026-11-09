@@ -131,4 +131,4 @@ endmodule
 4. Si el issue tocó un contrato (`protocolo.md`, `dump.md`, `interfaz_cpu.md`), el cambio está en el mismo PR y lo aprobó A.
 5. Cualquier decisión nueva va a `decisiones.md` con su porqué. Un ejecutor **no** toma decisiones de diseño: si falta algo, se detiene y lo pregunta.
 
-La reorganización posterior al merge se detalla en [organizacion.md](organizacion.md). Los comandos históricos con `--companion` pertenecían al runner de A retirado. `tools/run.py` conserva ahora el runner común de B; `DATAPATH_FILES` declara las fuentes de A para sus bancos y `CPU_FILES` mantiene pendiente el hook de integración final de B.
+La reorganización posterior al merge se detalla en [organizacion.md](organizacion.md). Los comandos históricos con `--companion` pertenecían al runner de A retirado. `tools/run.py` conserva ahora el runner común de B; `DATAPATH_FILES` declara las fuentes de A y `CPU_FILES = DATAPATH_FILES` activa su uso en los bancos y bitstream de B. El [informe 09](09_integracion_cpu_debug_basys3.md) registra parte, clock, proyecto nativo, simulación y bitstream actual.
