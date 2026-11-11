@@ -262,6 +262,9 @@ def main(argv: list[str] | None = None) -> int:
         import regress
         return regress.main(a)
     elif a.cmd == "bit":
+        if a.top == "top_debug" and a.clk == "wiz":
+            print("error: top_debug solo se construye con --clk mmcm (D-40)")
+            return 2
         ok = run_bit(a.top, a.mhz, a.clk, a.define)
     elif a.cmd == "program":
         ok = run_program(a.bitfile)

@@ -24,6 +24,21 @@ def retired_after(dumps: list[Dump]) -> int:
     return sum(1 for d in dumps[:-1] if d.valid_wb and not d.info_wb.halt)
 
 
+def store_en_wb(dumps: list[Dump]) -> bool:
+    """El último dump tiene un store en WB: ya escribió dmem, pero `retired_after` no lo cuenta.
+
+    `dmem` se escribe en el flanco que termina MEM, un paso antes de que el store escriba en WB
+    (que es lo que cuenta `retired_after`). El store en WB del último dump es el que estaba en
+    MEM del dump anterior (`valid_mem` y `info_mem.mem_write`); la memoria se compara entonces
+    contra el ISS con una instrucción más retirada que los registros (C-02).
+    """
+    if len(dumps) < 2:
+        return False
+    prev, cur = dumps[-2], dumps[-1]
+    return (prev.valid_mem and prev.info_mem.mem_write
+            and cur.valid_wb and not cur.info_wb.halt)
+
+
 class Golden:
     def __init__(self, iss_exe: str | Path, words: list[int]) -> None:
         self._exe = str(iss_exe)
@@ -56,9 +71,13 @@ class Golden:
         """Estado canónico del ISS al terminar (HALT o su límite por defecto)."""
         return self._run(None)
 
-    def diverging(self, d: Dump, retired: int) -> set[str]:
-        """Claves donde `d` difiere del ISS tras `retired` instrucciones."""
-        return _compare(d, self.state_after(retired))
+    def diverging(self, d: Dump, retired: int, mem_retired: int | None = None) -> set[str]:
+        """Claves donde `d` difiere del ISS tras `retired` instrucciones.
+
+        La memoria se compara tras `mem_retired` (por defecto, las mismas `retired`).
+        """
+        mem_state = None if mem_retired is None else self.state_after(mem_retired)
+        return _compare(d, self.state_after(retired), mem_state)
 
     def diverging_final(self, d: Dump) -> set[str]:
         """Claves donde `d` difiere del estado final del ISS (tras `Ejecutar`)."""
@@ -85,17 +104,18 @@ def check(golden: Golden | None, dumps: list[Dump], ran: bool) -> tuple[set[str]
         else:
             return set(), "sin comparar (tras Ejecutar)"
     else:
-        keys = golden.diverging(d, retired_after(dumps))
+        r = retired_after(dumps)
+        keys = golden.diverging(d, r, r + 1 if store_en_wb(dumps) else r)
     return keys, f"golden: {len(keys)} divergencias" if keys else "golden: ok"
 
 
-def _compare(d: Dump, state: dict) -> set[str]:
+def _compare(d: Dump, state: dict, mem_state: dict | None = None) -> set[str]:
     out: set[str] = set()
     for i in range(1, 32):
         if d.x[i] != int(state["x"][i], 16):
             out.add(f"x{i}")
     got = dict(d.mem)
-    want = {int(a, 16): int(v, 16) for a, v in state["mem"]}
+    want = {int(a, 16): int(v, 16) for a, v in (mem_state or state)["mem"]}
     for addr in got.keys() | want.keys():
         if got.get(addr) != want.get(addr):
             out.add(f"mem[0x{addr:08x}]")

@@ -1,11 +1,14 @@
 """Regenera las capturas PNG de doc/documentation/manual_interfaz.md (solo Windows, sin Pillow).
 
-Captura SOLO el rectángulo de la ventana, con la placa simulada (--fake). Necesita build/iss.exe
-(py tools/run.py iss) y una pantalla activa; la ventana queda arriba de todo mientras corre.
+Captura SOLO el rectángulo de la ventana. Con --port, las capturas de paso a paso y Ejecutar salen
+de la placa real; la divergencia y los diagramas armados a mano usan siempre la placa simulada.
+Sin --port todo sale de la placa simulada. Necesita build/iss.exe (py tools/run.py iss) y una
+pantalla activa; la ventana queda arriba de todo mientras corre.
 
-Uso: py TP3_FINAL/tools/capture_manual.py [directorio de salida]
+Uso: py TP3_FINAL/tools/capture_manual.py [directorio de salida] [--port COMx]
      (por defecto TP3_FINAL/doc/documentation/img)
 """
+import argparse
 import ctypes
 import struct
 import sys
@@ -26,7 +29,11 @@ from host.golden import Golden
 from host.link import Link
 from tests.test_spacetime import BRANCH, LOAD_USE
 
-OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else TP3 / "doc" / "documentation" / "img"
+ap = argparse.ArgumentParser()
+ap.add_argument("out", nargs="?", default=str(TP3 / "doc" / "documentation" / "img"))
+ap.add_argument("--port", help="placa real; sin esto usa la placa simulada")
+args = ap.parse_args()
+OUT = Path(args.out)
 OUT.mkdir(parents=True, exist_ok=True)
 ISS = TP3 / "build" / "iss.exe"
 PROGRAMS = TP3 / "programs"
@@ -86,10 +93,14 @@ errors = []
 gui.App._error = lambda self, m: errors.append(m)
 
 
-def make(fault=None):
+def make(fault=None, real=False):
+    """real=True usa la placa de --port; con fault o sin --port, la placa simulada."""
     for w in root.winfo_children():
         w.destroy()
-    link = Link(FakeBoard(ISS, fault=fault))
+    if real and args.port and fault is None:
+        link = Link.open(args.port)
+    else:
+        link = Link(FakeBoard(ISS, fault=fault))
     app = gui.App(root, Session(link), lambda words: Golden(ISS, words))
     return app, link
 
@@ -110,7 +121,7 @@ def shot(name, widget=None):
 
 
 # 1. paso a paso con suma.s: 10 pasos (amarillo)
-app, link = make()
+app, link = make(real=True)
 app.load(str(PROGRAMS / "suma.s"))
 app.step(10)
 shot("ventana_paso_a_paso")
@@ -123,7 +134,7 @@ shot("zona_diagrama", root.winfo_children()[3])
 link.close(); app.close()
 
 # 2. Ejecutar hasta halted
-app, link = make()
+app, link = make(real=True)
 app.load(str(PROGRAMS / "suma.s"))
 app.buttons["Ejecutar"].invoke()
 shot("ventana_ejecutar")

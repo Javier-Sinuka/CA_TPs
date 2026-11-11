@@ -115,3 +115,18 @@ def test_abort_timeout_and_recovery_have_explicit_partial_state(recordings):
     step = decode(recordings["step_after_timeout"])
     assert step.cycles == 2001 and not step.timeout and not step.aborted
     assert decode(recordings["recovery_run"]).halted
+
+
+def test_five_steps_move_each_instruction_one_stage(recordings):
+    # branch_load_use no tiene riesgos en sus primeras 6 instrucciones: cada S corre toda una etapa.
+    words = [int(w, 16) for w in (TP3 / "programs/cpu/branch_load_use.hex").read_text().split()]
+    stages = ((0, 0), (2, 1), (7, 2), (11, 3))   # (latch con el PC de la etapa, bit de validez en latch 15)
+    for k in range(1, 6):
+        dump = decode(recordings[f"step_{k}"])
+        assert dump.pc == 4 * k, k # IF ya apunta a la siguiente
+        assert dump.latches[1] == words[k - 1], k # instr_id = la que entró en este paso
+        for depth, (sel, valid_bit) in enumerate(stages):
+            pc = 4 * (k - 1 - depth)
+            if pc >= 0:
+                assert dump.latches[15] >> valid_bit & 1, (k, depth)
+                assert dump.latches[sel] == pc, (k, depth)
