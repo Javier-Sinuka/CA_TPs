@@ -1,0 +1,16 @@
+digraph halt_timing {
+    graph [bgcolor="white", pad="0.25", label="HALT en PC H · cada fila describe el estado después del flanco", labelloc=t, fontname="DejaVu Sans", fontsize=18];
+    node [shape=plain, fontname="DejaVu Sans"];
+    sequence [label=<
+        <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="12" COLOR="#365b7c">
+            <TR><TD BGCOLOR="#365b7c"><FONT COLOR="white">Momento</FONT></TD><TD BGCOLOR="#365b7c"><FONT COLOR="white">ID</FONT></TD><TD BGCOLOR="#365b7c"><FONT COLOR="white">EX</FONT></TD><TD BGCOLOR="#365b7c"><FONT COLOR="white">MEM</FONT></TD><TD BGCOLOR="#365b7c"><FONT COLOR="white">WB</FONT></TD><TD BGCOLOR="#365b7c"><FONT COLOR="white">Acción</FONT></TD></TR>
+            <TR><TD>Antes de aceptar</TD><TD BGCOLOR="#fff1cf">HALT</TD><TD>I anterior 3</TD><TD>I anterior 2</TD><TD>I anterior 1</TD><TD>PC IF = H + 4</TD></TR>
+            <TR><TD>Avance 1: aceptar</TD><TD BGCOLOR="#f0f0f0">inválida</TD><TD BGCOLOR="#fff1cf">HALT</TD><TD>I anterior 3</TD><TD>I anterior 2</TD><TD>stopped = 1; fetch bloqueado<BR/>la anterior 1 completa WB</TD></TR>
+            <TR><TD>Pausa: cualquier cantidad de clocks</TD><TD BGCOLOR="#f0f0f0">inválida</TD><TD BGCOLOR="#fff1cf">HALT</TD><TD>I anterior 3</TD><TD>I anterior 2</TD><TD>Todo se conserva: w_adv = 0</TD></TR>
+            <TR><TD>Avance 2: drenar</TD><TD BGCOLOR="#f0f0f0">inválida</TD><TD BGCOLOR="#f0f0f0">inválida</TD><TD BGCOLOR="#fff1cf">HALT</TD><TD>I anterior 3</TD><TD>La anterior 2 completa WB<BR/>la anterior 3 puede completar store</TD></TR>
+            <TR><TD>Avance 3: HALT llega a WB</TD><TD BGCOLOR="#f0f0f0">inválida</TD><TD BGCOLOR="#f0f0f0">inválida</TD><TD BGCOLOR="#f0f0f0">inválida</TD><TD BGCOLOR="#e2f3e8">HALT</TD><TD>La anterior 3 completa WB<BR/>o_halted = 1; w_adv pasa a 0</TD></TR>
+            <TR><TD>Clocks posteriores</TD><TD BGCOLOR="#f0f0f0">inválida</TD><TD BGCOLOR="#f0f0f0">inválida</TD><TD BGCOLOR="#f0f0f0">inválida</TD><TD BGCOLOR="#e2f3e8">HALT</TD><TD>Sin writes; PC IF = H + 4<BR/>PC WB = H</TD></TR>
+            <TR><TD>Flanco con reset = 1</TD><TD>burbuja</TD><TD>burbuja</TD><TD>burbuja</TD><TD>burbuja</TD><TD>PC, registros, dirty y stopped a 0<BR/>imem y RAM física se conservan</TD></TR>
+        </TABLE>
+    >];
+}

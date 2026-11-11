@@ -191,3 +191,5 @@ a5 00 01 00 00 01 00 00 00 04 00 00 00 00 00 00
 00 10 00 00 00 04 00 00 d0 40 00 00 00 10 00 00
 d0 fc 00 00 00 3f 00 00 d0 4f
 ```
+
+La aplicación e implementación del datapath se conserva en [cpu_dump.md](cpu_dump.md). La [organización actual](organizacion.md) describe las rutas posteriores a la incorporación de ambas pistas.

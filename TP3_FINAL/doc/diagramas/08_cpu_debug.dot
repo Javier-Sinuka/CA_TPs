@@ -1,0 +1,33 @@
+digraph cpu_debug {
+  graph [rankdir=TB, bgcolor="white", pad="0.25", nodesep="0.5", ranksep="0.65", fontname="DejaVu Sans", fontsize=18, label="A-M08 · CPU preparado para depuración", labelloc=t];
+  node [shape=box, style="rounded,filled", color="#334155", fillcolor="#eff6ff", fontname="DejaVu Sans", fontsize=12, margin="0.18,0.12"];
+  edge [color="#475569", fontname="DejaVu Sans", fontsize=10];
+  host [label="Host / BFM UART\nV · L · S · R · D · X · A", fillcolor="#fef3c7"];
+  uart [label="UART de B\nRX / TX · bytes y handshakes"];
+  debug [label="Debug Unit de B\nControl de ejecución + contador\nCaptura del dump y serialización", fillcolor="#dbeafe"];
+  host -> uart [label="tramas serie", dir=both];
+  uart -> debug [label="bytes", dir=both];
+  subgraph cluster_cpu {
+    label="CPU de A · 14 puertos públicos · clock común";
+    fontname="DejaVu Sans"; fontsize=14; color="#059669"; style=rounded;
+    pipeline [label="IF → IF/ID → ID/EX → EX/MEM → MEM/WB\nForwarding · interlock load-use · saltos y flush\nHALT en WB → halted → bloqueo de avance", fillcolor="#d1fae5"];
+    regfile [label="Regfile\n32 registros · x0=0", fillcolor="#ecfdf5"];
+    memory [label="dmem\n256 × 32 + dirty[255:0]\nLimpio → lectura lógica cero", fillcolor="#ecfdf5"];
+    mux [label="Mux debug combinacional\n16 palabras: payload + info + flags\nSin escrituras ni almacenamiento nuevo", fillcolor="#d1fae5"];
+    readout [label="Puertos debug de lectura\n32 registros · 16 palabras · 256 datos/dirty", fillcolor="#d1fae5"];
+    {rank=same; regfile; memory;}
+    pipeline -> regfile [label="WB efectivo"];
+    pipeline -> memory [label="store efectivo en MEM"];
+    pipeline -> mux [label="4 registros de etapa + flags"];
+  }
+  imem [label="imem de B\n256 × 32 externa al CPU\nReset CPU conserva programa"];
+  debug -> pipeline [label="reset / enable; halted de retorno", dir=both];
+  debug -> imem [label="LOAD: write, índice y palabra"];
+  imem -> pipeline [label="PC[9:2] / instrucción", dir=both];
+  mux -> readout [label="selector 4 bits / palabra", dir=both, color="#059669"];
+  regfile -> readout [label="índice 5 bits / dato", dir=both, color="#059669"];
+  memory -> readout [label="índice 8 bits / dato + dirty", dir=both, color="#059669"];
+  readout -> debug [label="selectores / respuestas", dir=both, color="#059669", constraint=false];
+  snapshot [label="Dump v1 · 210 + 8M bytes\nPC canónico HALT = selector 11\nW3…W34: registros · W35…W50: 16 palabras\nM palabras dirty + checksum", fillcolor="#fef3c7"];
+  readout -> snapshot [style=dashed, label="formato producido por Debug Unit"];
+}

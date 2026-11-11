@@ -1,0 +1,12 @@
+digraph raw_timing {
+    graph [rankdir=TB, bgcolor="white", pad="0.2", nodesep="0.35", ranksep="0.35", fontname="DejaVu Sans"];
+    node [shape=plain, fontname="DejaVu Sans"];
+    timing [label=<
+      <TABLE BORDER="1" CELLBORDER="1" CELLSPACING="0" CELLPADDING="7" COLOR="#5473a5">
+        <TR><TD BGCOLOR="#dce9ff"><B>Distancia</B></TD><TD BGCOLOR="#dce9ff"><B>Productor cuando consumidor está en EX</B></TD><TD BGCOLOR="#dce9ff"><B>Camino del dato</B></TD><TD BGCOLOR="#dce9ff"><B>Selector</B></TD></TR>
+        <TR><TD>1</TD><TD>EX/MEM</TD><TD>resultado MEM → mux EX</TD><TD>10</TD></TR>
+        <TR><TD>2</TD><TD>MEM/WB</TD><TD>dato final WB → mux EX</TD><TD>01</TD></TR>
+        <TR><TD>3</TD><TD>WB coincidió con ID en ciclo anterior</TD><TD>bypass regfile WB→ID → ID/EX</TD><TD>00</TD></TR>
+      </TABLE>
+    >];
+}

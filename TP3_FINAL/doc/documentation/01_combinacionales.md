@@ -1,6 +1,6 @@
 # 01 — Bloques combinacionales
 
-Esta guía explica **todo lo implementado en la etapa 1** del procesador RISC-V: constantes compartidas, ALU de 32 bits, selección de su operación, generación de inmediatos y control de instrucciones. Se puede leer antes del [datapath completo](00_datapath.md); aquí todavía no hay PC, memorias, banco de registros ni registros de pipeline implementados.
+Esta guía documenta el cierre de **A-M01 (auditoría de combinacionales, A-01 a A-06)** y explica lo implementado en la Fase 1 del procesador RISC-V: constantes compartidas, ALU de 32 bits, selección de su operación, generación de inmediatos y control de instrucciones. Se puede leer antes del [datapath completo](00_datapath.md); aquí todavía no hay PC, memorias, banco de registros ni registros de pipeline implementados.
 
 ![Bloques combinacionales de la etapa 1](../diagramas/01_combinacionales.svg)
 
@@ -20,15 +20,15 @@ Las fuentes están en [`VIVADO/TP_FINAL/rtl`](../../VIVADO/TP_FINAL/rtl/) y los 
 
 | Archivo | Qué entrega |
 |---|---|
-| [`riscv_defs.vh`](../../VIVADO/TP_FINAL/rtl/riscv_defs.vh) | Nombres compartidos para opcodes, variantes de `funct7`, operaciones internas de ALU y HALT. |
-| [`alu.v`](../../VIVADO/TP_FINAL/rtl/alu.v) | Resultado de una operación de 32 bits sobre dos operandos. |
-| [`alu_control.v`](../../VIVADO/TP_FINAL/rtl/alu_control.v) | Operación interna de ALU y validez de instrucciones R o ALU-inmediatas. |
-| [`imm_gen.v`](../../VIVADO/TP_FINAL/rtl/imm_gen.v) | Inmediato de 32 bits reconstruido desde una instrucción. |
-| [`control.v`](../../VIVADO/TP_FINAL/rtl/control.v) | Señales que describen qué hace una instrucción y qué recursos necesita. |
+| [`riscv_defs.vh`](../../VIVADO/TP_FINAL/rtl/common/riscv_defs.vh) | Nombres compartidos para opcodes, variantes de `funct7`, operaciones internas de ALU y HALT. |
+| [`alu.v`](../../VIVADO/TP_FINAL/rtl/cpu/execute/alu.v) | Resultado de una operación de 32 bits sobre dos operandos. |
+| [`alu_control.v`](../../VIVADO/TP_FINAL/rtl/cpu/decode/alu_control.v) | Operación interna de ALU y validez de instrucciones R o ALU-inmediatas. |
+| [`imm_gen.v`](../../VIVADO/TP_FINAL/rtl/cpu/decode/imm_gen.v) | Inmediato de 32 bits reconstruido desde una instrucción. |
+| [`control.v`](../../VIVADO/TP_FINAL/rtl/cpu/decode/control.v) | Señales que describen qué hace una instrucción y qué recursos necesita. |
 
 La ALU se adaptó a partir de [TP1_ALU](../../../TP1_ALU/src/ALU.v). Ese trabajo era parametrizable y se probó con 8 bits; aportó ADD, SUB, AND, OR, XOR, SRL y SRA. La versión nueva usa 32 bits y añade SLL, SLT y SLTU. Los archivos de TP1 no se modificaron. TP2_UART se reutilizará en una etapa posterior; sus módulos no participan en estos cálculos.
 
-La convención de nombres conserva la de los trabajos previos: `i_` para entradas, `o_` para salidas, `w_` para conexiones internas y `r_` para variables de estímulo de los testbenches. Las constantes están en mayúsculas.
+La convención de nombres usa `i_` para entradas, `o_` para salidas, `w_` para conexiones y `r_` para variables internas de tipo registro. Los testbenches también usan `r_` en variables de estímulo. Las constantes están en mayúsculas.
 
 ## 3. La instrucción de 32 bits y sus campos
 
@@ -110,7 +110,7 @@ El decodificador usa `casez` sobre `{opcode, funct3, funct7}`. Solo seis entrada
 
 `casez` también podría tratar un `Z` inesperado en la entrada como comodín. Para que eso no oculte un problema en simulación, antes del `casez` se comprueba la reducción XOR de los tres campos: si contiene `X` o `Z`, se conservan las salidas por defecto (`o_valid = 0`, `o_alu_op = ALU_ADD`). Con entradas binarias completas, esa condición siempre permite decodificar. No se usa `casex`, que ignoraría además los `X` en la comparación.
 
-La conversión se comparó con el decodificador anterior para las **131 072 combinaciones binarias** posibles de los tres campos. No hubo diferencias: se aceptan **781 patrones** (10 R exactos y 771 I-ALU, de los cuales 768 son las seis operaciones con inmediato libre). Se añadieron pruebas permanentes de `X` y `Z` para evitar que una instrucción incompleta se marque válida.
+El testbench exhaustivo comparó las **131 072 combinaciones binarias** de los tres campos contra un oráculo independiente. No hubo diferencias: se aceptan **781 patrones** (10 R exactos y 771 I-ALU, de los cuales 768 son las seis operaciones con inmediato libre). Se añadieron pruebas permanentes de `X` y `Z` para evitar que una instrucción incompleta se marque válida.
 
 Ejemplo: `addi x3,x1,-1` se codifica como `0xFFF08193`. Sus bits altos valen 1 porque el inmediato es negativo. `alu_control` mira `funct3 = 000` y selecciona **ADD**, sin interpretar esos bits como la variante SUB. `imm_gen` entrega `0xFFFFFFFF`, que representa `-1` en complemento a dos.
 
@@ -195,35 +195,39 @@ Supongamos la instrucción `addi x3,x1,-1`, codificada como `0xFFF08193`, y que 
 
 Un segundo ejemplo, `srai x3,x1,2` (`0x4020D193`), usa `funct3 = 101` y la variante `funct7 = 0100000`; por eso `alu_control` elige SRA. En cambio, para `addi` la parte alta del inmediato se ignora al escoger la operación.
 
-## 10. Verificación realizada
+## 10. Qué se hizo en A-M01 y cómo se verificó
 
-Los testbenches son independientes, usan valores esperados concretos y terminan con error si una salida no coincide:
+| Issue | Resultado |
+|---|---|
+| A-01 | Inventario de RTL, puertos, dependencias y matriz inicial; runner de elaboración y testbenches. |
+| A-02 | Auditoría de las diez operaciones de la ALU, con límites, comparaciones con y sin signo y desplazamientos. |
+| A-03 | Auditoría exhaustiva de `alu_control` y operaciones inmediatas; se añadió su testbench al runner. |
+| A-04 | Vectores de límites y signos para los cinco formatos de `imm_gen`. |
+| A-05 | Matriz de 32 instrucciones más HALT y pruebas de señales de control válidas e inválidas. |
+| A-06 | Regresión desde copia limpia, mutación temporal de SUB para comprobar sensibilidad y baseline documentada. |
+
+El flujo de bloques de la figura separa la **decodificación** del **cálculo**. La instrucción alimenta a `control.v` y `imm_gen.v`; `control.v` instancia `alu_control.v`. El resultado de `control` indica la operación, pero los multiplexores de operandos y la conexión con `alu.v` pertenecerán al CPU. `riscv_defs.vh` da los mismos códigos `ALU_*` a `alu_control`, `control` y `alu`. El [dump acordado](../../../planning/_fuentes/documentacion_companero/dump.md) reserva `info_ex[21:18]` para ese código de cuatro bits; los campos ausentes de otras etapas serán cero.
+
+Los cuatro testbenches se compilan desde fuentes y exigen código de salida 0, una línea `PASS <top>:` y ninguna línea `FAIL`:
 
 | Testbench | Comprobaciones | Cobertura principal |
 |---|---:|---|
-| [`tb_alu.sv`](../../VIVADO/TP_FINAL/tb/tb_alu.sv) | 21 | Diez operaciones, extremos de 32 bits, desplazamientos de 0/31/32, signo frente a sin signo y código interno inválido. |
-| [`tb_imm_gen.sv`](../../VIVADO/TP_FINAL/tb/tb_imm_gen.sv) | 13 | Los cinco formatos, inmediatos positivos/negativos y opcode sin inmediato. |
-| [`tb_control.sv`](../../VIVADO/TP_FINAL/tb/tb_control.sv) | 47 | Las 32 instrucciones solicitadas, HALT, diez codificaciones no soportadas y cuatro entradas con `X`/`Z`. |
+| [`tb_alu.sv`](../../VIVADO/TP_FINAL/tb/cpu/unit/tb_alu.sv) | 10.396 | Diez operaciones, extremos y desplazamientos; operación inválida. |
+| [`tb_alu_control.sv`](../../VIVADO/TP_FINAL/tb/cpu/unit/tb_alu_control.sv) | 133.149 | 131.072 combinaciones binarias, casos dirigidos y entradas X/Z. |
+| [`tb_imm_gen.sv`](../../VIVADO/TP_FINAL/tb/cpu/unit/tb_imm_gen.sv) | 70 | Cinco formatos, límites, signos y opcode sin inmediato. |
+| [`tb_control.sv`](../../VIVADO/TP_FINAL/tb/cpu/unit/tb_control.sv) | 102 | 32 instrucciones más HALT, controles y codificaciones inválidas. |
+| **Total** | **143.717** | Regresión de los cuatro bloques. |
 
-**Resultado:** 81/81 comprobaciones pasaron con Icarus Verilog. Verilator no informó problemas de lint. El compilador `xvlog` de Vivado disponible también aceptó los cuatro módulos y los tres testbenches.
-
-Para repetirlas desde `VIVADO/TP_FINAL`:
+Desde la raíz `Practico/TPs`:
 
 ```sh
-iverilog -g2012 -Wall -I rtl -s tb_alu -o /tmp/tb_alu.vvp tb/tb_alu.sv rtl/alu.v
-vvp /tmp/tb_alu.vvp
-
-iverilog -g2012 -Wall -I rtl -s tb_imm_gen -o /tmp/tb_imm_gen.vvp tb/tb_imm_gen.sv rtl/imm_gen.v
-vvp /tmp/tb_imm_gen.vvp
-
-iverilog -g2012 -Wall -I rtl -s tb_control -o /tmp/tb_control.vvp tb/tb_control.sv rtl/control.v rtl/alu_control.v
-vvp /tmp/tb_control.vvp
+python3 TP3_FINAL/tools/run.py tbs
 ```
 
-En Vivado, abrí el proyecto `TP_FINAL.xpr`. Las fuentes aparecen en **Design Sources** y los testbenches en **Simulation Sources**. Para simular uno, seleccioná su módulo como **Set as Top** y ejecutá **Run Behavioral Simulation**. Es una simulación de bloque aislado: todavía no hay un módulo superior de procesador completo.
+La [evidencia A-06](../validation/A-06.md) registra una corrida desde copia sin productos compilados: cuatro PASS, sin warnings de Icarus o Verilator. Una mutación temporal que cambió SUB por ADD hizo fallar `tb_alu` y la regresión con código distinto de cero; restaurar el RTL devolvió PASS. La [baseline A-M01](../validation/A-M01.md) conserva versiones, huellas y límites. No se ejecutó síntesis Vivado ni el target general `run.py test`, que aún no existe.
 
 ## 11. Qué queda fuera de esta etapa
 
 No se implementaron aún el banco de registros, las memorias, los latches del pipeline, los muxes de forwarding, la detección de riesgos, el control real de HALT, la Debug Unit ni UART. Este límite es importante al interpretar las pruebas: **validan la lógica combinacional de la etapa 1**, no la ejecución completa de un programa.
 
-Las próximas etapas también deberán decidir el tratamiento arquitectónico de instrucciones ilegales y confirmar cómo se propaga `o_valid_instr` junto al bit `valid` del pipeline. El nombre de los siguientes documentos de bloques seguirá la forma `02_nombre.md`, `03_nombre.md`, etc., dentro de `doc/documentation`.
+Las próximas etapas deberán implementar el tratamiento de instrucciones ilegales y la propagación de `o_valid_instr` junto al bit `valid` del pipeline, según los contratos ya acordados. El milestone siguiente se describe en [02 — Estado y memorias](02_estado_y_memorias.md).

@@ -1,0 +1,29 @@
+digraph basys3 {
+  graph [rankdir=TB, bgcolor=white, fontname="DejaVu Sans", fontsize=18, label="Sistema integrado · Basys3 · CPU real", labelloc=t, pad="0.25", nodesep="0.5", ranksep="0.55"];
+  node [shape=box, style="rounded,filled", fillcolor="#eff6ff", color="#334155", fontname="DejaVu Sans", fontsize=12, margin="0.17,0.1"];
+  edge [color="#475569", fontname="DejaVu Sans", fontsize=10];
+  host [label="Host Python\nCLI / GUI / comparación con ISS", fillcolor="#fef3c7"];
+  usb [label="USB PROG/UART\nPuente USB–serie de la placa"];
+  host -> usb [label="protocolo v1 · 115.200 baud", dir=both];
+  subgraph cluster_fpga {
+    label="xc7a35tcpg236-1 · top_debug"; color="#059669"; style=rounded; fontname="DejaVu Sans"; fontsize=15;
+    clock [label="W5: clock de 100 MHz\nMMCM + BUFG → 50 MHz", fillcolor="#dbeafe"];
+    reset [label="Botón central U18 / MMCM locked\nReset sincronizado con el clock"];
+    uart [label="UART\nRX B18 · TX A18\n8 bits · sin paridad · 1 stop"];
+    debug [label="Debug Unit\nV · L · S · R · D · X · A\nContador, timeout y captura del dump", fillcolor="#dbeafe"];
+    imem [label="imem externa\n256 × 32\nCarga L y relleno HALT"];
+    cpu [label="CPU real de A · 5 etapas\nForwarding, load-use, saltos y HALT\nRegfile + dmem + dirty + mapa debug", fillcolor="#d1fae5"];
+    leds [label="LED0 RX · LED1 framing · LED2 overrun\nLED3 halted · LED7:4 estado · LED15 locked"];
+    clock -> reset;
+    clock -> uart [label="clock común", style=dashed];
+    reset -> debug [label="reset"];
+    uart -> debug [label="bytes / handshakes", dir=both];
+    debug -> imem [label="escritura de programa"];
+    debug -> cpu [label="reset / enable; halted y estado de retorno", dir=both];
+    imem -> cpu [label="PC[9:2] / instrucción", dir=both];
+    debug -> leds;
+  }
+  usb -> uart [label="RX / TX serie", dir=both];
+  note [label="STEP = un ciclo del pipeline\nDUMP conserva la pausa\nHALT termina en WB\nReset CPU conserva imem", fillcolor="#fef3c7"];
+  cpu -> note [style=dashed];
+}

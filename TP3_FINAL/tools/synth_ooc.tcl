@@ -5,7 +5,9 @@ set files [lrange $argv 2 end]
 set part  xc7a35tcpg236-1
 file mkdir $out
 create_project -in_memory -part $part
-set incdirs {}
+set incdirs [list \
+    [file normalize [file join [file dirname [info script]] ../VIVADO/TP_FINAL/rtl/common]] \
+    [file normalize [file join [file dirname [info script]] ../VIVADO/TP_FINAL/rtl/debug]]]
 foreach f $files {
     read_verilog $f
     lappend incdirs [file dirname $f]

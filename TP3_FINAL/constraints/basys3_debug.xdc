@@ -1,7 +1,6 @@
 ## Basys3 · top_debug (B-17).
-## Sin create_clock: el reloj de entrada lo restringe el XDC del Clock Wizard
-## (o build_bit.tcl en modo --clk mmcm).
 set_property -dict { PACKAGE_PIN W5  IOSTANDARD LVCMOS33 } [get_ports i_clk100]
+create_clock -period 10.000 -name sys_clk_pin [get_ports i_clk100]
 set_property -dict { PACKAGE_PIN U18 IOSTANDARD LVCMOS33 } [get_ports i_btn_reset]
 set_property -dict { PACKAGE_PIN B18 IOSTANDARD LVCMOS33 } [get_ports i_rx]
 set_property -dict { PACKAGE_PIN A18 IOSTANDARD LVCMOS33 } [get_ports o_tx]

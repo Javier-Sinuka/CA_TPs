@@ -1,5 +1,12 @@
-# This file keeps the TP3_FINAL root visible in Git.
-
 build/
 tools/*.jar
 __pycache__/
+VIVADO/TP_FINAL/*.cache/
+VIVADO/TP_FINAL/*.gen/
+VIVADO/TP_FINAL/*.hw/
+VIVADO/TP_FINAL/*.ip_user_files/
+VIVADO/TP_FINAL/*.runs/
+VIVADO/TP_FINAL/*.sim/
+VIVADO/TP_FINAL/*.srcs/
+VIVADO/TP_FINAL/*.xpr.backup*
+VIVADO/TP_FINAL/*.jou

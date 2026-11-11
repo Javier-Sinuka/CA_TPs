@@ -1,0 +1,27 @@
+digraph regression {
+  graph [rankdir=TB, bgcolor=white, pad="0.25", nodesep="0.4", ranksep="0.48", fontname="DejaVu Sans", fontsize=18, label="A-33 · Regresión y evidencia reproducible", labelloc=t];
+  node [shape=box, style="rounded,filled", color="#334155", fillcolor="#eff6ff", fontname="DejaVu Sans", fontsize=12, margin="0.16,0.1"];
+  edge [color="#475569", fontname="DejaVu Sans", fontsize=10];
+  inputs [label="Fuentes A + worktree B original\nProgramas / goldens independientes / seeds fijas", fillcolor="#fef3c7"];
+  subgraph cluster_gate {
+    label="run.py regress --companion PATH · 7 etapas";
+    fontname="DejaVu Sans"; fontsize=14; color="#2563eb"; style=rounded;
+    ports [label="1. ports\n14 puertos + cableado system"];
+    programs [label="2. programs\n7 HALT + no_halt ↔ assembler / ISS"];
+    control [label="3. control\n3 goldens + 13 encodings fijos"];
+    vectors [label="4. vectors\n19 archivos de B · solo --check"];
+    rtl [label="5. rtl\n31 bancos · 10.725.344 comparaciones\nCPU + memoria + riesgos + UART", fillcolor="#dbeafe"];
+    uart [label="6. uart\n34 tramas ↔ codec / checksum\n3 finales ↔ golden + ISS"];
+    coverage [label="7. coverage\n32/32 mnemonics retirados en RUN y STEP\n7 HALT en WB · manifiesto completo\n94 hashes de fuentes", fillcolor="#d1fae5"];
+    ports -> programs -> control -> vectors -> rtl -> uart -> coverage;
+  }
+  inputs -> ports;
+  cross [label="Contraste XSim independiente\nTraza CSV y 34 tramas idénticas byte a byte"];
+  synth [label="Síntesis CPU OOC · xc7a35tcpg236-1\n2.872 LUT · 1.739 FF · 0 latches\nWarnings revisados; sin timing de placa"];
+  rtl -> cross [label="artefactos de referencia"];
+  inputs -> synth [constraint=false];
+  gate [label="Entrega local A-M08\nMatriz ISA + logs + manifiestos + diagramas\nBaseline CPU para AB-05", fillcolor="#d1fae5"];
+  coverage -> gate;
+  cross -> gate;
+  synth -> gate;
+}

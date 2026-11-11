@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Product Version: Vivado v2025.2 (64-bit)                              -->
+<!-- Product Version: Vivado v2024.1 (64-bit)                              -->
 <!--                                                                         -->
 <!-- Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.                   -->
-<!-- Copyright 2022-2025 Advanced Micro Devices, Inc. All Rights Reserved.   -->
+<!-- Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.   -->
 
-<Project Product="Vivado" Version="7" Minor="71" Path="/home/javier/Documents/University/5to/Computer_Architecture/Practico/TPs/TP3_FINAL/VIVADO/TP_FINAL/TP_FINAL.xpr">
+<Project Product="Vivado" Version="7" Minor="67" Path="C:/Personal/Repos/CA_TPs/TP3_FINAL/VIVADO/TP_FINAL/TP_FINAL.xpr">
   <DefaultLaunch Dir="$PRUNDIR"/>
   <Configuration>
-    <Option Name="Id" Val="b081e989e46641dfb584de7aad9fb66b"/>
-    <Option Name="Part" Val="xc7a35ticpg236-1L"/>
+    <Option Name="Id" Val="c510af106bd64c64bbadd30abf0a2246"/>
+    <Option Name="Part" Val="xc7a35tcpg236-1"/>
     <Option Name="CompiledLibDir" Val="$PCACHEDIR/compile_simlib"/>
     <Option Name="CompiledLibDirXSim" Val=""/>
     <Option Name="CompiledLibDirModelSim" Val="$PCACHEDIR/compile_simlib/modelsim"/>
@@ -29,13 +29,13 @@
     <Option Name="SimulatorGccInstallDirVCS" Val=""/>
     <Option Name="SimulatorGccInstallDirRiviera" Val=""/>
     <Option Name="SimulatorGccInstallDirActiveHdl" Val=""/>
-    <Option Name="SimulatorVersionXsim" Val="2025.2"/>
-    <Option Name="SimulatorVersionModelSim" Val="2025.2"/>
-    <Option Name="SimulatorVersionQuesta" Val="2025.2"/>
-    <Option Name="SimulatorVersionXcelium" Val="25.03.002"/>
-    <Option Name="SimulatorVersionVCS" Val="X-2025.06"/>
-    <Option Name="SimulatorVersionRiviera" Val="2024.10"/>
-    <Option Name="SimulatorVersionActiveHdl" Val="15.0"/>
+    <Option Name="SimulatorVersionXsim" Val="2024.1"/>
+    <Option Name="SimulatorVersionModelSim" Val="2023.2"/>
+    <Option Name="SimulatorVersionQuesta" Val="2023.2"/>
+    <Option Name="SimulatorVersionXcelium" Val="23.03.002"/>
+    <Option Name="SimulatorVersionVCS" Val="U-2023.03-1"/>
+    <Option Name="SimulatorVersionRiviera" Val="2023.04"/>
+    <Option Name="SimulatorVersionActiveHdl" Val="14.1"/>
     <Option Name="SimulatorGccVersionXsim" Val="9.3.0"/>
     <Option Name="SimulatorGccVersionModelSim" Val="7.4.0"/>
     <Option Name="SimulatorGccVersionQuesta" Val="7.4.0"/>
@@ -83,44 +83,212 @@
     <Option Name="SimTypes" Val="tlm_dpi"/>
     <Option Name="MEMEnableMemoryMapGeneration" Val="TRUE"/>
     <Option Name="DcpsUptoDate" Val="TRUE"/>
-    <Option Name="UseInlineHdlIP" Val="TRUE"/>
+    <Option Name="ClassicSocBoot" Val="FALSE"/>
     <Option Name="LocalIPRepoLeafDirName" Val="ip_repo"/>
   </Configuration>
   <FileSets Version="1" Minor="32">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1" RelGenDir="$PGENDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/rtl/alu.v">
-        <FileInfo>
-          <Attr Name="AutoDisabled" Val="1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/rtl/imm_gen.v">
-        <FileInfo>
-          <Attr Name="AutoDisabled" Val="1"/>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PPRDIR/rtl/riscv_defs.vh">
+      <File Path="$PPRDIR/rtl/common/riscv_defs.vh">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="simulation"/>
           <Attr Name="IsVisible" Val="1"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/rtl/alu_control.v">
+      <File Path="$PPRDIR/rtl/cpu/execute/alu.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/rtl/control.v">
+      <File Path="$PPRDIR/rtl/cpu/decode/alu_control.v">
         <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/uart/baud_gen.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/top/clk_gen.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/decode/control.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/debug/cpu_ports.vh">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+          <Attr Name="IsVisible" Val="1"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/cpu.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/debug/debug_unit.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/decode/decode_stage.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/memory/dmem.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/registers/ex_mem.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/execute/execute_stage.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/hazards/forwarding_unit.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/hazards/hazard_unit.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/registers/id_ex.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/registers/if_id.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/debug/imem.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/decode/imm_gen.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/registers/mem_wb.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/memory/memory_stage.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/cpu/registers/regfile.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/debug/system.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/uart/uart_if.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/uart/uart_rx.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/uart/uart_tx.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/top/top_debug.v">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/debug/cpu_stub.v">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/rtl/top/top_uart_echo.v">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
@@ -128,20 +296,40 @@
       </File>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
-        <Option Name="TopModule" Val="control"/>
-        <Option Name="TopAutoSet" Val="TRUE"/>
-        <Option Name="VerilogDir" Val="$PPRDIR/rtl"/>
+        <Option Name="TopModule" Val="top_debug"/>
+        <Option Name="VerilogDir" Val="$PPRDIR/rtl/common"/>
+        <Option Name="VerilogDir" Val="$PPRDIR/rtl/debug"/>
       </Config>
     </FileSet>
     <FileSet Name="constrs_1" Type="Constrs" RelSrcDir="$PSRCDIR/constrs_1" RelGenDir="$PGENDIR/constrs_1">
       <Filter Type="Constrs"/>
+      <File Path="$PPRDIR/../../constraints/basys3_debug.xdc">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+        </FileInfo>
+      </File>
       <Config>
         <Option Name="ConstrsType" Val="XDC"/>
       </Config>
     </FileSet>
     <FileSet Name="sim_1" Type="SimulationSrcs" RelSrcDir="$PSRCDIR/sim_1" RelGenDir="$PGENDIR/sim_1">
       <Filter Type="Srcs"/>
-      <File Path="$PPRDIR/tb/tb_control.sv">
+      <File Path="$PPRDIR/tb/common/uart_bfm.svh">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+          <Attr Name="IsVisible" Val="1"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/system/tb_system_cpu_smoke.sv">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/debug/tb_cpu_contract.sv">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -149,7 +337,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/tb/tb_imm_gen.sv">
+      <File Path="$PPRDIR/tb/cpu/debug/tb_cpu_debug.sv">
         <FileInfo>
           <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
@@ -157,19 +345,358 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PPRDIR/tb/tb_alu.sv">
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_branch_execute.sv">
         <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_control_flow.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_cpu_freeze.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_cpu_no_hazard.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_cpu_step_halt.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_fetch.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_flush.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_forwarding_paths.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_halt_drain.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_load_use.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_load_use_consumers.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/pipeline/tb_raw.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_alu.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_alu_control.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_control.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_decode_stage.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_dmem.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_dmem_dirty.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_execute_stage.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_forwarding_unit.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_hazard_unit.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_imm_gen.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_mem_wb.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_pipeline_regs.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/cpu/unit/tb_regfile.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/debug/tb_cpu_stub.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/debug/tb_debug_helpers.svh">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+          <Attr Name="IsVisible" Val="1"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/debug/tb_debug_unit.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/debug/tb_imem.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/debug/tb_system_debug.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c0_h0.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c0_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c1000_h0_t.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c10_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c1_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c20_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c2_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c3_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c4_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c5_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c6_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c7_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c8_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/dump_c9_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/stub_state_c0_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/stub_state_c1_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/stub_state_c20_h20.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/stub_state_c25_h0.hex"/>
+      <File Path="$PPRDIR/tb/debug/vectors/stub_state_c7_h20.hex"/>
+      <File Path="$PPRDIR/tb/system/tb_imem_bridge.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/system/tb_system_prog.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/top/tb_uart_echo.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/uart/tb_baud_div1.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/uart/tb_baud_gen.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/uart/tb_uart.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/uart/tb_uart_rx.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/tb/uart/tb_uart_tx.sv">
+        <FileInfo>
+          <Attr Name="AutoDisabled" Val="1"/>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/alu_nodep.hex"/>
+      <File Path="$PPRDIR/../../programs/branches.hex"/>
+      <File Path="$PPRDIR/../../programs/call_ret.hex"/>
+      <File Path="$PPRDIR/../../programs/const32.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/arith_no_hazard.expected.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/arith_no_hazard.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/branch_load_use.expected.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/branch_load_use.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/flush_halt.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/halt_suite.expected.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/jump_link.expected.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/jump_link.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/load_use.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/no_halt.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/raw_distance.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/suma.expected.hex"/>
+      <File Path="$PPRDIR/../../programs/cpu/suma.hex"/>
+      <File Path="$PPRDIR/../../programs/load_use.hex"/>
+      <File Path="$PPRDIR/../../programs/mem_bytes.hex"/>
+      <File Path="$PPRDIR/../../programs/no_halt.hex"/>
+      <File Path="$PPRDIR/../../programs/raw_hazards.hex"/>
+      <File Path="$PPRDIR/../../programs/suma.hex"/>
       <Config>
         <Option Name="DesignMode" Val="RTL"/>
-        <Option Name="TopModule" Val="tb_alu"/>
-        <Option Name="TopLib" Val="xil_defaultlib"/>
-        <Option Name="TopAutoSet" Val="TRUE"/>
-        <Option Name="VerilogDir" Val="$PPRDIR/rtl"/>
+        <Option Name="TopModule" Val="tb_system_cpu_smoke"/>
+        <Option Name="VerilogDir" Val="$PPRDIR/rtl/common"/>
+        <Option Name="VerilogDir" Val="$PPRDIR/rtl/debug"/>
+        <Option Name="VerilogDir" Val="$PPRDIR/tb/common"/>
+        <Option Name="VerilogDir" Val="$PPRDIR/tb/debug"/>
         <Option Name="TransportPathDelay" Val="0"/>
         <Option Name="TransportIntDelay" Val="0"/>
         <Option Name="SelectedSimModel" Val="rtl"/>
@@ -178,22 +705,256 @@
         <Option Name="PamSignalDriverFile" Val="xil_bypass_driver"/>
         <Option Name="PamPseudoTop" Val="pseudo_tb"/>
         <Option Name="SrcSet" Val="sources_1"/>
-        <Option Name="CosimPdi" Val=""/>
-        <Option Name="CosimPlatform" Val=""/>
-        <Option Name="CosimElf" Val=""/>
-        <Option Name="CosimRootfs" Val=""/>
-        <Option Name="CosimSDfile" Val=""/>
-        <Option Name="CosimSDDir" Val=""/>
-        <Option Name="CosimOutDir" Val=""/>
-        <Option Name="CosimXsa" Val=""/>
-        <Option Name="CosimAIKernel" Val=""/>
-        <Option Name="LogicalNoCTop" Val=""/>
-        <Option Name="LogicalNoCTopLib" Val=""/>
-        <Option Name="Dmv" Val=""/>
       </Config>
     </FileSet>
     <FileSet Name="utils_1" Type="Utils" RelSrcDir="$PSRCDIR/utils_1" RelGenDir="$PGENDIR/utils_1">
       <Filter Type="Utils"/>
+      <File Path="$PPRDIR/../../doc/diagramas/01_combinacionales.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/02_estado_y_memorias.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/03_pipeline_base.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/04_forwarding.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/04_forwarding.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/04_raw_timing.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/04_raw_timing.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/05_load_use.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/05_load_use.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/05_load_use_timing.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/05_load_use_timing.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/06_control_flow.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/06_control_flow.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/06_flush_timing.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/06_flush_timing.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/07_halt_control.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/07_halt_control.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/07_halt_timing.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/07_halt_timing.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/08_cpu_debug.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/08_cpu_debug.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/08_regresion.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/08_regresion.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/09_basys3_system.dot"/>
+      <File Path="$PPRDIR/../../doc/diagramas/09_basys3_system.svg"/>
+      <File Path="$PPRDIR/../../doc/diagramas/datapath.svg"/>
+      <File Path="$PPRDIR/../../doc/documentation/00_datapath.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/01_combinacionales.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/02_estado_y_memorias.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/03_pipeline_base.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/04_forwarding.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/05_load_use.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/06_saltos_y_flush.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/07_halt_y_congelamiento.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/08_cpu_listo_para_debug.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/09_integracion_cpu_debug_basys3.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/RISC-V_formatos_opcode_instrucciones.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/convenciones.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/cpu_decisiones.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/cpu_dump.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/cpu_interfaz.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/debug.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/decisiones.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/dump.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/integracion_debug.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/interfaz_cpu.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/inventario_rtl.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/manual_interfaz.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/matriz_isa.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/organizacion.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/protocolo.md"/>
+      <File Path="$PPRDIR/../../doc/documentation/uart.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-01.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-02.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-03.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-04.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-05.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-06.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-07.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-08.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-09.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-10.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-11.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-12.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-13.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-14.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-15.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-16.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-17.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-18.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-19.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-20.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-21.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-22.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-23.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-24.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-25.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-26.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-27.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-28.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-29.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-30.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-31.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-32.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-33.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-M01.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-M02.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-M03.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-M04.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-M05.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-M06.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-M07.md"/>
+      <File Path="$PPRDIR/../../doc/validation/A-M08.md"/>
+      <File Path="$PPRDIR/../../tools/build_bit.tcl">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../tools/capture_manual.py"/>
+      <File Path="$PPRDIR/../../tools/create_project.tcl">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../tools/gen_expected.py"/>
+      <File Path="$PPRDIR/../../tools/gen_vectors.py"/>
+      <File Path="$PPRDIR/../../tools/program.tcl">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../tools/rars_ref.py"/>
+      <File Path="$PPRDIR/../../tools/regress.py"/>
+      <File Path="$PPRDIR/../../tools/run.py"/>
+      <File Path="$PPRDIR/../../tools/synth_ooc.tcl">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../tools/tbs.py"/>
+      <File Path="$PPRDIR/../../programs/alu_nodep.expected.json"/>
+      <File Path="$PPRDIR/../../programs/alu_nodep.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/branches.expected.json"/>
+      <File Path="$PPRDIR/../../programs/branches.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/call_ret.expected.json"/>
+      <File Path="$PPRDIR/../../programs/call_ret.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/const32.expected.json"/>
+      <File Path="$PPRDIR/../../programs/const32.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/cpu/arith_no_hazard.expected.json"/>
+      <File Path="$PPRDIR/../../programs/cpu/arith_no_hazard.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/cpu/branch_load_use.expected.json"/>
+      <File Path="$PPRDIR/../../programs/cpu/branch_load_use.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/cpu/flush_halt.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/cpu/halt_suite.expected.json"/>
+      <File Path="$PPRDIR/../../programs/cpu/jump_link.expected.json"/>
+      <File Path="$PPRDIR/../../programs/cpu/jump_link.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/cpu/load_use.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/cpu/no_halt.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/cpu/raw_distance.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/cpu/suma.expected.json"/>
+      <File Path="$PPRDIR/../../programs/cpu/suma.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/load_use.expected.json"/>
+      <File Path="$PPRDIR/../../programs/load_use.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/mem_bytes.expected.json"/>
+      <File Path="$PPRDIR/../../programs/mem_bytes.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/no_halt.expected.json"/>
+      <File Path="$PPRDIR/../../programs/no_halt.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/raw_hazards.expected.json"/>
+      <File Path="$PPRDIR/../../programs/raw_hazards.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../programs/suma.expected.json"/>
+      <File Path="$PPRDIR/../../programs/suma.s">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../../sw/tests/__init__.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_canonical.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_cli.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_disasm.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_dump.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_fakeboard.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_golden.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_gui_smoke.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_guion_debug.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_iss_cli.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_link.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_programs.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_proto.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_regress.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_rvasm.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_smoke.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_spacetime.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_stub_model.py"/>
+      <File Path="$PPRDIR/../../sw/tests/test_system_recordings.py"/>
       <Config>
         <Option Name="TopAutoSet" Val="TRUE"/>
       </Config>
@@ -210,29 +971,26 @@
     <Simulator Name="Questa">
       <Option Name="Description" Val="Questa Advanced Simulator"/>
     </Simulator>
-    <Simulator Name="Xcelium">
-      <Option Name="Description" Val="Xcelium Parallel Simulator"/>
-    </Simulator>
-    <Simulator Name="VCS">
-      <Option Name="Description" Val="Verilog Compiler Simulator (VCS)"/>
-    </Simulator>
     <Simulator Name="Riviera">
       <Option Name="Description" Val="Riviera-PRO Simulator"/>
     </Simulator>
+    <Simulator Name="ActiveHDL">
+      <Option Name="Description" Val="Active-HDL Simulator"/>
+    </Simulator>
   </Simulators>
   <Runs Version="1" Minor="22">
-    <Run Id="synth_1" Type="Ft3:Synth" SrcSet="sources_1" Part="xc7a35ticpg236-1L" ConstrsSet="constrs_1" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="true" WriteIncrSynthDcp="false" State="current" IncludeInArchive="true" IsChild="false" AutoIncrementalDir="$PSRCDIR/utils_1/imports/synth_1" AutoRQSDir="$PSRCDIR/utils_1/imports/synth_1" ParallelReportGen="true">
+    <Run Id="synth_1" Type="Ft3:Synth" SrcSet="sources_1" Part="xc7a35tcpg236-1" ConstrsSet="constrs_1" Description="Vivado Synthesis Defaults" AutoIncrementalCheckpoint="true" WriteIncrSynthDcp="false" State="current" IncludeInArchive="true" IsChild="false" AutoIncrementalDir="$PSRCDIR/utils_1/imports/synth_1" AutoRQSDir="$PSRCDIR/utils_1/imports/synth_1" ParallelReportGen="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2025"/>
+        <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2024"/>
         <Step Id="synth_design"/>
       </Strategy>
-      <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2025"/>
+      <ReportStrategy Name="Vivado Synthesis Default Reports" Flow="Vivado Synthesis 2024"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
     </Run>
-    <Run Id="impl_1" Type="Ft2:EntireDesign" Part="xc7a35ticpg236-1L" ConstrsSet="constrs_1" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" State="current" SynthRun="synth_1" IncludeInArchive="true" IsChild="false" GenFullBitstream="true" AutoIncrementalDir="$PSRCDIR/utils_1/imports/impl_1" AutoRQSDir="$PSRCDIR/utils_1/imports/impl_1" ParallelReportGen="true">
+    <Run Id="impl_1" Type="Ft2:EntireDesign" Part="xc7a35tcpg236-1" ConstrsSet="constrs_1" Description="Default settings for Implementation." AutoIncrementalCheckpoint="false" WriteIncrSynthDcp="false" State="current" SynthRun="synth_1" IncludeInArchive="true" IsChild="false" GenFullBitstream="true" AutoIncrementalDir="$PSRCDIR/utils_1/imports/impl_1" AutoRQSDir="$PSRCDIR/utils_1/imports/impl_1" ParallelReportGen="true">
       <Strategy Version="1" Minor="2">
-        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2025"/>
+        <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2024"/>
         <Step Id="init_design"/>
         <Step Id="opt_design"/>
         <Step Id="power_opt_design"/>
@@ -243,7 +1001,7 @@
         <Step Id="post_route_phys_opt_design"/>
         <Step Id="write_bitstream"/>
       </Strategy>
-      <ReportStrategy Name="Vivado Implementation Default Reports" Flow="Vivado Implementation 2025"/>
+      <ReportStrategy Name="Vivado Implementation Default Reports" Flow="Vivado Implementation 2024"/>
       <Report Name="ROUTE_DESIGN.REPORT_METHODOLOGY" Enabled="1"/>
       <RQSFiles/>
     </Run>

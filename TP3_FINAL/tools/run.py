@@ -12,6 +12,7 @@ Uso, desde la raíz del repo:
     py TP3_FINAL/tools/run.py regress [--levels iss,fake,rtl,board] [--board COMx] [--program <nombre>] [--iss-mutant sra]
     py TP3_FINAL/tools/run.py bit <top> [--mhz 50|100] [--clk wiz|mmcm] [--define NAME]
     py TP3_FINAL/tools/run.py program <archivo.bit>
+    py TP3_FINAL/tools/run.py project
 iverilog y vvp corren con cwd = raíz del repo: los TB abren archivos con rutas relativas a esa raíz.
 """
 from __future__ import annotations
@@ -29,7 +30,7 @@ BUILD = REPO / "TP3_FINAL" / "build"
 sys.path.insert(0, str(TOOLS))
 from tbs import BITS, CLK_GEN, MUTATIONS, SYNTH, TBS  # noqa: E402
 
-VIVADO = os.environ.get("VIVADO", "C:/Xilinx/Vivado/2024.1/bin/vivado.bat")
+VIVADO = os.environ.get("VIVADO", "vivado" if os.name != "nt" else "C:/Xilinx/Vivado/2024.1/bin/vivado.bat")
 BAD_SYNTH = re.compile(r"inferring latch|multi-driven|implicit", re.IGNORECASE)
 
 
@@ -153,7 +154,7 @@ def run_vivado(tcl: str, log: Path, args: list[str]) -> int:
     log.parent.mkdir(parents=True, exist_ok=True)
     cmd = [VIVADO, "-mode", "batch", "-nojournal", "-log", log.as_posix(),
            "-source", (TOOLS / tcl).as_posix(), "-tclargs", *args]
-    return subprocess.run(cmd).returncode
+    return subprocess.run(cmd, cwd=log.parent).returncode
 
 
 def bad_synth_lines(log: Path) -> list[str]:
@@ -188,13 +189,13 @@ def run_bit(top: str, mhz: int, clk: str, defines: list[str] | None = None) -> b
     for l in bad:
         print(f"  {l}")
     summary = out / "summary.txt"
-    wns_ok = False
+    timing_ok = False
     if summary.exists():
         text = summary.read_text().strip()
         print(text)
-        m = re.search(r"WNS=(-?[0-9.]+)", text)
-        wns_ok = m is not None and float(m.group(1)) >= 0.0
-    ok = rc == 0 and not bad and wns_ok
+        slacks = [re.search(rf"{name}=(-?[0-9.]+)", text) for name in ("WNS", "WHS")]
+        timing_ok = all(match is not None and float(match.group(1)) >= 0.0 for match in slacks)
+    ok = rc == 0 and not bad and timing_ok and (out / f"{top}.bit").is_file()
     bit = (out / f"{top}.bit").relative_to(REPO).as_posix()
     print(f"{'PASS' if ok else 'FAIL'} bit {top} {mhz} MHz ({clk}) -> {bit}")
     return ok
@@ -205,6 +206,15 @@ def run_program(bit: str) -> bool:
     rc = run_vivado("program.tcl", log, [Path(bit).resolve().as_posix()])
     print(f"{'PASS' if rc == 0 else 'FAIL'} program {bit}")
     return rc == 0
+
+
+def run_project() -> bool:
+    project = REPO / "TP3_FINAL/VIVADO/TP_FINAL/TP_FINAL.xpr"
+    log = BUILD / "project/vivado.log"
+    code = run_vivado("create_project.tcl", log, [])
+    ok = code == 0 and project.is_file()
+    print(f"{'PASS' if ok else 'FAIL'} project: {project}")
+    return ok
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -219,6 +229,7 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("pytest")
     sub.add_parser("iss")
     sub.add_parser("test")
+    sub.add_parser("project")
     pr = sub.add_parser("regress")
     pr.add_argument("--levels", default="iss,fake,rtl", help="lista separada por comas: iss,fake,rtl,board")
     pr.add_argument("--board", metavar="COMx", help="puerto de la placa; agrega el nivel board")
@@ -228,7 +239,7 @@ def main(argv: list[str] | None = None) -> int:
     pb = sub.add_parser("bit")
     pb.add_argument("top", choices=sorted(BITS))
     pb.add_argument("--mhz", type=int, default=50)
-    pb.add_argument("--clk", choices=["wiz", "mmcm"], default="wiz")
+    pb.add_argument("--clk", choices=["wiz", "mmcm"], default="mmcm")
     pb.add_argument("--define", action="append", default=[], metavar="NAME",
                     help="repetible; va a synth_design -verilog_define (B-17 usa --define CPU_STUB)")
     sub.add_parser("program").add_argument("bitfile")
@@ -251,9 +262,14 @@ def main(argv: list[str] | None = None) -> int:
         import regress
         return regress.main(a)
     elif a.cmd == "bit":
+        if a.top == "top_debug" and a.clk == "wiz":
+            print("error: top_debug solo se construye con --clk mmcm (D-40)")
+            return 2
         ok = run_bit(a.top, a.mhz, a.clk, a.define)
     elif a.cmd == "program":
         ok = run_program(a.bitfile)
+    elif a.cmd == "project":
+        ok = run_project()
     else:
         ok = run_synth(a.top)
     return 0 if ok else 1

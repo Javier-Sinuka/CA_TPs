@@ -22,7 +22,9 @@ file mkdir $out
 create_project -in_memory -part $part
 set_property target_language Verilog [current_project]
 
-set incdirs {}
+set incdirs [list \
+    [file normalize [file join [file dirname [info script]] ../VIVADO/TP_FINAL/rtl/common]] \
+    [file normalize [file join [file dirname [info script]] ../VIVADO/TP_FINAL/rtl/debug]]]
 foreach f $files {
     read_verilog $f
     lappend incdirs [file dirname $f]
@@ -39,12 +41,8 @@ if {$clk eq "wiz"} {
         CONFIG.USE_LOCKED {true}] [get_ips clk_wiz_0]
     set_property generate_synth_checkpoint false [get_files clk_wiz_0.xci]
     generate_target all [get_ips clk_wiz_0]
-} else {
-    # clk_gen.v ya está en $files; acá solo falta restringir el reloj de entrada.
-    set fh [open $out/clk100.xdc w]
-    puts $fh "create_clock -period 10.000 -name sys_clk_pin \[get_ports i_clk100\]"
-    close $fh
-    read_xdc $out/clk100.xdc
+} elseif {$top ne "top_debug"} {
+    create_clock -period 10.000 -name sys_clk_pin [get_ports i_clk100]
 }
 
 synth_design -top $top -part $part -generic CLOCK_FREQ=$freq \
@@ -63,8 +61,18 @@ report_timing_summary -file $out/timing.rpt
 report_utilization    -file $out/util.rpt
 report_utilization    -hierarchical -file $out/util_hier.rpt
 report_clocks         -file $out/clocks.rpt
+report_drc            -file $out/drc.rpt
+report_methodology    -file $out/methodology.rpt
+check_timing -verbose -file $out/check_timing.rpt
 set wns [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
 set whs [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -hold]]
+if {$wns < 0 || $whs < 0} {
+    error "Timing failed: WNS=$wns WHS=$whs"
+}
+if {[llength [get_drc_violations -quiet -filter {SEVERITY == Error}]]} {
+    error "Implementation has DRC errors"
+}
+write_checkpoint -force $out/$top.dcp
 write_bitstream -force $out/$top.bit
 
 set fh [open $out/summary.txt w]

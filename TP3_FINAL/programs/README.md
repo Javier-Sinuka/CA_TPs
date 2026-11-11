@@ -37,3 +37,7 @@ Un `.expected.json` solo se cambia si la línea `# expect:` del `.s` lo respalda
 - `x17` en `mem_bytes`: el `lw` desalineado es una excepción en RARS (termina con `Load address not aligned…`), mientras que el ISS ignora los bits bajos (D-18). `regs` copia el aviso de RARS a stderr y sigue.
 - `branches` usa las etiquetas `tk1`, `tk2` y `tk3` porque `t1`, `t2` y `t3` son nombres de registros para RARS.
 - `no_halt` no se compara con RARS (no termina).
+
+## Suite específica del datapath
+
+Los programas y goldens históricos de A se conservan en [`cpu/`](cpu/README.md). Incluyen versiones distintas de `suma`, `load_use` y `no_halt`; se mantienen separadas para conservar las expectativas de cada banco. Los nueve programas de esta carpeta raíz mantienen los formatos y nombres utilizados por las herramientas de B. No se regeneraron programas ni resultados esperados al resolver el merge.

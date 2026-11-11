@@ -11,11 +11,11 @@ Todas relativas a la raíz del repo (`CA_TPs/`).
 | Alias | Ruta | Contenido |
 | --- | --- | --- |
 | `$TP3` | `TP3_FINAL/` | |
-| `$RTL` | `TP3_FINAL/VIVADO/TP_FINAL/rtl/` | RTL sintetizable. Ya contiene lo de A (`alu.v`, `control.v`, `imm_gen.v`, `riscv_defs.vh`) |
+| `$RTL` | `TP3_FINAL/VIVADO/TP_FINAL/rtl/` | RTL sintetizable. A se organiza en `rtl/cpu/{decode,execute,memory,registers,hazards}`; `riscv_defs.vh` está en `rtl/common/` |
 | `$RTL/uart/` | | `baud_gen.v`, `uart_rx.v`, `uart_tx.v`, `uart_if.v` |
 | `$RTL/debug/` | | `debug_unit.v`, `cpu_stub.v`, `imem.v`, `system.v`, `cpu_ports.vh` |
 | `$RTL/top/` | | `top_uart_echo.v`, `top_debug.v` (únicos que tocan pines y Clock Wizard) |
-| `$TB` | `TP3_FINAL/VIVADO/TP_FINAL/tb/` | TB de A en la raíz; los de B en `tb/uart/`, `tb/debug/`, `tb/system/` |
+| `$TB` | `TP3_FINAL/VIVADO/TP_FINAL/tb/` | TB de A en `tb/cpu/{unit,pipeline,debug}` y bancos de sistema en `tb/system/`; B conserva `tb/uart/`, `tb/debug/`, `tb/system/` |
 | `$XDC` | `TP3_FINAL/constraints/` | `basys3_uart_echo.xdc`, `basys3_debug.xdc` |
 | `$DOCS` | `TP3_FINAL/doc/documentation/` | Este archivo y los contratos; `uart.md`, `debug.md` |
 | `$SW` | `TP3_FINAL/sw/` | Raíz de Python (`asm/`, `host/`, `tests/`) y C++ (`iss/`) |
@@ -130,3 +130,5 @@ endmodule
 3. RTL nuevo: `py TP3_FINAL/tools/run.py synth_ooc <top>` sin `inferring latch`, sin `multi-driven`, sin `implicit net` (el script falla si los encuentra).
 4. Si el issue tocó un contrato (`protocolo.md`, `dump.md`, `interfaz_cpu.md`), el cambio está en el mismo PR y lo aprobó A.
 5. Cualquier decisión nueva va a `decisiones.md` con su porqué. Un ejecutor **no** toma decisiones de diseño: si falta algo, se detiene y lo pregunta.
+
+La reorganización posterior al merge se detalla en [organizacion.md](organizacion.md). Los comandos históricos con `--companion` pertenecían al runner de A retirado. `tools/run.py` conserva ahora el runner común de B; `DATAPATH_FILES` declara las fuentes de A y `CPU_FILES = DATAPATH_FILES` activa su uso en los bancos y bitstream de B. El [informe 09](09_integracion_cpu_debug_basys3.md) registra parte, clock, proyecto nativo, simulación y bitstream actual.

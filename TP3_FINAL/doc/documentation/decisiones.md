@@ -141,3 +141,5 @@ El detalle vive en los contratos; acá queda el porqué. Las marcadas **[A]** ob
 
 - **H-2 (`FIRST_TICK` 652 vs 651): es del TB, no del RTL.** `tb_baud_gen` lee `o_baud_tick` en el mismo `always @(posedge)` en el que el DUT lo actualiza con `<=`, así que lo ve un ciclo tarde. El período (651) es correcto. Se arregla el TB (leer en `negedge`, regla de D-03), no `baud_gen`.
 - **H-7 (nuevo, menor) · `uart_tx` desplaza `o_tx` un ciclo en los bits 1 a 7.** En el tick de fin de bit dentro de `DATA`, `o_tx <= r_shift[0]` usa el valor previo al shift, así que el bit 0 dura 16 ticks + 1 clock y el bit 7, 16 ticks − 1 clock (20 ns sobre 8,68 µs a 50 MHz, inocuo). Se corrige igual en B-03, en commit propio: en ese tick, `o_tx <= r_shift[1]`.
+
+La aplicación e implementación del datapath se conserva en [cpu_decisiones.md](cpu_decisiones.md). La [organización actual](organizacion.md) describe las rutas posteriores a la incorporación de ambas pistas.

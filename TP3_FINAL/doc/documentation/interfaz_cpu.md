@@ -171,3 +171,7 @@ Mismos puertos (`cpu_ports.vh`), parámetro `HALT_AT` (0 = nunca para). Comporta
 | `o_dbg_mem_data` | si está sucia: `{8'hD0, 16'h0000, índice}`; si no 0 |
 
 `i_imem_data` se ignora. `sw/host/stub_model.py` reproduce esta tabla en Python: `stub_dump(cycles, halt_at, timeout=False, aborted=False) -> Dump`.
+
+La aplicación e implementación del datapath se conserva en [cpu_interfaz.md](cpu_interfaz.md). La [organización actual](organizacion.md) describe las rutas posteriores a la incorporación de ambas pistas.
+
+La [integración completa con CPU real y preparación de Basys3](09_integracion_cpu_debug_basys3.md) valida localmente este cableado con programas de ambas pistas, UART/host y síntesis/implementación del sistema. La comprobación física queda pendiente.

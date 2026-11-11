@@ -7,7 +7,7 @@ import pytest
 from host.cli import Session
 from host.dump import Dump
 from host.fakeboard import FakeBoard
-from host.golden import Golden, check, retired_after
+from host.golden import Golden, check, retired_after, store_en_wb
 from host.link import Link
 
 PROGRAMS = Path(__file__).resolve().parents[2] / "programs"
@@ -192,3 +192,31 @@ def test_x0_no_se_compara(make):
     s.execute("run")
     x = (1,) + s.cur.x[1:]
     assert g.diverging_final(dataclasses.replace(s.cur, x=x)) == set()
+
+
+def _dump_iss(state, lat):
+    return Dump(halted=False, timeout=False, aborted=False, version=1, cycles=0, pc=0,
+                x=tuple(int(v, 16) for v in state["x"]), latches=tuple(lat),
+                mem=tuple((int(a, 16), int(v, 16)) for a, v in state["mem"]))
+
+
+def test_store_en_wb_ya_escribio_dmem_y_no_es_divergencia(make):
+    """C-02: con el CPU real, dmem se escribe en el flanco que termina MEM, un paso antes del WB."""
+    _, g = make("suma.s")
+    k = next(n for n in range(1, 40) if g.state_after(n)["mem"])    # el store es la k-ésima
+    ant, post = g.state_after(k - 1), g.state_after(k)
+    en_mem = [0] * 16
+    en_mem[10] = 1 << 24                                            # info_mem.mem_write
+    en_mem[15] = 0x4                                                # valid_mem
+    en_wb = [0] * 16
+    en_wb[15] = 0x8                                                 # valid_wb
+    # registros del ISS tras k-1 y memoria ya escrita (la del ISS tras k)
+    dumps = [_dw(True)] * (k - 1) + [_dump_iss(ant, en_mem),
+                                     _dump_iss({"x": ant["x"], "mem": post["mem"]}, en_wb)]
+    assert retired_after(dumps) == k - 1
+    assert store_en_wb(dumps)
+    assert check(g, dumps, ran=False) == (set(), "golden: ok")
+    # sin el store en MEM del dump anterior, esa memoria sí sería una divergencia
+    dumps[-2] = _dump_iss(ant, [0] * 16)
+    assert not store_en_wb(dumps)
+    assert check(g, dumps, ran=False) == ({"mem[0x00000000]"}, "golden: 1 divergencias")

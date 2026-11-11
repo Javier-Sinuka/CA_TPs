@@ -1,0 +1,37 @@
+digraph load_use {
+    graph [rankdir=LR, bgcolor="white", pad="0.3", nodesep="0.55", ranksep="0.65", fontname="DejaVu Sans", labelloc=t, label="A-M05 · Control del avance ante load-use", fontsize=19];
+    node [shape=box, style="rounded,filled", fillcolor="#edf3ff", color="#5473a5", fontname="DejaVu Sans", fontsize=12, margin="0.18,0.13"];
+    edge [color="#52647c", fontname="DejaVu Sans", fontsize=10];
+
+    pc [label="PC IF\nregistro de 32 bits"];
+    ifid [label="IF/ID\nPC · instrucción · valid"];
+    decode [label="Decode ID\ncontrol existente\nrs1 / rs2 y usos efectivos"];
+    idex [label="ID/EX\noperandos capturados\nrd · mem_read · valid"];
+    execute [label="Etapa EX\nmuxes de operandos\nALU · dato de store"];
+    exmem [label="EX/MEM\nload: dirección\nstore: dato y dirección"];
+    memwb [label="MEM/WB\nload_data ya disponible", fillcolor="#e5f6ea", color="#51875d"];
+    hazard [label="u_hazard: hazard_unit\nload válido, rd ≠ 0\ncoincidencia con fuente usada", fillcolor="#fff0c7", color="#ae8633"];
+    stall [label="w_load_use_stall\ncombinacional, sin flops", fillcolor="#fff0c7", color="#ae8633"];
+    dmem [label="dmem\nlectura combinacional", fillcolor="#e5f6ea", color="#51875d"];
+    fwd [label="Forwarding existente\nWB → operandos EX\nselector 01", fillcolor="#e5f6ea", color="#51875d"];
+
+    pc -> ifid [label="fetch externo"];
+    ifid -> decode;
+    decode -> idex;
+    idex -> execute [label="operandos y controles"];
+    execute -> exmem [label="EX avanza"];
+    exmem -> memwb [label="MEM avanza"];
+    exmem -> dmem [label="dirección"];
+    dmem -> memwb [label="dato de load"];
+    decode -> hazard [label="valid ID · fuentes · usos"];
+    idex -> hazard [label="valid EX · load · rd"];
+    hazard -> stall;
+    stall -> pc [label="retener PC", color="#b45137", style=dashed, constraint=false];
+    stall -> ifid [label="i_stall: retener", color="#b45137", style=dashed, constraint=false];
+    stall -> idex [label="i_flush: burbuja", color="#b45137", style=dashed, constraint=false];
+    memwb -> fwd [label="dato final WB"];
+    fwd -> execute [label="operandos corregidos", color="#1f7a4c", constraint=false];
+
+    note [label="Reset domina. Con w_adv = 0, todo se conserva.\nCon w_adv = 1 y riesgo, solo PC/IFID se retienen;\nID/EX recibe burbuja y las etapas posteriores avanzan.", fillcolor="#f5f5f5", color="#999999"];
+    stall -> note [style=invis];
+}

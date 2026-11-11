@@ -1,0 +1,15 @@
+digraph flush_timing {
+    graph [bgcolor="white", pad="0.25", fontname="DejaVu Sans", fontsize=19, labelloc=t, label="Salto en EX · dos instrucciones jóvenes descartadas"];
+    node [shape=plain, fontname="DejaVu Sans"];
+    timeline [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="12" COLOR="#b9c7d9">
+        <TR><TD BGCOLOR="#24476d"><FONT COLOR="white"><B>Instante</B></FONT></TD><TD BGCOLOR="#24476d"><FONT COLOR="white"><B>PC IF</B></FONT></TD><TD BGCOLOR="#24476d"><FONT COLOR="white"><B>ID</B></FONT></TD><TD BGCOLOR="#24476d"><FONT COLOR="white"><B>EX</B></FONT></TD><TD BGCOLOR="#24476d"><FONT COLOR="white"><B>MEM</B></FONT></TD><TD BGCOLOR="#24476d"><FONT COLOR="white"><B>WB</B></FONT></TD></TR>
+        <TR><TD>Antes del salto</TD><TD>16: joven B</TD><TD BGCOLOR="#ffe8dc">12: joven A</TD><TD BGCOLOR="#fff0c7">8: salto tomado</TD><TD>4: anterior</TD><TD>0: anterior</TD></TR>
+        <TR><TD>Pausa externa</TD><TD>16, conserva</TD><TD BGCOLOR="#ffe8dc">Conserva A</TD><TD BGCOLOR="#fff0c7">take sigue activo</TD><TD>Conserva</TD><TD>Conserva</TD></TR>
+        <TR><TD>Primer avance</TD><TD BGCOLOR="#e5f6ea">24: destino</TD><TD BGCOLOR="#f0f0f0">Burbuja</TD><TD BGCOLOR="#f0f0f0">Burbuja</TD><TD BGCOLOR="#fff0c7">8: salto</TD><TD>4: anterior</TD></TR>
+        <TR><TD>Segundo avance</TD><TD>28</TD><TD BGCOLOR="#e5f6ea">24: destino</TD><TD BGCOLOR="#f0f0f0">Burbuja</TD><TD BGCOLOR="#f0f0f0">Burbuja</TD><TD BGCOLOR="#fff0c7">8: salto</TD></TR>
+        <TR><TD>Tercer avance</TD><TD>32</TD><TD>28</TD><TD BGCOLOR="#e5f6ea">24: destino</TD><TD BGCOLOR="#f0f0f0">Burbuja</TD><TD BGCOLOR="#f0f0f0">Burbuja</TD></TR>
+        <TR><TD COLSPAN="6" BGCOLOR="#f5f7fa">Las burbujas tienen valid/control efectivos en cero; el payload puede conservar datos anteriores.<BR/>El salto conserva PC+4 para WB; el destino se usa únicamente para redirigir el PC.</TD></TR>
+    </TABLE>
+    >];
+}

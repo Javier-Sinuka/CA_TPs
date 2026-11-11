@@ -1,0 +1,36 @@
+digraph forwarding {
+    graph [rankdir=LR, bgcolor="white", pad="0.25", nodesep="0.38", ranksep="0.65", fontname="DejaVu Sans"];
+    node [shape=box, style="rounded,filled", fillcolor="#eaf2ff", color="#5473a5", fontname="DejaVu Sans", fontsize=11];
+    edge [color="#43536a", fontname="DejaVu Sans", fontsize=9];
+
+    idex [label="ID/EX\nrs1 y rs2 capturados\nidentificadores y usos"];
+    mem [label="EX/MEM\nw_result_mem\nrd, valid, write, load", fillcolor="#e8f4ff"];
+    wb [label="MEM/WB\nw_wb_data final\nrd, valid, write", fillcolor="#e5f6ea", color="#51875d"];
+    unit [label="forwarding_unit\ncompara destinos y edad\nbloquea load joven", fillcolor="#fff0c7", color="#ae8633"];
+    muxa [label="Mux A\n00 ID/EX · 10 MEM · 01 WB"];
+    muxb [label="Mux B\n00 ID/EX · 10 MEM · 01 WB"];
+    imm [label="Mux rs2 / inmediato"];
+    alu [label="ALU\nrs1 corregido\noperando B seleccionado"];
+    store [label="EX/MEM\nstore_data corregido"];
+
+    {rank=same; idex; mem; wb;}
+    {rank=same; muxa; muxb;}
+    {rank=same; alu; store;}
+
+    idex -> unit [label="fuentes"];
+    mem -> unit [label="productor joven"];
+    wb -> unit [label="productor viejo"];
+    unit -> muxa [label="selector A"];
+    unit -> muxb [label="selector B"];
+    idex -> muxa [label="rs1"];
+    idex -> muxb [label="rs2"];
+    mem -> muxa [color="#2268a0"];
+    mem -> muxb [color="#2268a0"];
+    wb -> muxa [color="#1f7a4c"];
+    wb -> muxb [color="#1f7a4c"];
+    muxa -> alu [label="rs1"];
+    muxb -> imm [label="rs2"];
+    idex -> imm [label="inmediato"];
+    imm -> alu [label="operando B"];
+    muxb -> store [label="rs2"];
+}
